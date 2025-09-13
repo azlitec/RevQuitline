@@ -217,13 +217,13 @@ export default async function LoginPage() {
             <div className="bg-gradient-to-r from-[#38b6ff] to-[#7e43f1] p-6 text-white text-center">
               <div className="inline-block bg-white p-2 rounded-lg shadow-lg mb-4">
                 <img 
-                  src="https://kareerfit.com/wp-content/uploads/2025/04/kareerfit-1-e1745277544629.png" 
-                  alt="KareerFit Logo" 
+                  src="/logo.png"
+                  alt="Lumelife Quitline Logo"
                   className="h-8"
                 />
               </div>
               <h2 className="text-2xl font-bold">Welcome Back</h2>
-              <p className="text-white/80 mt-1">Sign in to your KareerFit account</p>
+              <p className="text-white/80 mt-1">Sign in to your Lumelife Quitline account</p>
             </div>
             
             {/* Form section */}

@@ -20,94 +20,98 @@ export async function GET(request: NextRequest) {
     // Get user count
     const userCount = await prisma.user.count();
     
-    // Get assessment count
-    const assessmentCount = await prisma.assessment.count();
+    // Get appointment count
+    const appointmentCount = await prisma.appointment.count();
     
-    // Get total payment amount
-    const payments = await prisma.payment.findMany({
+    // Get upcoming appointments count
+    const upcomingAppointments = await prisma.appointment.count({
+      where: {
+        status: 'scheduled',
+        date: {
+          gte: new Date()
+        }
+      }
+    });
+    
+    // Get completed appointments count
+    const completedAppointments = await prisma.appointment.count({
       where: {
         status: 'completed'
-      },
-      select: {
-        amount: true
       }
     });
     
-    const paymentAmount = payments.reduce((sum: number, payment: { amount: number }) => sum + payment.amount, 0);
-    
-    // Get coupon count
-    const couponCount = await prisma.coupon.count({
-      where: {
-        expiresAt: {
-          gt: new Date()
-        }
-      }
-    });
-    
-    // Get recent assessments
-    const recentAssessments = await prisma.assessment.findMany({
+    // Get recent appointments
+    const recentAppointments = await prisma.appointment.findMany({
       take: 5,
       orderBy: {
         createdAt: 'desc'
       },
       include: {
-        user: {
+        provider: {
           select: {
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
-    
-    // Format recent assessments
-    const formattedAssessments = recentAssessments.map((assessment: any) => ({
-      id: assessment.id,
-      type: assessment.type,
-      status: assessment.status,
-      createdAt: assessment.createdAt,
-      userName: assessment.user?.name || assessment.user?.email || 'Unknown'
-    }));
-    
-    // Get recent payments
-    const recentPayments = await prisma.payment.findMany({
-      take: 5,
-      orderBy: {
-        createdAt: 'desc'
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true
+            firstName: true,
+            lastName: true,
+            email: true,
+            specialty: true
           }
         },
-        assessment: {
+        patient: {
           select: {
-            type: true
+            firstName: true,
+            lastName: true,
+            email: true
           }
         }
       }
     });
     
-    // Format recent payments
-    const formattedPayments = recentPayments.map((payment: any) => ({
-      id: payment.id,
-      amount: payment.amount,
-      method: payment.method || payment.gateway || 'Unknown',
-      status: payment.status,
-      createdAt: payment.createdAt,
-      userName: payment.user?.name || payment.user?.email || 'Unknown',
-      assessmentType: payment.assessment?.type || 'Unknown'
+    // Format recent appointments
+    const formattedAppointments = recentAppointments.map((appointment) => ({
+      id: appointment.id,
+      title: appointment.title,
+      type: appointment.type,
+      status: appointment.status,
+      date: appointment.date,
+      duration: appointment.duration,
+      providerName: appointment.provider ? `${appointment.provider.firstName} ${appointment.provider.lastName}` : 'Unknown Provider',
+      patientName: appointment.patient ? `${appointment.patient.firstName} ${appointment.patient.lastName}` : 'Unknown Patient',
+      createdAt: appointment.createdAt
+    }));
+    
+    // Get recent users
+    const recentUsers = await prisma.user.findMany({
+      take: 5,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        isProvider: true,
+        createdAt: true
+      }
+    });
+    
+    // Format recent users
+    const formattedUsers = recentUsers.map((user) => ({
+      id: user.id,
+      name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || 'Unknown User',
+      email: user.email,
+      role: user.role,
+      isProvider: user.isProvider,
+      createdAt: user.createdAt
     }));
     
     return NextResponse.json({
       userCount,
-      assessmentCount,
-      paymentAmount,
-      couponCount,
-      recentAssessments: formattedAssessments,
-      recentPayments: formattedPayments
+      appointmentCount,
+      upcomingAppointments,
+      completedAppointments,
+      recentAppointments: formattedAppointments,
+      recentUsers: formattedUsers
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);

@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                    String                 @id @default(cuid())
+  firstName             String?
+  lastName              String?
+  email                 String                 @unique
+  password              String
+  image                 String?
+  bio                   String?
+  dateOfBirth           DateTime?
+  gender                String?
+  phone                 String?
+  address               String?
+  emergencyContact      String?
+  emergencyPhone       String?
+  medicalHistory        String?                @db.Text
+  currentMedications    String?                @db.Text
+  allergies             String?                @db.Text
+  smokingStatus         String?                @default("unknown") // unknown, never, former, current
+  smokingHistory        String?                @db.Text
+  quitAttempts          Int?                   @default(0)
+  quitDate              DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  role                  String                 @default("USER") // USER, PROVIDER, ADMIN
+  isAdmin               Boolean                @default(false)
+  isProvider            Boolean                @default(false)
+  isClerk               Boolean                @default(false)  
+  affiliateCode         String?                @unique
+  referredBy            String?
+  licenseNumber         String?                // For providers
+  specialty             String?                // For providers
+  yearsOfExperience     Int?                   // For providers
+  availability          Json?                  // For providers
+  affiliateApplications AffiliateApplication[]
+  affiliateStats        AffiliateStats?
+  affiliateTransactions AffiliateTransaction[]
+  assessments           Assessment[]
+  payments              Payment[]
+  referrals             Referral[]
+  
+  // Provider relations
+  appointmentsAsProvider Appointment[]          @relation("ProviderAppointments")
+  patients              Patient[]              @relation("ProviderPatients")
+  prescriptions         Prescription[]          @relation("UserPrescriptions")
+  medicalRecords        MedicalRecord[]        @relation("UserMedicalRecords")
+  
+  // Patient relations
+  appointmentsAsPatient  Appointment[]          @relation("PatientAppointments")
+  assignedProviderId    String?
+  assignedProvider      User?                  @relation("ProviderPatients", fields: [assignedProviderId], references: [id])
+  
+  // Assessments yang telah ditetapkan ke clerk untuk review
+  assignedAssessments   Assessment[]           @relation("ClerkAssessments") 
+}
+
+model Patient {
+  id                    String                 @id @default(cuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerId            String
+  provider              User                   @relation("ProviderPatients", fields: [providerId], references: [id], onDelete: Cascade)
+  medicalRecordNumber   String?                @unique
+  insuranceProvider     String?
+  insuranceId           String?
+  primaryCarePhysician  String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  appointments          Appointment[]          @relation("PatientAppointments")
+  prescriptions         Prescription[]          @relation("PatientPrescriptions")
+  medicalRecords        MedicalRecord[]        @relation("PatientMedicalRecords")
+}
+
+model Appointment {
+  id                    String                 @id @default(cuid())
+  patientId             String
+  patient               User                   @relation("PatientAppointments", fields: [patientId], references: [id])
+  providerId            String
+  provider              User                   @relation("ProviderAppointments", fields: [providerId], references: [id])
+  date                  DateTime
+  duration              Int                    @default(30) // minutes
+  type                  String                 @default("consultation") // consultation, follow-up, emergency
+  status                String                 @default("scheduled") // scheduled, confirmed, completed, cancelled, no-show
+  reason                String?
+  notes                 String?                @db.Text
+  meetingLink           String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  prescriptions         Prescription[]          @relation("AppointmentPrescriptions")
+  medicalRecords        MedicalRecord[]        @relation("AppointmentMedicalRecords")
+}
+
+model Prescription {
+  id                    String                 @id @default(cuid())
+  patientId             String
+  patient               User                   @relation("PrescriptionPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  providerId            String
+  provider              User                   @relation("PrescriptionProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  appointmentId         String?
+  appointment           Appointment?           @relation(fields: [appointmentId], references: [id])
+  medication            String
+  dosage                String
+  frequency             String
+  duration              String
+  instructions          String?                @db.Text
+  status                String                 @default("active") // active, completed, cancelled
+  prescribedAt          DateTime              @default(now())
+  refills               Int?                  @default(0)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+model MedicalRecord {
+  id                    String                 @id @default(cuid())
+  patientId             String
+  patient               User                   @relation("MedicalRecordPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  providerId            String
+  provider              User                   @relation("MedicalRecordProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  appointmentId         String?
+  appointment           Appointment?           @relation(fields: [appointmentId], references: [id])
+  type                  String                 // progress_note, assessment, lab_result, imaging
+  title                 String
+  content               String                 @db.Text
+  attachments           String[]               // URLs to attached files
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+model Assessment {
+  id        String     @id @default(cuid())
+  type      String
+  tier      String     @default("basic")
+  status    String     @default("pending")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  data      Json?
+  price     Float      @default(0)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  payment   Payment?
+  referrals             Referral[]             @relation("AssessmentReferrals")
+  
+  // Field baru untuk pengurusan pemprosesan manual
+  assignedClerkId String?
+  assignedClerk   User?    @relation("ClerkAssessments", fields: [assignedClerkId], references: [id])
+  reviewNotes     String?  @db.Text
+  reviewedAt      DateTime?
+  manualProcessing Boolean  @default(false)
+
+  @@index([assignedClerkId])
+}
+
+model Payment {
+  id                    String                 @id @default(cuid())
+  amount                Float
+  method                String
+  status                String                 @default("pending")
+  gatewayPaymentId      String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  userId                String
+  assessmentId          String                 @unique
+  couponId              String?
+  coupon                Coupon?                @relation(fields: [couponId], references: [id])
+  assessment            Assessment             @relation(fields: [assessmentId], references: [id])
+  user                  User                   @relation(fields: [userId], references: [id])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String   @db.Text
+  isJson    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  htmlContent String   @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Keep existing models for affiliate system
+model AffiliateApplication {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  status    String   @default("pending")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AffiliateStats {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalEarnings  Float    @default(0)
+  totalReferrals Int      @default(0)
+  successfulReferrals Int @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AffiliateTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float
+  type      String   // commission, payout
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Referral {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  referredEmail String
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Coupon {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  discount    Float
+  type        String   // percentage, fixed
+  maxUses     Int?
+  usedCount   Int      @default(0)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  payments    Payment[]
+}

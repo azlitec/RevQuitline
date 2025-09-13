@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  firstName          String?
+  lastName           String?
+  email              String    @unique
+  password           String
+  image              String?
+  bio                String?
+  dateOfBirth        DateTime?
+  gender             String?
+  phone              String?
+  address            String?
+  emergencyContact   String?
+  emergencyPhone     String?
+  medicalHistory     String?   @db.Text
+  currentMedications String?   @db.Text
+  allergies          String?   @db.Text
+  smokingStatus      String?   @default("unknown")
+  smokingHistory     String?   @db.Text
+  quitAttempts       Int?      @default(0)
+  quitDate           DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  role               String    @default("USER")
+  isAdmin            Boolean   @default(false)
+  isProvider         Boolean   @default(false)
+  isClerk            Boolean   @default(false)
+  licenseNumber      String?
+  specialty          String?
+  yearsOfExperience  Int?
+  availability       Json?
+}

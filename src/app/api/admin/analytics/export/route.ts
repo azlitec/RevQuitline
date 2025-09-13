@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const range = searchParams.get('range') || 'last30days';
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
-    const reportType = searchParams.get('type') || 'all'; // Can be 'users', 'assessments', 'revenue', 'all'
+    const reportType = searchParams.get('type') || 'all'; // Can be 'users', 'appointments', 'patients', 'all'
     
     // Calculate date range
     const { startDate, endDate } = calculateDateRange(range, startDateParam, endDateParam);
@@ -36,55 +36,47 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    if (reportType === 'assessments' || reportType === 'all') {
-      const assessmentData = await getAssessmentData(startDate, endDate);
+    if (reportType === 'appointments' || reportType === 'all') {
+      const appointmentData = await getAppointmentData(startDate, endDate);
       
       if (reportType === 'all') {
-        csvData += 'ASSESSMENT DATA\n';
+        csvData += 'APPOINTMENT DATA\n';
       }
       
-      csvData += 'Date,Assessments Started,Assessments Completed\n';
-      assessmentData.forEach(row => {
-        csvData += `${row.date},${row.started},${row.completed}\n`;
+      csvData += 'Date,Appointments Scheduled,Appointments Completed\n';
+      appointmentData.forEach(row => {
+        csvData += `${row.date},${row.scheduled},${row.completed}\n`;
       });
       
       if (reportType === 'all') {
         csvData += '\n';
         
-        csvData += 'ASSESSMENT TYPES\n';
-        csvData += 'Type,Count,Completion Rate\n';
+        csvData += 'APPOINTMENT STATUS SUMMARY\n';
+        csvData += 'Status,Count\n';
         
-        const assessmentTypes = await getAssessmentTypeData(startDate, endDate);
-        assessmentTypes.forEach(row => {
-          csvData += `${row.type},${row.count},${(row.completionRate * 100).toFixed(1)}%\n`;
+        const appointmentStatus = await getAppointmentStatusData(startDate, endDate);
+        appointmentStatus.forEach(row => {
+          csvData += `${row.status},${row.count}\n`;
         });
         
         csvData += '\n';
       }
     }
     
-    if (reportType === 'revenue' || reportType === 'all') {
-      const revenueData = await getRevenueData(startDate, endDate);
+    if (reportType === 'patients' || reportType === 'all') {
+      const patientData = await getPatientData(startDate, endDate);
       
       if (reportType === 'all') {
-        csvData += 'REVENUE DATA\n';
+        csvData += 'PATIENT REGISTRATION DATA\n';
       }
       
-      csvData += 'Date,Revenue (MYR)\n';
-      revenueData.forEach(row => {
-        csvData += `${row.date},${row.amount.toFixed(2)}\n`;
+      csvData += 'Date,New Patients Registered\n';
+      patientData.forEach(row => {
+        csvData += `${row.date},${row.count}\n`;
       });
       
       if (reportType === 'all') {
         csvData += '\n';
-        
-        csvData += 'REVENUE BY ASSESSMENT TYPE\n';
-        csvData += 'Type,Revenue (MYR),Number of Sales\n';
-        
-        const revenueByType = await getRevenueByType(startDate, endDate);
-        revenueByType.forEach(row => {
-          csvData += `${row.type},${row.amount.toFixed(2)},${row.count}\n`;
-        });
       }
     }
     
@@ -189,33 +181,33 @@ async function getUserData(startDate: Date, endDate: Date) {
   })) : [];
 }
 
-// Get assessment data by date
-async function getAssessmentData(startDate: Date, endDate: Date) {
-  // Get assessments started by date
-  const assessmentsStartedRaw = await prisma.$queryRaw`
-    SELECT 
+// Get appointment data by date
+async function getAppointmentData(startDate: Date, endDate: Date) {
+  // Get appointments scheduled by date
+  const appointmentsScheduledRaw = await prisma.$queryRaw`
+    SELECT
       DATE_TRUNC('day', "createdAt") as date,
-      COUNT(*) as started
-    FROM "Assessment"
+      COUNT(*) as scheduled
+    FROM "Appointment"
     WHERE "createdAt" BETWEEN ${startDate} AND ${endDate}
     GROUP BY DATE_TRUNC('day', "createdAt")
     ORDER BY date ASC
   `;
   
-  const assessmentsStarted = Array.isArray(assessmentsStartedRaw) ? 
-    assessmentsStartedRaw.map((item: any) => ({
+  const appointmentsScheduled = Array.isArray(appointmentsScheduledRaw) ?
+    appointmentsScheduledRaw.map((item: any) => ({
       date: new Date(item.date).toISOString().split('T')[0],
-      started: Number(item.started),
+      scheduled: Number(item.scheduled),
       completed: 0
     })) : [];
   
-  // Get assessments completed by date
-  const assessmentsCompletedRaw = await prisma.$queryRaw`
-    SELECT 
+  // Get appointments completed by date
+  const appointmentsCompletedRaw = await prisma.$queryRaw`
+    SELECT
       DATE_TRUNC('day', "updatedAt") as date,
       COUNT(*) as completed
-    FROM "Assessment"
-    WHERE 
+    FROM "Appointment"
+    WHERE
       "updatedAt" BETWEEN ${startDate} AND ${endDate} AND
       status = 'completed'
     GROUP BY DATE_TRUNC('day', "updatedAt")
@@ -224,8 +216,8 @@ async function getAssessmentData(startDate: Date, endDate: Date) {
   
   // Merge the data
   const completedMap = new Map();
-  if (Array.isArray(assessmentsCompletedRaw)) {
-    assessmentsCompletedRaw.forEach((item: any) => {
+  if (Array.isArray(appointmentsCompletedRaw)) {
+    appointmentsCompletedRaw.forEach((item: any) => {
       completedMap.set(
         new Date(item.date).toISOString().split('T')[0],
         Number(item.completed)
@@ -234,89 +226,62 @@ async function getAssessmentData(startDate: Date, endDate: Date) {
   }
   
   // Update the completed counts in our results
-  assessmentsStarted.forEach(item => {
+  appointmentsScheduled.forEach(item => {
     if (completedMap.has(item.date)) {
       item.completed = completedMap.get(item.date);
     }
   });
   
-  // Add any dates that only have completed assessments
+  // Add any dates that only have completed appointments
   completedMap.forEach((completed, date) => {
-    if (!assessmentsStarted.some(item => item.date === date)) {
-      assessmentsStarted.push({
+    if (!appointmentsScheduled.some(item => item.date === date)) {
+      appointmentsScheduled.push({
         date,
-        started: 0,
+        scheduled: 0,
         completed
       });
     }
   });
   
   // Sort by date
-  assessmentsStarted.sort((a, b) => a.date.localeCompare(b.date));
+  appointmentsScheduled.sort((a, b) => a.date.localeCompare(b.date));
   
-  return assessmentsStarted;
+  return appointmentsScheduled;
 }
 
-// Get assessment type statistics
-async function getAssessmentTypeData(startDate: Date, endDate: Date) {
-  // Get assessment counts by type
-  const assessmentsByTypeRaw = await prisma.$queryRaw`
-    SELECT 
-      type,
-      COUNT(*) as total,
-      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
-    FROM "Assessment"
+// Get appointment status statistics
+async function getAppointmentStatusData(startDate: Date, endDate: Date) {
+  // Get appointment counts by status
+  const appointmentsByStatusRaw = await prisma.$queryRaw`
+    SELECT
+      status,
+      COUNT(*) as count
+    FROM "Appointment"
     WHERE "createdAt" BETWEEN ${startDate} AND ${endDate}
-    GROUP BY type
-    ORDER BY total DESC
+    GROUP BY status
+    ORDER BY count DESC
   `;
   
-  return Array.isArray(assessmentsByTypeRaw) ? assessmentsByTypeRaw.map((item: any) => ({
-    type: item.type,
-    count: Number(item.total),
-    completionRate: Number(item.total) > 0 ? Number(item.completed) / Number(item.total) : 0
+  return Array.isArray(appointmentsByStatusRaw) ? appointmentsByStatusRaw.map((item: any) => ({
+    status: item.status,
+    count: Number(item.count)
   })) : [];
 }
 
-// Get revenue data by date
-async function getRevenueData(startDate: Date, endDate: Date) {
-  const revenueByDateRaw = await prisma.$queryRaw`
-    SELECT 
+// Get patient registration data by date
+async function getPatientData(startDate: Date, endDate: Date) {
+  const patientsByDateRaw = await prisma.$queryRaw`
+    SELECT
       DATE_TRUNC('day', "createdAt") as date,
-      SUM(amount) as amount
-    FROM "Payment"
-    WHERE 
-      status IN ('completed', 'successful', 'paid') AND
-      "createdAt" BETWEEN ${startDate} AND ${endDate}
+      COUNT(*) as count
+    FROM "User"
+    WHERE "createdAt" BETWEEN ${startDate} AND ${endDate} AND "role" = 'patient'
     GROUP BY DATE_TRUNC('day', "createdAt")
     ORDER BY date ASC
   `;
   
-  return Array.isArray(revenueByDateRaw) ? revenueByDateRaw.map((item: any) => ({
+  return Array.isArray(patientsByDateRaw) ? patientsByDateRaw.map((item: any) => ({
     date: new Date(item.date).toISOString().split('T')[0],
-    amount: Number(item.amount)
-  })) : [];
-}
-
-// Get revenue by assessment type
-async function getRevenueByType(startDate: Date, endDate: Date) {
-  const revenueByTypeRaw = await prisma.$queryRaw`
-    SELECT 
-      a.type,
-      SUM(p.amount) as amount,
-      COUNT(p.id) as count
-    FROM "Payment" p
-    JOIN "Assessment" a ON p."assessmentId" = a.id
-    WHERE 
-      p.status IN ('completed', 'successful', 'paid') AND
-      p."createdAt" BETWEEN ${startDate} AND ${endDate}
-    GROUP BY a.type
-    ORDER BY amount DESC
-  `;
-  
-  return Array.isArray(revenueByTypeRaw) ? revenueByTypeRaw.map((item: any) => ({
-    type: item.type,
-    amount: Number(item.amount),
     count: Number(item.count)
   })) : [];
 }

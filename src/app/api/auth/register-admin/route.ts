@@ -8,10 +8,10 @@ export async function POST(request: NextRequest) {
   try {
     // Get registration data
     const data = await request.json();
-    const { name, email, password, registrationCode } = data;
+    const { firstName, lastName, email, password, registrationCode } = data;
 
     // Validate required fields
-    if (!name || !email || !password || !registrationCode) {
+    if (!firstName || !lastName || !email || !password || !registrationCode) {
       return NextResponse.json(
         { message: 'All fields are required' },
         { status: 400 }
@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
     // Create new user with admin role
     const newUser = await prisma.user.create({
       data: {
-        name,
+        firstName,
+        lastName,
         email,
         password: hashedPassword,
         isAdmin: true,

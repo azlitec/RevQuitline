@@ -22,20 +22,16 @@ export async function GET(request: NextRequest) {
     // Get user metrics
     const userMetrics = await getUserMetrics(startDate, endDate);
     
-    // Get assessment metrics
-    const assessmentMetrics = await getAssessmentMetrics(startDate, endDate);
+    // Get appointment metrics
+    const appointmentMetrics = await getAppointmentMetrics(startDate, endDate);
     
-    // Get revenue metrics
-    const revenueMetrics = await getRevenueMetrics(startDate, endDate);
-    
-    // Get conversion metrics
-    const conversionMetrics = await getConversionMetrics(startDate, endDate);
-    
+    // Get healthcare metrics
+    const healthcareMetrics = await getHealthcareMetrics(startDate, endDate);
+
     return NextResponse.json({
       userMetrics,
-      assessmentMetrics,
-      revenueMetrics,
-      conversionMetrics,
+      appointmentMetrics,
+      healthcareMetrics,
       dateRange: {
         start: startDate,
         end: endDate,
@@ -161,7 +157,7 @@ async function getUserMetrics(startDate: Date, endDate: Date) {
   
   // Get users by date for the selected range
   const usersByDateRaw = await prisma.$queryRaw`
-    SELECT 
+    SELECT
       DATE_TRUNC('day', "createdAt") as date,
       COUNT(*) as count
     FROM "User"
@@ -175,12 +171,21 @@ async function getUserMetrics(startDate: Date, endDate: Date) {
     count: Number(item.count)
   })) : [];
   
-  // Get users by type
-  const regularUsers = await prisma.user.count({
+  // Get users by role (for Quitline)
+  const patientUsers = await prisma.user.count({
     where: {
+      isProvider: false,
       isAdmin: false,
-      isClerk: false,
-      isAffiliate: false,
+      createdAt: {
+        gte: startDate,
+        lte: endDate
+      }
+    }
+  });
+  
+  const providerUsers = await prisma.user.count({
+    where: {
+      isProvider: true,
       createdAt: {
         gte: startDate,
         lte: endDate
@@ -198,31 +203,10 @@ async function getUserMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  const clerkUsers = await prisma.user.count({
-    where: {
-      isClerk: true,
-      createdAt: {
-        gte: startDate,
-        lte: endDate
-      }
-    }
-  });
-  
-  const affiliateUsers = await prisma.user.count({
-    where: {
-      isAffiliate: true,
-      createdAt: {
-        gte: startDate,
-        lte: endDate
-      }
-    }
-  });
-  
-  const usersByType = [
-    { type: 'Regular', count: regularUsers },
-    { type: 'Admin', count: adminUsers },
-    { type: 'Clerk', count: clerkUsers },
-    { type: 'Affiliate', count: affiliateUsers }
+  const usersByRole = [
+    { role: 'Patient', count: patientUsers },
+    { role: 'Provider', count: providerUsers },
+    { role: 'Admin', count: adminUsers }
   ];
   
   return {
@@ -231,19 +215,19 @@ async function getUserMetrics(startDate: Date, endDate: Date) {
     newUsersThisWeek,
     newUsersThisMonth,
     usersByDate,
-    usersByType
+    usersByRole
   };
 }
 
-// Function to get assessment metrics
-async function getAssessmentMetrics(startDate: Date, endDate: Date) {
-  // Get total assessments
-  const totalAssessments = await prisma.assessment.count();
+// Function to get appointment metrics
+async function getAppointmentMetrics(startDate: Date, endDate: Date) {
+  // Get total appointments
+  const totalAppointments = await prisma.appointment.count();
   
-  // Get assessments created today
+  // Get appointments created today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const assessmentsToday = await prisma.assessment.count({
+  const appointmentsToday = await prisma.appointment.count({
     where: {
       createdAt: {
         gte: today
@@ -251,11 +235,11 @@ async function getAssessmentMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  // Get assessments created this week
+  // Get appointments created this week
   const startOfWeek = new Date();
   startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
-  const assessmentsThisWeek = await prisma.assessment.count({
+  const appointmentsThisWeek = await prisma.appointment.count({
     where: {
       createdAt: {
         gte: startOfWeek
@@ -263,11 +247,11 @@ async function getAssessmentMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  // Get assessments created this month
+  // Get appointments created this month
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
-  const assessmentsThisMonth = await prisma.assessment.count({
+  const appointmentsThisMonth = await prisma.appointment.count({
     where: {
       createdAt: {
         gte: startOfMonth
@@ -275,8 +259,18 @@ async function getAssessmentMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  // Get completion rate
-  const completedAssessments = await prisma.assessment.count({
+  // Get appointments by status
+  const scheduledAppointments = await prisma.appointment.count({
+    where: {
+      status: 'scheduled',
+      createdAt: {
+        gte: startDate,
+        lte: endDate
+      }
+    }
+  });
+  
+  const completedAppointments = await prisma.appointment.count({
     where: {
       status: 'completed',
       createdAt: {
@@ -286,8 +280,9 @@ async function getAssessmentMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  const totalAssessmentsInRange = await prisma.assessment.count({
+  const cancelledAppointments = await prisma.appointment.count({
     where: {
+      status: 'cancelled',
       createdAt: {
         gte: startDate,
         lte: endDate
@@ -295,212 +290,52 @@ async function getAssessmentMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  const completionRate = totalAssessmentsInRange > 0 
-    ? completedAssessments / totalAssessmentsInRange
-    : 0;
+  const noShowAppointments = await prisma.appointment.count({
+    where: {
+      status: 'no_show',
+      createdAt: {
+        gte: startDate,
+        lte: endDate
+      }
+    }
+  });
   
-  // Get assessments by date for the selected range
-  const assessmentsByDateRaw = await prisma.$queryRaw`
-    SELECT 
+  const appointmentsByStatus = [
+    { status: 'Scheduled', count: scheduledAppointments },
+    { status: 'Completed', count: completedAppointments },
+    { status: 'Cancelled', count: cancelledAppointments },
+    { status: 'No Show', count: noShowAppointments }
+  ];
+  
+  // Get appointments by date for the selected range
+  const appointmentsByDateRaw = await prisma.$queryRaw`
+    SELECT
       DATE_TRUNC('day', "createdAt") as date,
       COUNT(*) as count
-    FROM "Assessment"
+    FROM "Appointment"
     WHERE "createdAt" BETWEEN ${startDate} AND ${endDate}
     GROUP BY DATE_TRUNC('day', "createdAt")
     ORDER BY date ASC
   `;
   
-  const assessmentsByDate = Array.isArray(assessmentsByDateRaw) ? assessmentsByDateRaw.map((item: any) => ({
+  const appointmentsByDate = Array.isArray(appointmentsByDateRaw) ? appointmentsByDateRaw.map((item: any) => ({
     date: new Date(item.date).toISOString().split('T')[0],
     count: Number(item.count)
   })) : [];
   
-  // Get assessments by type
-  const assessmentsByTypeRaw = await prisma.$queryRaw`
-    SELECT 
-      type,
-      COUNT(*) as count
-    FROM "Assessment"
-    WHERE "createdAt" BETWEEN ${startDate} AND ${endDate}
-    GROUP BY type
-    ORDER BY count DESC
-  `;
-  
-  const assessmentsByType = Array.isArray(assessmentsByTypeRaw) ? assessmentsByTypeRaw.map((item: any) => ({
-    type: item.type,
-    count: Number(item.count)
-  })) : [];
-  
   return {
-    totalAssessments,
-    assessmentsToday,
-    assessmentsThisWeek,
-    assessmentsThisMonth,
-    completionRate,
-    assessmentsByDate,
-    assessmentsByType
+    totalAppointments,
+    appointmentsToday,
+    appointmentsThisWeek,
+    appointmentsThisMonth,
+    appointmentsByStatus,
+    appointmentsByDate
   };
 }
 
-// Function to get revenue metrics
-async function getRevenueMetrics(startDate: Date, endDate: Date) {
-  // Get total revenue (all time)
-  const totalRevenueResult = await prisma.payment.aggregate({
-    _sum: {
-      amount: true
-    },
-    where: {
-      status: {
-        in: ['completed', 'successful', 'paid']
-      }
-    }
-  });
-  
-  const totalRevenue = totalRevenueResult._sum.amount || 0;
-  
-  // Get revenue today
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayRevenueResult = await prisma.payment.aggregate({
-    _sum: {
-      amount: true
-    },
-    where: {
-      status: {
-        in: ['completed', 'successful', 'paid']
-      },
-      createdAt: {
-        gte: today
-      }
-    }
-  });
-  
-  const revenueToday = todayRevenueResult._sum.amount || 0;
-  
-  // Get revenue this week
-  const startOfWeek = new Date();
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
-  const weekRevenueResult = await prisma.payment.aggregate({
-    _sum: {
-      amount: true
-    },
-    where: {
-      status: {
-        in: ['completed', 'successful', 'paid']
-      },
-      createdAt: {
-        gte: startOfWeek
-      }
-    }
-  });
-  
-  const revenueThisWeek = weekRevenueResult._sum.amount || 0;
-  
-  // Get revenue this month
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-  const monthRevenueResult = await prisma.payment.aggregate({
-    _sum: {
-      amount: true
-    },
-    where: {
-      status: {
-        in: ['completed', 'successful', 'paid']
-      },
-      createdAt: {
-        gte: startOfMonth
-      }
-    }
-  });
-  
-  const revenueThisMonth = monthRevenueResult._sum.amount || 0;
-  
-  // Calculate average order value
-  const completedPaymentsCount = await prisma.payment.count({
-    where: {
-      status: {
-        in: ['completed', 'successful', 'paid']
-      },
-      createdAt: {
-        gte: startDate,
-        lte: endDate
-      }
-    }
-  });
-  
-  const totalRevenueInRangeResult = await prisma.payment.aggregate({
-    _sum: {
-      amount: true
-    },
-    where: {
-      status: {
-        in: ['completed', 'successful', 'paid']
-      },
-      createdAt: {
-        gte: startDate,
-        lte: endDate
-      }
-    }
-  });
-  
-  const totalRevenueInRange = totalRevenueInRangeResult._sum.amount || 0;
-  const averageOrderValue = completedPaymentsCount > 0 
-    ? totalRevenueInRange / completedPaymentsCount
-    : 0;
-  
-  // Get revenue by date for selected range
-  const revenueByDateRaw = await prisma.$queryRaw`
-    SELECT 
-      DATE_TRUNC('day', "createdAt") as date,
-      SUM(amount) as amount
-    FROM "Payment"
-    WHERE 
-      status IN ('completed', 'successful', 'paid') AND
-      "createdAt" BETWEEN ${startDate} AND ${endDate}
-    GROUP BY DATE_TRUNC('day', "createdAt")
-    ORDER BY date ASC
-  `;
-  
-  const revenueByDate = Array.isArray(revenueByDateRaw) ? revenueByDateRaw.map((item: any) => ({
-    date: new Date(item.date).toISOString().split('T')[0],
-    amount: Number(item.amount)
-  })) : [];
-  
-  // Get revenue by assessment type
-  const revenueByAssessmentTypeRaw = await prisma.$queryRaw`
-    SELECT 
-      a.type,
-      SUM(p.amount) as amount
-    FROM "Payment" p
-    JOIN "Assessment" a ON p."assessmentId" = a.id
-    WHERE 
-      p.status IN ('completed', 'successful', 'paid') AND
-      p."createdAt" BETWEEN ${startDate} AND ${endDate}
-    GROUP BY a.type
-    ORDER BY amount DESC
-  `;
-  
-  const revenueByAssessmentType = Array.isArray(revenueByAssessmentTypeRaw) ? revenueByAssessmentTypeRaw.map((item: any) => ({
-    type: item.type,
-    amount: Number(item.amount)
-  })) : [];
-  
-  return {
-    totalRevenue,
-    revenueToday,
-    revenueThisWeek,
-    revenueThisMonth,
-    averageOrderValue,
-    revenueByDate,
-    revenueByAssessmentType
-  };
-}
-
-// Function to get conversion metrics
-async function getConversionMetrics(startDate: Date, endDate: Date) {
-  // Count total visitors (users created)
+// Function to get healthcare metrics
+async function getHealthcareMetrics(startDate: Date, endDate: Date) {
+  // Get conversion metrics for patient signups
   const totalVisitors = await prisma.user.count({
     where: {
       createdAt: {
@@ -510,9 +345,8 @@ async function getConversionMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  // Count users who started an assessment
-  const usersWithAssessments = await prisma.assessment.groupBy({
-    by: ['userId'],
+  const patientsWithAppointments = await prisma.appointment.groupBy({
+    by: ['patientId'],
     where: {
       createdAt: {
         gte: startDate,
@@ -521,13 +355,15 @@ async function getConversionMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  const startedAssessmentUsers = usersWithAssessments.length;
+  const activePatients = patientsWithAppointments.length;
   
-  // Count users who completed an assessment
-  const usersWithCompletedAssessments = await prisma.assessment.groupBy({
-    by: ['userId'],
+  // Calculate conversion rate (visitors to active patients)
+  const conversionRate = totalVisitors > 0 ? activePatients / totalVisitors : 0;
+  
+  // Get provider activity metrics
+  const providersWithAppointments = await prisma.appointment.groupBy({
+    by: ['providerId'],
     where: {
-      status: 'completed',
       createdAt: {
         gte: startDate,
         lte: endDate
@@ -535,15 +371,11 @@ async function getConversionMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  const completedAssessmentUsers = usersWithCompletedAssessments.length;
+  const activeProviders = providersWithAppointments.length;
   
-  // Count users who made a payment
-  const usersWithPayments = await prisma.payment.groupBy({
-    by: ['userId'],
+  // Calculate average appointments per provider
+  const totalAppointmentsInRange = await prisma.appointment.count({
     where: {
-      status: {
-        in: ['completed', 'successful', 'paid']
-      },
       createdAt: {
         gte: startDate,
         lte: endDate
@@ -551,39 +383,23 @@ async function getConversionMetrics(startDate: Date, endDate: Date) {
     }
   });
   
-  const paidUsers = usersWithPayments.length;
-  
-  // Calculate global conversion rate
-  const globalConversionRate = totalVisitors > 0 ? paidUsers / totalVisitors : 0;
-  
-  // Calculate abandonment rate (started but didn't complete)
-  const abandonmentRate = startedAssessmentUsers > 0 
-    ? (startedAssessmentUsers - completedAssessmentUsers) / startedAssessmentUsers
+  const avgAppointmentsPerProvider = activeProviders > 0
+    ? totalAppointmentsInRange / activeProviders
     : 0;
   
-  // Create conversion funnel data
-  const conversionFunnel = [
+  // Create healthcare funnel data
+  const healthcareFunnel = [
     { stage: 'Visitors', count: totalVisitors, rate: 1 },
-    { stage: 'Started Assessment', count: startedAssessmentUsers, rate: totalVisitors > 0 ? startedAssessmentUsers / totalVisitors : 0 },
-    { stage: 'Completed Assessment', count: completedAssessmentUsers, rate: totalVisitors > 0 ? completedAssessmentUsers / totalVisitors : 0 },
-    { stage: 'Made Payment', count: paidUsers, rate: totalVisitors > 0 ? paidUsers / totalVisitors : 0 }
-  ];
-  
-  // Placeholder for conversion by source (would need referral tracking)
-  // In a real application, this would come from actual referral or UTM data
-  const conversionBySource = [
-    { source: 'Direct', rate: 0.15, count: Math.floor(totalVisitors * 0.4) },
-    { source: 'Organic Search', rate: 0.08, count: Math.floor(totalVisitors * 0.25) },
-    { source: 'Referral', rate: 0.12, count: Math.floor(totalVisitors * 0.15) },
-    { source: 'Social Media', rate: 0.05, count: Math.floor(totalVisitors * 0.1) },
-    { source: 'Email', rate: 0.18, count: Math.floor(totalVisitors * 0.05) },
-    { source: 'Affiliate', rate: 0.10, count: Math.floor(totalVisitors * 0.05) }
+    { stage: 'Registered Patients', count: totalVisitors, rate: 1 }, // Same as visitors for now
+    { stage: 'Active Patients', count: activePatients, rate: totalVisitors > 0 ? activePatients / totalVisitors : 0 },
+    { stage: 'Appointments Scheduled', count: totalAppointmentsInRange, rate: totalVisitors > 0 ? totalAppointmentsInRange / totalVisitors : 0 }
   ];
   
   return {
-    globalConversionRate,
-    conversionBySource,
-    conversionFunnel,
-    abandonmentRate
+    conversionRate,
+    activePatients,
+    activeProviders,
+    avgAppointmentsPerProvider,
+    healthcareFunnel
   };
 }

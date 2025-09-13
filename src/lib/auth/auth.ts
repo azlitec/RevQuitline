@@ -33,7 +33,7 @@ declare module "next-auth" {
       role?: UserRole;
       isAdmin?: boolean; // Keep for backward compatibility
       isClerk?: boolean; // Computed property for backward compatibility
-      isAffiliate?: boolean;
+      isProvider?: boolean; // New provider role
     } & DefaultSession["user"];
   }
 
@@ -42,7 +42,7 @@ declare module "next-auth" {
     email: string;
     role?: UserRole;
     isAdmin: boolean; // Keep for backward compatibility
-    isAffiliate: boolean;
+    isProvider: boolean; // New provider role
   }
 }
 
@@ -81,16 +81,17 @@ export const authOptions: NextAuthOptions = {
         // Work around TypeScript issues with any for now
         const userRole = (user as any).role || 'USER';
         const isClerk = userRole === 'CLERK' || userRole === 'ADMIN';
+        const isProvider = (user as any).isProvider || false;
 
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName || user.lastName || '',
           image: user.image,
           role: userRole,
           isAdmin: user.isAdmin,
           isClerk: isClerk, // Computed property
-          isAffiliate: user.isAffiliate
+          isProvider: isProvider // New provider property
         };
       }
     })
@@ -107,7 +108,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.isAdmin = user.isAdmin;
         token.isClerk = (user as any).isClerk;
-        token.isAffiliate = user.isAffiliate;
+        token.isProvider = (user as any).isProvider;
       }
       return token;
     },
@@ -117,7 +118,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as UserRole;
         session.user.isAdmin = token.isAdmin as boolean;
         session.user.isClerk = token.isClerk as boolean;
-        session.user.isAffiliate = token.isAffiliate as boolean;
+        session.user.isProvider = token.isProvider as boolean;
       }
       return session;
     }

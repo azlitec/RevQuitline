@@ -99,14 +99,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Affiliate page protection
-  if (path.startsWith('/affiliate') && path !== '/affiliate/join') {
-    const isAffiliate = token?.isAffiliate === true;
-    if (!isAffiliate) {
-      // User is authenticated but not an affiliate, redirect to join page
-      return NextResponse.redirect(new URL('/affiliate/join', request.url));
-    }
-  }
 
   return NextResponse.next();
 }

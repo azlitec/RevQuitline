@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/db";
-import { generateReferralCode } from "@/lib/utils";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, phone, password } = await request.json();
+    const { firstName, lastName, email, phone, password } = await request.json();
 
     // Validation
-    if (!name || !email || !password) {
+    if (!firstName || !email || !password) {
       return NextResponse.json(
-        { message: "Nama, email, dan kata laluan diperlukan" },
+        { message: "Nama pertama, email, dan kata laluan diperlukan" },
         { status: 400 }
       );
     }
@@ -29,25 +28,15 @@ export async function POST(request: Request) {
 
     // Hash password
     const hashedPassword = await hash(password, 10);
-    
-    // Generate affiliate code
-    const affiliateCode = generateReferralCode();
 
     // Create user
     const user = await prisma.user.create({
       data: {
-        name,
+        firstName,
+        lastName: lastName || "",
         email,
         phone: phone || "",
         password: hashedPassword,
-        affiliateCode,
-      },
-    });
-
-    // Create affiliate stats
-    await prisma.affiliateStats.create({
-      data: {
-        userId: user.id,
       },
     });
 
@@ -55,7 +44,8 @@ export async function POST(request: Request) {
       message: "Akaun telah berjaya didaftarkan",
       user: {
         id: user.id,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
       },
     });

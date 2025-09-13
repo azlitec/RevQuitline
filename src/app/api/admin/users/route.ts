@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
       where.OR = [
         { id: { contains: search } },
         { email: { contains: search } },
-        { name: { contains: search } },
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
       ];
     }
     
@@ -47,13 +48,9 @@ export async function GET(request: NextRequest) {
         case 'clerk':
           where.isClerk = true;
           break;
-        case 'affiliate':
-          where.isAffiliate = true;
-          break;
         case 'user':
           where.isAdmin = false;
           where.isClerk = false;
-          where.isAffiliate = false;
           break;
       }
     }
@@ -69,20 +66,14 @@ export async function GET(request: NextRequest) {
       where,
       select: {
         id: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         email: true,
         image: true,
         role: true,
         isAdmin: true,
         isClerk: true,
-        isAffiliate: true,
         createdAt: true,
-        _count: {
-          select: {
-            assessments: true,
-            payments: true,
-          }
-        }
       },
       orderBy: {
         createdAt: 'desc',
@@ -123,7 +114,7 @@ export async function POST(request: NextRequest) {
     
     // Parse request body
     const body = await request.json();
-    const { name, email, password, role, isAdmin, isClerk, isAffiliate } = body;
+    const { firstName, lastName, email, password, role, isAdmin, isClerk } = body;
     
     // Validate required fields
     if (!email) {
@@ -149,18 +140,17 @@ export async function POST(request: NextRequest) {
     // Determine role values
     const userIsAdmin = isAdmin === true;
     const userIsClerk = isClerk === true;
-    const userIsAffiliate = isAffiliate === true;
     
     // Create new user
     const newUser = await prisma.user.create({
       data: {
         email,
-        name,
+        firstName,
+        lastName,
         password: hashedPassword,
         role: role || 'USER',
         isAdmin: userIsAdmin,
         isClerk: userIsClerk,
-        isAffiliate: userIsAffiliate,
       }
     });
     

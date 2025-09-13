@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                    String   @id @default(cuid())
+  firstName             String?
+  lastName              String?
+  email                 String   @unique
+  password              String
+  image                 String?
+  bio                   String?
+  dateOfBirth           DateTime?
+  gender                String?
+  phone                 String?
+  address               String?
+  emergencyContact      String?
+  emergencyPhone        String?
+  medicalHistory        String?  @db.Text
+  currentMedications    String?  @db.Text
+  allergies             String?  @db.Text
+  smokingStatus         String?  @default("unknown")
+  smokingHistory        String?  @db.Text
+  quitAttempts          Int?     @default(0)
+  quitDate              DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  role                  String   @default("USER")
+  isAdmin               Boolean  @default(false)
+  isProvider            Boolean  @default(false)
+  isClerk               Boolean  @default(false)
+  licenseNumber         String?
+  specialty             String?
+  yearsOfExperience     Int?
+  availability          Json?
+  
+  // Relations
+  assessments           Assessment[]
+  payments              Payment[]
+  appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
+  patients              Patient[] @relation("ProviderPatients")
+  prescriptions         Prescription[] @relation("UserPrescriptions")
+  medicalRecords        MedicalRecord[] @relation("UserMedicalRecords")
+  appointmentsAsPatient  Appointment[] @relation("PatientAppointments")
+  assignedAssessments   Assessment[] @relation("ClerkAssessments")
+  
+  assignedProviderId    String?
+  assignedProvider      User? @relation("ProviderPatients", fields: [assignedProviderId], references: [id])
+}
+
+model Patient {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerId          String
+  provider            User     @relation("ProviderPatients", fields: [providerId], references: [id], onDelete: Cascade)
+  medicalRecordNumber String?  @unique
+  insuranceProvider   String?
+  insuranceId         String?
+  primaryCarePhysician String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  appointments        Appointment[] @relation("PatientAppointments")
+  prescriptions       Prescription[] @relation("PatientPrescriptions")
+  medicalRecords      MedicalRecord[] @relation("PatientMedicalRecords")
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     User     @relation("PatientAppointments", fields: [patientId], references: [id])
+  providerId  String
+  provider    User     @relation("ProviderAppointments", fields: [providerId], references: [id])
+  date        DateTime
+  duration    Int      @default(30)
+  type        String   @default("consultation")
+  status      String   @default("scheduled")
+  reason      String?
+  notes       String?  @db.Text
+  meetingLink String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  prescriptions Prescription[] @relation("AppointmentPrescriptions")
+  medicalRecords MedicalRecord[] @relation("AppointmentMedicalRecords")
+}
+
+model Prescription {
+  id            String   @id @default(cuid())
+  patientId     String
+  patient       User     @relation("PrescriptionPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  providerId    String
+  provider      User     @relation("PrescriptionProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  medication    String
+  dosage        String
+  frequency     String
+  duration      String
+  instructions  String?  @db.Text
+  status        String   @default("active")
+  prescribedAt  DateTime @default(now())
+  refills       Int?     @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model MedicalRecord {
+  id            String   @id @default(cuid())
+  patientId     String
+  patient       User     @relation("MedicalRecordPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  providerId    String
+  provider      User     @relation("MedicalRecordProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  type          String
+  title         String
+  content       String   @db.Text
+  attachments   String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Assessment {
+  id                String     @id @default(cuid())
+  type              String
+  tier              String     @default("basic")
+  status            String     @default("pending")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  data              Json?
+  price             Float      @default(0)
+  userId            String
+  user              User       @relation(fields: [userId], references: [id])
+  payment           Payment?
+  assignedClerkId   String?
+  assignedClerk     User?      @relation("ClerkAssessments", fields: [assignedClerkId], references: [id])
+  reviewNotes       String?    @db.Text
+  reviewedAt        DateTime?
+  manualProcessing  Boolean    @default(false)
+
+  @@index([assignedClerkId])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  amount          Float
+  method          String
+  status          String   @default("pending")
+  gatewayPaymentId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  userId          String
+  assessmentId    String   @unique
+  assessment      Assessment @relation(fields: [assessmentId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String   @db.Text
+  isJson    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  htmlContent String   @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -10,7 +10,8 @@ import Footer from '@/components/ui/Footer';
 export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     password: '',
@@ -22,7 +23,8 @@ export default function RegisterPage() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.name) newErrors.name = 'Name is required';
+    if (!formData.firstName) newErrors.firstName = 'First name is required';
+    if (!formData.lastName) newErrors.lastName = 'Last name is required';
     if (!formData.email) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
 
@@ -54,7 +56,8 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formData.name,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           email: formData.email,
           phone: formData.phone,
           password: formData.password,
@@ -85,14 +88,14 @@ export default function RegisterPage() {
             {/* Header section */}
             <div className="bg-gradient-to-r from-[#38b6ff] to-[#7e43f1] p-6 text-white text-center">
               <div className="inline-block bg-white p-2 rounded-lg shadow-lg mb-4">
-                <img 
-                  src="https://kareerfit.com/wp-content/uploads/2025/04/kareerfit-1-e1745277544629.png" 
-                  alt="KareerFit Logo" 
+                <img
+                  src="/logo.png"
+                  alt="Lumelife Quitline Logo"
                   className="h-8"
                 />
               </div>
               <h2 className="text-2xl font-bold">Create Your Account</h2>
-              <p className="text-white/80 mt-1">Join KareerFit and discover your career path</p>
+              <p className="text-white/80 mt-1">Join Lumelife Quitline for smoking cessation support</p>
             </div>
             
             {/* Form section */}
@@ -105,23 +108,43 @@ export default function RegisterPage() {
               
               <form className="space-y-5" onSubmit={handleSubmit}>
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name
                   </label>
                   <input
-                    id="name"
-                    name="name"
+                    id="firstName"
+                    name="firstName"
                     type="text"
-                    autoComplete="name"
+                    autoComplete="given-name"
                     required
-                    value={formData.name}
+                    value={formData.firstName}
                     onChange={handleChange}
                     className={`w-full px-4 py-2 rounded-lg border ${
-                      errors.name ? 'border-red-300 ring-1 ring-red-300' : 'border-gray-300'
+                      errors.firstName ? 'border-red-300 ring-1 ring-red-300' : 'border-gray-300'
                     } focus:outline-none focus:ring-2 focus:ring-[#7e43f1] focus:border-transparent transition-all`}
-                    placeholder="Enter your full name"
+                    placeholder="Enter your first name"
                   />
-                  {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                  {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    autoComplete="family-name"
+                    required
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      errors.lastName ? 'border-red-300 ring-1 ring-red-300' : 'border-gray-300'
+                    } focus:outline-none focus:ring-2 focus:ring-[#7e43f1] focus:border-transparent transition-all`}
+                    placeholder="Enter your last name"
+                  />
+                  {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
                 </div>
                 
                 <div>

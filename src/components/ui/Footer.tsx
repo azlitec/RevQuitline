@@ -1,29 +1,19 @@
-import Link from 'next/link';
+import React from 'react';
 
-export default function Footer() {
+interface FooterProps {
+  className?: string;
+}
+
+const Footer: React.FC<FooterProps> = ({ className = '' }) => {
   return (
-    <footer className="bg-white border-t">
-      <div className="mx-auto max-w-7xl px-6 py-12 md:flex md:items-center md:justify-between lg:px-8">
-        <div className="flex justify-center space-x-6 md:order-2">
-          <Link href="/about" className="text-gray-400 hover:text-gray-500">
-            Tentang Kami
-          </Link>
-          <Link href="/contact" className="text-gray-400 hover:text-gray-500">
-            Hubungi Kami
-          </Link>
-          <Link href="/privacy-policy" className="text-gray-400 hover:text-gray-500">
-            Dasar Privasi
-          </Link>
-          <Link href="/terms" className="text-gray-400 hover:text-gray-500">
-            Terma Penggunaan
-          </Link>
-        </div>
-        <div className="mt-8 md:order-1 md:mt-0">
-          <p className="text-center text-xs leading-5 text-gray-500">
-            &copy; {new Date().getFullYear()} Kareerfit. Hak Cipta Terpelihara.
-          </p>
+    <footer className={`bg-gray-100 border-t border-gray-200 ${className}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="text-center text-gray-600 text-sm">
+          <p>&copy; {new Date().getFullYear()} Lumelife Quitline. All rights reserved.</p>
         </div>
       </div>
     </footer>
   );
-}
+};
+
+export default Footer;
