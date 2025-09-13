@@ -41,7 +41,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (status === 'unauthenticated') {
       router.push('/admin-auth/login');
     } else if (status === 'authenticated' && !session?.user?.isAdmin) {
-      router.push('/dashboard');
+      // Redirect to appropriate dashboard based on user role
+      if (session.user.isProvider) {
+        router.push('/provider/dashboard');
+      } else if (session.user.isClerk) {
+        router.push('/clerk/dashboard');
+      } else {
+        router.push('/patient/dashboard');
+      }
     }
   }, [status, session, router]);
 

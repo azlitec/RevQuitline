@@ -25,25 +25,25 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className={`bg-white border-r border-gray-200 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'} ${!isOpen ? 'hidden' : 'block'}`}>
+    <div className={`bg-gradient-to-b from-blue-900 to-blue-800 border-r border-blue-700/30 shadow-xl transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'} ${!isOpen ? 'hidden' : 'block'}`}>
       {/* Logo and toggle */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-blue-700/30">
         {!isCollapsed && (
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold shadow-lg">
               Q
             </div>
-            <span className="ml-3 text-lg font-semibold text-gray-800">Quitline Patient</span>
+            <span className="ml-3 text-lg font-semibold text-white">Quitline Patient</span>
           </div>
         )}
         {isCollapsed && (
-          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold mx-auto">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold mx-auto shadow-lg">
             Q
           </div>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1 rounded-md hover:bg-gray-100"
+          className="p-1 rounded-md hover:bg-blue-700 text-white/80 hover:text-white"
         >
           {isCollapsed ? '→' : '←'}
         </button>
@@ -58,10 +58,10 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               <li key={item.name}>
                 <Link
                   href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center px-3 py-2 rounded-lg transition-all duration-200 ${
                     isActive
-                      ? 'bg-green-50 text-green-600 border border-green-100'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                      ? 'bg-blue-600 text-white shadow-lg border border-blue-500'
+                      : 'text-blue-100 hover:bg-blue-700 hover:text-white hover:shadow-md'
                   }`}
                 >
                   <span className="text-lg">{item.icon}</span>
@@ -75,14 +75,14 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
       {/* User profile section */}
       {!isCollapsed && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-blue-700/30">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
               <span className="text-sm font-medium">PT</span>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-800">Patient</p>
-              <p className="text-xs text-gray-500">Welcome</p>
+              <p className="text-sm font-medium text-white">Patient</p>
+              <p className="text-xs text-blue-200">Welcome</p>
             </div>
           </div>
         </div>

@@ -2,19 +2,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Notification } from '@/lib/notifications/notificationService';
 
-interface NotificationBellProps {
-  userId: string;
-}
-
-export default function NotificationBell({ userId }: NotificationBellProps) {
+export default function NotificationBell() {
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    fetchNotifications();
+    if (userId) {
+      fetchNotifications();
+    }
   }, [userId]);
 
   const fetchNotifications = async () => {
@@ -126,3 +127,30 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900 text-sm">
                         {notification.title}
+                      </h4>
+                      <p className="text-gray-600 text-xs mt-1">
+                        {notification.message}
+                      </p>
+                      {notification.actionUrl && (
+                        <a
+                          href={notification.actionUrl}
+                          className="text-blue-600 text-xs hover:underline mt-1 block"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View details
+                        </a>
+                      )}
+                      <p className="text-gray-400 text-xs mt-2">
+                        {new Date(notification.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

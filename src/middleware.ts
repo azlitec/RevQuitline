@@ -49,7 +49,16 @@ export async function middleware(request: NextRequest) {
       }
       
       if (path === '/login' || path === '/register') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        // Redirect to appropriate dashboard based on user role
+        let dashboardPath = '/patient/dashboard';
+        if (token.isAdmin) {
+          dashboardPath = '/admin/dashboard';
+        } else if (token.isClerk) {
+          dashboardPath = '/clerk/dashboard';
+        } else if (token.isProvider) {
+          dashboardPath = '/provider/dashboard';
+        }
+        return NextResponse.redirect(new URL(dashboardPath, request.url));
       }
     }
     
@@ -80,22 +89,54 @@ export async function middleware(request: NextRequest) {
   if (path.startsWith('/admin')) {
     const isAdmin = token?.role === 'ADMIN' || token?.isAdmin === true;
     if (!isAdmin) {
-      // User is authenticated but not an admin, redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      // User is authenticated but not an admin, redirect to appropriate dashboard
+      let dashboardPath = '/patient/dashboard';
+      if (token.isClerk) {
+        dashboardPath = '/clerk/dashboard';
+      } else if (token.isProvider) {
+        dashboardPath = '/provider/dashboard';
+      }
+      return NextResponse.redirect(new URL(dashboardPath, request.url));
     }
   }
 
   // Clerk route protection
   if (path.startsWith('/clerk')) {
-    const isClerkOrAdmin = 
-      token?.role === 'CLERK' || 
-      token?.role === 'ADMIN' || 
-      token?.isClerk === true || 
+    const isClerkOrAdmin =
+      token?.role === 'CLERK' ||
+      token?.role === 'ADMIN' ||
+      token?.isClerk === true ||
       token?.isAdmin === true;
 
     if (!isClerkOrAdmin) {
-      // User is authenticated but not a clerk or admin, redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      // User is authenticated but not a clerk or admin, redirect to appropriate dashboard
+      let dashboardPath = '/patient/dashboard';
+      if (token.isProvider) {
+        dashboardPath = '/provider/dashboard';
+      }
+      return NextResponse.redirect(new URL(dashboardPath, request.url));
+    }
+  }
+
+  // Provider route protection
+  if (path.startsWith('/provider')) {
+    const isProvider =
+      token?.role === 'CLERK' ||
+      token?.role === 'ADMIN' ||
+      token?.role === 'PROVIDER' ||
+      token?.isClerk === true ||
+      token?.isAdmin === true ||
+      token?.isProvider === true;
+
+    if (!isProvider) {
+      // User is authenticated but not a provider, clerk, or admin, redirect to appropriate dashboard
+      let dashboardPath = '/patient/dashboard';
+      if (token.isClerk) {
+        dashboardPath = '/clerk/dashboard';
+      } else if (token.isAdmin) {
+        dashboardPath = '/admin/dashboard';
+      }
+      return NextResponse.redirect(new URL(dashboardPath, request.url));
     }
   }
 

@@ -12,7 +12,7 @@ export default function PatientLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       {/* Sidebar */}
       <div className="hidden lg:block">
         <PatientSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -36,7 +36,7 @@ export default function PatientLayout({
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <PatientHeader onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-white/80 backdrop-blur-sm rounded-tl-3xl">
           {children}
         </main>
       </div>

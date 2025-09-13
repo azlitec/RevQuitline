@@ -14,7 +14,14 @@ export default async function PatientHealthRecordsPage() {
 
     // Check if user is a patient (not provider or admin)
     if (session.user.isProvider || session.user.isAdmin || session.user.isClerk) {
-      redirect('/dashboard');
+      // Redirect to appropriate dashboard based on user role
+      if (session.user.isAdmin) {
+        redirect('/admin/dashboard');
+      } else if (session.user.isClerk) {
+        redirect('/clerk/dashboard');
+      } else if (session.user.isProvider) {
+        redirect('/provider/dashboard');
+      }
     }
 
     // Fetch patient data

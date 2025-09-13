@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
+import NotificationBell from '@/components/ui/NotificationBell';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -10,26 +11,25 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick, title }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/login' });
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-blue-100/50 px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between">
         {/* Left side - Menu button and title */}
         <div className="flex items-center space-x-4">
           <button
             onClick={onMenuClick}
-            className="p-2 rounded-md hover:bg-gray-100 lg:hidden"
+            className="p-2 rounded-md hover:bg-blue-50 text-blue-600 lg:hidden"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          {title && <h1 className="text-xl font-semibold text-gray-800">{title}</h1>}
+          {title && <h1 className="text-xl font-semibold text-blue-900">{title}</h1>}
         </div>
 
         {/* Right side - Search, notifications, profile */}
@@ -39,57 +39,17 @@ export default function Header({ onMenuClick, title }: HeaderProps) {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search..."
-                className="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Search patients, appointments..."
+                className="w-64 px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/50"
               />
-              <svg className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-blue-400 absolute right-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
           </div>
 
           {/* Notifications */}
-          <div className="relative">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-md hover:bg-gray-100 relative"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                3
-              </span>
-            </button>
-
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <div className="p-4 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-800">Notifications</h3>
-                </div>
-                <div className="max-h-60 overflow-y-auto">
-                  {/* Notification items */}
-                  <div className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                    <p className="text-sm text-gray-600">New appointment request from John Doe</p>
-                    <p className="text-xs text-gray-400">2 minutes ago</p>
-                  </div>
-                  <div className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                    <p className="text-sm text-gray-600">Patient Sarah Wilson completed her assessment</p>
-                    <p className="text-xs text-gray-400">1 hour ago</p>
-                  </div>
-                  <div className="p-4 hover:bg-gray-50">
-                    <p className="text-sm text-gray-600">New message from Dr. Johnson</p>
-                    <p className="text-xs text-gray-400">3 hours ago</p>
-                  </div>
-                </div>
-                <div className="p-4 border-t border-gray-200">
-                  <button className="text-sm text-blue-600 hover:text-blue-800">
-                    View all notifications
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <NotificationBell />
 
           {/* Profile menu */}
           <div className="relative">
@@ -97,36 +57,36 @@ export default function Header({ onMenuClick, title }: HeaderProps) {
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100"
             >
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-full flex items-center justify-center text-white font-medium shadow-sm">
                 DS
               </div>
-              <span className="hidden md:block text-sm font-medium text-gray-700">Dr. Smith</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="hidden md:block text-sm font-medium text-blue-900">Dr. Smith</span>
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <div className="p-4 border-b border-gray-200">
-                  <p className="text-sm font-medium text-gray-800">Dr. John Smith</p>
-                  <p className="text-xs text-gray-500">john.smith@quitline.com</p>
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-blue-100 z-50">
+                <div className="p-4 border-b border-blue-100">
+                  <p className="text-sm font-medium text-blue-900">Dr. John Smith</p>
+                  <p className="text-xs text-blue-600">john.smith@quitline.com</p>
                 </div>
                 <div className="p-2">
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">
+                  <button className="w-full text-left px-3 py-2 text-sm text-blue-800 hover:bg-blue-50 rounded-md transition-colors">
                     Profile Settings
                   </button>
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">
+                  <button className="w-full text-left px-3 py-2 text-sm text-blue-800 hover:bg-blue-50 rounded-md transition-colors">
                     Account Settings
                   </button>
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">
+                  <button className="w-full text-left px-3 py-2 text-sm text-blue-800 hover:bg-blue-50 rounded-md transition-colors">
                     Help & Support
                   </button>
                 </div>
-                <div className="p-2 border-t border-gray-200">
+                <div className="p-2 border-t border-blue-100">
                   <button
                     onClick={handleSignOut}
-                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
                   >
                     Sign Out
                   </button>

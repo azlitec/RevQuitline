@@ -31,8 +31,8 @@ export function LoginForm() {
         return;
       }
 
-      // Success - redirect to dashboard
-      router.push('/dashboard');
+      // Success - redirect to login page where middleware will handle role-based redirection
+      router.push('/login');
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
