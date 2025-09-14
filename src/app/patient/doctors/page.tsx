@@ -556,10 +556,12 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-            <div className="text-right">
-              <p className="text-lg font-bold text-gray-800">RM {doctor.consultationFee}</p>
-              <p className="text-xs text-gray-500">per consultation</p>
-            </div>
+            {doctor.isConnected && (
+              <div className="text-right">
+                <p className="text-lg font-bold text-gray-800">RM {doctor.consultationFee}</p>
+                <p className="text-xs text-gray-500">per consultation</p>
+              </div>
+            )}
             
             {doctor.isConnected ? (
               <div className="flex space-x-2">
@@ -662,10 +664,12 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
           <span className="text-gray-500">Location:</span>
           <span className="font-medium">{doctor.location}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-gray-500">Fee:</span>
-          <span className="font-bold text-gray-800">RM {doctor.consultationFee}</span>
-        </div>
+        {doctor.isConnected && (
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500">Fee:</span>
+            <span className="font-bold text-gray-800">RM {doctor.consultationFee}</span>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

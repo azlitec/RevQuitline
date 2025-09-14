@@ -185,7 +185,7 @@ export default function RegisterPage() {
       
       <div className="flex flex-col lg:flex-row min-h-screen bg-white">
         {/* Left side - Hero Content */}
-        <div className="flex-1 bg-gradient-to-br from-gray-50 via-white to-blue-25 p-8 relative overflow-hidden">
+        <div className="flex-1 bg-gradient-to-br from-gray-50 via-white to-blue-25 p-8 relative overflow-hidden order-2 lg:order-1">
           {/* Floating medical icons */}
           <FloatingElement className="absolute top-20 right-20 opacity-10">
             <div className="w-20 h-20 rounded-full bg-blue-200 flex items-center justify-center">
@@ -275,7 +275,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Right side - Registration form */}
-        <div className="w-full lg:w-[480px] bg-white p-8 flex items-center justify-center shadow-xl">
+        <div className="w-full lg:w-[480px] bg-white p-8 flex items-center justify-center shadow-xl order-1 lg:order-2">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
               <div className="bg-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">

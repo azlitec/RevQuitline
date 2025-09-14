@@ -75,7 +75,7 @@ export default function ProviderAppointmentsPage() {
       fetchAppointments();
       fetchPatients();
     }
-  }, [selectedTab, session]);
+  }, [selectedTab, session?.user?.isProvider]);
 
   const fetchAppointments = async () => {
     try {

@@ -170,6 +170,8 @@ const LoginForm = () => {
 };
 
 export default function QuitlineHomePage() {
+  const [showLogin, setShowLogin] = useState(false);
+
   return (
     <>
       <style jsx global>{`
@@ -181,7 +183,7 @@ export default function QuitlineHomePage() {
           animation: float 8s ease-in-out infinite;
         }
       `}</style>
-      
+
       <div className="flex flex-col lg:flex-row min-h-screen bg-white">
         {/* Left side - Hero Content */}
         <div className="flex-1 bg-gradient-to-br from-gray-50 via-white to-blue-25 p-8 relative overflow-hidden">
@@ -193,7 +195,7 @@ export default function QuitlineHomePage() {
               </svg>
             </div>
           </FloatingElement>
-          
+
           <FloatingElement className="absolute bottom-28 left-16 opacity-10" delay={2}>
             <div className="w-16 h-16 rounded-full bg-blue-200 flex items-center justify-center">
               <svg className="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -201,7 +203,7 @@ export default function QuitlineHomePage() {
               </svg>
             </div>
           </FloatingElement>
-          
+
           <FloatingElement className="absolute top-40 left-32 opacity-10" delay={4}>
             <div className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center">
               <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -209,7 +211,7 @@ export default function QuitlineHomePage() {
               </svg>
             </div>
           </FloatingElement>
-          
+
           <div className="relative z-10 h-full flex flex-col justify-between max-w-2xl">
             {/* Header */}
             <div className="mb-8">
@@ -237,11 +239,11 @@ export default function QuitlineHomePage() {
                   <span className="text-blue-400">Connected</span>
                 </h1>
                 <p className="text-gray-600 text-xl mb-8 leading-relaxed">
-                  Seamless telehealth experience connecting patients with healthcare providers. 
+                  Seamless telehealth experience connecting patients with healthcare providers.
                   Secure, accessible, and professional healthcare at your fingertips.
                 </p>
               </div>
-              
+
               {/* Features for both user types */}
               <div className="grid md:grid-cols-2 gap-6 mb-12">
                 <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-200">
@@ -273,46 +275,99 @@ export default function QuitlineHomePage() {
           </div>
         </div>
 
-        {/* Right side - Login form */}
+        {/* Right side - Auth options */}
         <div className="w-full lg:w-[480px] bg-white p-8 flex items-center justify-center shadow-xl">
           <div className="w-full max-w-md">
-            <div className="text-center mb-8">
-              <div className="bg-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
-              <p className="text-gray-600">Sign in to access your Telehealth portal</p>
-            </div>
+            {!showLogin ? (
+              <>
+                <div className="text-center mb-8">
+                  <div className="bg-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to Quitline</h2>
+                  <p className="text-gray-600">Choose how you'd like to get started</p>
+                </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <LoginForm />
-              
-              <div className="mt-6 text-center">
-                <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-blue-400 transition-colors">
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setShowLogin(true)}
+                    className="w-full py-4 px-6 bg-blue-300 text-white font-semibold rounded-xl hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-300 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Sign In to Your Account
+                  </button>
 
-            <div className="text-center mt-6">
-              <p className="text-gray-600 mb-4">
-                New to Quitline?{" "}
-                <Link href="/register" className="text-blue-400 hover:text-blue-500 font-medium transition-colors">
-                  Create an account
-                </Link>
-              </p>
-              
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-center text-gray-500 text-xs leading-relaxed">
-                  By signing in, you agree to our{" "}
-                  <a href="#" className="text-blue-400 hover:underline">Terms of Service</a>{" "}
-                  and{" "}
-                  <a href="#" className="text-blue-400 hover:underline">Privacy Policy</a>
-                </p>
-              </div>
-            </div>
+                  <button
+                    onClick={() => window.location.href = '/register'}
+                    className="w-full py-4 px-6 bg-white text-blue-400 font-semibold rounded-xl border-2 border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-300 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Create New Account
+                  </button>
+                </div>
+
+                <div className="text-center mt-8">
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-center text-gray-500 text-xs leading-relaxed">
+                      By using Quitline, you agree to our{" "}
+                      <a href="#" className="text-blue-400 hover:underline">Terms of Service</a>{" "}
+                      and{" "}
+                      <a href="#" className="text-blue-400 hover:underline">Privacy Policy</a>
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center mb-8">
+                  <div className="bg-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
+                  <p className="text-gray-600">Sign in to access your Telehealth portal</p>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                  <button
+                    onClick={() => setShowLogin(false)}
+                    className="mb-4 flex items-center text-sm text-gray-500 hover:text-blue-400 transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd"/>
+                    </svg>
+                    Back to options
+                  </button>
+
+                  <LoginForm />
+
+                  <div className="mt-6 text-center">
+                    <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-blue-400 transition-colors">
+                      Forgot your password?
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="text-center mt-6">
+                  <p className="text-gray-600 mb-4">
+                    New to Quitline?{" "}
+                    <Link href="/register" className="text-blue-400 hover:text-blue-500 font-medium transition-colors">
+                      Create an account
+                    </Link>
+                  </p>
+
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-center text-gray-500 text-xs leading-relaxed">
+                      By signing in, you agree to our{" "}
+                      <a href="#" className="text-blue-400 hover:underline">Terms of Service</a>{" "}
+                      and{" "}
+                      <a href="#" className="text-blue-400 hover:underline">Privacy Policy</a>
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
