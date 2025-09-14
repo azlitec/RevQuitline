@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
@@ -47,117 +48,69 @@ interface Patient {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  dateOfBirth: string;
-  lastVisit: string;
-  totalVisits: number;
-  status: 'active' | 'inactive' | 'vip';
-  smokingStatus: string;
+  phone?: string;
+  dateOfBirth?: string;
+  smokingStatus?: string;
   quitDate?: string;
+  lastVisit?: string;
+  totalVisits: number;
+  status: string;
+  createdAt: string;
 }
 
 export default function ProviderPatientsPage() {
+  const { data: session } = useSession();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    if (session?.user?.isProvider) {
+      fetchPatients();
+    }
+  }, [session]);
+
+  useEffect(() => {
+    // Refetch when search or filter changes
+    const timeoutId = setTimeout(() => {
+      if (session?.user?.isProvider) {
+        fetchPatients();
+      }
+    }, 500); // Debounce search
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, statusFilter, session]);
 
   const fetchPatients = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Mock data for demonstration
-      const mockPatients: Patient[] = [
-        {
-          id: '1',
-          firstName: 'Ahmad',
-          lastName: 'Rahman',
-          email: 'ahmad@example.com',
-          phone: '+60123456789',
-          dateOfBirth: '1985-06-15',
-          lastVisit: '2025-01-14',
-          totalVisits: 12,
-          status: 'active',
-          smokingStatus: 'Former Smoker',
-          quitDate: '2024-12-01'
-        },
-        {
-          id: '2',
-          firstName: 'Siti',
-          lastName: 'Nurhaliza',
-          email: 'siti@example.com',
-          phone: '+60198765432',
-          dateOfBirth: '1979-01-11',
-          lastVisit: '2025-01-14',
-          totalVisits: 8,
-          status: 'active',
-          smokingStatus: 'Current Smoker'
-        },
-        {
-          id: '3',
-          firstName: 'Raj',
-          lastName: 'Kumar',
-          email: 'raj@example.com',
-          phone: '+60176543210',
-          dateOfBirth: '1975-09-23',
-          lastVisit: '2025-01-10',
-          totalVisits: 15,
-          status: 'vip',
-          smokingStatus: 'Former Smoker',
-          quitDate: '2024-08-15'
-        },
-        {
-          id: '4',
-          firstName: 'Lim',
-          lastName: 'Wei Ming',
-          email: 'lim@example.com',
-          phone: '+60187654321',
-          dateOfBirth: '1990-03-20',
-          lastVisit: '2025-01-12',
-          totalVisits: 5,
-          status: 'active',
-          smokingStatus: 'Current Smoker'
-        },
-        {
-          id: '5',
-          firstName: 'Fatimah',
-          lastName: 'Hassan',
-          email: 'fatimah@example.com',
-          phone: '+60165432109',
-          dateOfBirth: '1988-11-08',
-          lastVisit: '2025-01-08',
-          totalVisits: 3,
-          status: 'inactive',
-          smokingStatus: 'Never Smoked'
-        }
-      ];
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+
+      const response = await fetch(`/api/provider/patients?${params}`);
       
-      setPatients(mockPatients);
-    } catch (error) {
-      console.error('Error fetching patients:', error);
+      if (!response.ok) {
+        throw new Error('Failed to fetch patients');
+      }
+      
+      const data = await response.json();
+      setPatients(data.patients || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching patients:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredPatients = patients.filter(patient => {
-    const matchesSearch = 
-      patient.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || patient.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
   const getPatientInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
   const getStatusColor = (status: string) => {
@@ -169,7 +122,7 @@ export default function ProviderPatientsPage() {
     }
   };
 
-  const getSmokingStatusColor = (status: string) => {
+  const getSmokingStatusColor = (status?: string) => {
     switch (status) {
       case 'Former Smoker': return 'bg-green-100 text-green-700';
       case 'Current Smoker': return 'bg-red-100 text-red-700';
@@ -178,7 +131,9 @@ export default function ProviderPatientsPage() {
     }
   };
 
-  const calculateAge = (dateOfBirth: string) => {
+  const calculateAge = (dateOfBirth?: string) => {
+    if (!dateOfBirth) return 'Unknown';
+    
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -189,6 +144,23 @@ export default function ProviderPatientsPage() {
     }
     
     return age;
+  };
+
+  // Calculate statistics from real data
+  const stats = {
+    total: patients.length,
+    newThisMonth: patients.filter(p => {
+      const createdAt = new Date(p.createdAt);
+      const now = new Date();
+      return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear();
+    }).length,
+    activeToday: patients.filter(p => {
+      if (!p.lastVisit) return false;
+      const lastVisit = new Date(p.lastVisit);
+      const today = new Date();
+      return lastVisit.toDateString() === today.toDateString();
+    }).length,
+    vip: patients.filter(p => p.status === 'vip').length
   };
 
   if (loading) {
@@ -204,92 +176,111 @@ export default function ProviderPatientsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
+        <div className="flex items-center space-x-3 mb-4">
+          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <h2 className="text-xl font-bold">Error Loading Patients</h2>
+        </div>
+        <p className="mb-4">{error}</p>
+        <button 
+          onClick={fetchPatients}
+          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Patient Management</h2>
-          <p className="text-gray-500">View and manage all registered patients</p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Patient Management</h2>
+          <p className="text-sm md:text-base text-gray-500">View and manage all registered patients</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowNewPatientModal(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-medium hover:shadow-strong flex items-center space-x-2"
+          className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
         >
           <IconWithFallback icon="person_add" emoji="👤➕" className="text-white" />
-          <span>Add Patient</span>
+          <span className="hidden sm:inline">Add Patient</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </div>
 
-      {/* Patient Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="card p-6 hover-effect shadow-soft">
-          <div className="flex items-center space-x-4">
-            <div className="bg-blue-100 p-3 rounded-xl">
-              <IconWithFallback icon="people" emoji="👥" className="text-blue-600" />
+      {/* Patient Stats - Real Data */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+        <div className="card p-3 md:p-6 hover-effect shadow-soft">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="bg-blue-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="people" emoji="👥" className="text-blue-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Total Patients</p>
-              <p className="text-2xl font-bold text-gray-800">1,247</p>
+              <p className="text-xs md:text-sm text-gray-500">Total Patients</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.total}</p>
             </div>
           </div>
         </div>
-        <div className="card p-6 hover-effect shadow-soft">
-          <div className="flex items-center space-x-4">
-            <div className="bg-green-100 p-3 rounded-xl">
-              <IconWithFallback icon="trending_up" emoji="📈" className="text-green-600" />
+        <div className="card p-3 md:p-6 hover-effect shadow-soft">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="bg-green-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="trending_up" emoji="📈" className="text-green-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">New This Month</p>
-              <p className="text-2xl font-bold text-gray-800">89</p>
+              <p className="text-xs md:text-sm text-gray-500">New This Month</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.newThisMonth}</p>
             </div>
           </div>
         </div>
-        <div className="card p-6 hover-effect shadow-soft">
-          <div className="flex items-center space-x-4">
-            <div className="bg-yellow-100 p-3 rounded-xl">
-              <IconWithFallback icon="schedule" emoji="⏰" className="text-yellow-600" />
+        <div className="card p-3 md:p-6 hover-effect shadow-soft">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="bg-yellow-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="schedule" emoji="⏰" className="text-yellow-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Active Today</p>
-              <p className="text-2xl font-bold text-gray-800">24</p>
+              <p className="text-xs md:text-sm text-gray-500">Active Today</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.activeToday}</p>
             </div>
           </div>
         </div>
-        <div className="card p-6 hover-effect shadow-soft">
-          <div className="flex items-center space-x-4">
-            <div className="bg-purple-100 p-3 rounded-xl">
-              <IconWithFallback icon="star" emoji="⭐" className="text-purple-600" />
+        <div className="card p-3 md:p-6 hover-effect shadow-soft">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="bg-purple-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="star" emoji="⭐" className="text-purple-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">VIP Patients</p>
-              <p className="text-2xl font-bold text-gray-800">47</p>
+              <p className="text-xs md:text-sm text-gray-500">VIP Patients</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.vip}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Search and Filter */}
-      <div className="card p-6 mb-8 shadow-soft">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold text-gray-800">All Patients</h3>
-          <div className="flex space-x-4">
+      <div className="card p-4 md:p-6 mb-6 md:mb-8 shadow-soft">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 space-y-4 md:space-y-0">
+          <h3 className="text-base md:text-lg font-semibold text-gray-800">All Patients</h3>
+          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <IconWithFallback icon="search" emoji="🔍" className="text-gray-400" />
+                <IconWithFallback icon="search" emoji="🔍" className="text-gray-400 text-sm" />
               </div>
-              <input 
-                type="text" 
-                placeholder="Search patients..." 
+              <input
+                type="text"
+                placeholder="Search patients..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 w-64"
+                className="pl-10 pr-4 py-2 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 w-full sm:w-56 md:w-64 touch-friendly"
               />
             </div>
-            <select 
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+              className="px-3 md:px-4 py-2 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
             >
               <option value="all">All Patients</option>
               <option value="active">Active</option>
@@ -299,119 +290,134 @@ export default function ProviderPatientsPage() {
           </div>
         </div>
 
-        {/* Patients Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPatients.map((patient) => (
-            <div key={patient.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-200">
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="w-16 h-16 patient-avatar rounded-full flex items-center justify-center text-white text-xl font-semibold shadow-soft">
-                  {getPatientInitials(patient.firstName, patient.lastName)}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-800">{patient.firstName} {patient.lastName}</h4>
-                  <p className="text-sm text-gray-500">Patient ID: #{patient.id.padStart(3, '0')}</p>
-                  <p className="text-sm text-gray-500">{patient.phone}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Age:</span>
-                  <span className="text-gray-800">{calculateAge(patient.dateOfBirth)} years</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Last Visit:</span>
-                  <span className="text-gray-800">{new Date(patient.lastVisit).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Total Visits:</span>
-                  <span className="text-gray-800">{patient.totalVisits} times</span>
-                </div>
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-gray-500">Status:</span>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(patient.status)}`}>
-                    {patient.status.toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-gray-500">Smoking:</span>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getSmokingStatusColor(patient.smokingStatus)}`}>
-                    {patient.smokingStatus}
-                  </span>
-                </div>
-                {patient.quitDate && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Quit Date:</span>
-                    <span className="text-green-600 font-medium">{new Date(patient.quitDate).toLocaleDateString()}</span>
+        {/* Patients Grid - Real Data */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {patients.length > 0 ? (
+            patients.map((patient) => (
+              <div key={patient.id} className="border border-gray-200 rounded-lg p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-200">
+                <div className="flex items-center space-x-3 md:space-x-4 mb-3 md:mb-4">
+                  <div className="w-12 h-12 md:w-16 md:h-16 patient-avatar rounded-full flex items-center justify-center text-white text-base md:text-xl font-semibold shadow-soft">
+                    {getPatientInitials(patient.firstName, patient.lastName)}
                   </div>
-                )}
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-800 text-sm md:text-base">
+                      {patient.firstName} {patient.lastName}
+                    </h4>
+                    <p className="text-xs md:text-sm text-gray-500">Patient ID: #{patient.id.slice(-6).toUpperCase()}</p>
+                    <p className="text-xs md:text-sm text-gray-500">{patient.phone || 'No phone'}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 md:space-y-3 mb-3 md:mb-4">
+                  <div className="flex justify-between text-xs md:text-sm">
+                    <span className="text-gray-500">Age:</span>
+                    <span className="text-gray-800 font-medium">{calculateAge(patient.dateOfBirth)} years</span>
+                  </div>
+                  <div className="flex justify-between text-xs md:text-sm">
+                    <span className="text-gray-500">Last Visit:</span>
+                    <span className="text-gray-800 font-medium">
+                      {patient.lastVisit
+                        ? new Date(patient.lastVisit).toLocaleDateString()
+                        : 'Never'
+                      }
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs md:text-sm">
+                    <span className="text-gray-500">Total Visits:</span>
+                    <span className="text-gray-800 font-medium">{patient.totalVisits} times</span>
+                  </div>
+                  <div className="flex justify-between text-xs md:text-sm items-center">
+                    <span className="text-gray-500">Status:</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(patient.status)}`}>
+                      {patient.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs md:text-sm items-center">
+                    <span className="text-gray-500">Smoking:</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getSmokingStatusColor(patient.smokingStatus)}`}>
+                      {patient.smokingStatus || 'Unknown'}
+                    </span>
+                  </div>
+                  {patient.quitDate && (
+                    <div className="flex justify-between text-xs md:text-sm">
+                      <span className="text-gray-500">Quit Date:</span>
+                      <span className="text-green-600 font-medium">
+                        {new Date(patient.quitDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex space-x-2">
+                  <button className="flex-1 bg-blue-600 text-white py-2 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center space-x-1 touch-friendly">
+                    <IconWithFallback icon="visibility" emoji="👁️" className="text-white text-sm" />
+                    <span className="hidden sm:inline">View Profile</span>
+                    <span className="sm:hidden">View</span>
+                  </button>
+                  <button className="px-2 md:px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-friendly">
+                    <IconWithFallback icon="more_vert" emoji="⋮" className="text-gray-600" />
+                  </button>
+                </div>
               </div>
-              
-              <div className="flex space-x-2">
-                <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1">
-                  <IconWithFallback icon="visibility" emoji="👁️" className="text-white text-sm" />
-                  <span>View Profile</span>
-                </button>
-                <button className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
-                  <IconWithFallback icon="more_vert" emoji="⋮" className="text-gray-600" />
-                </button>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8 md:py-12">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <IconWithFallback icon="search_off" emoji="🔍❌" className="text-gray-400 text-lg md:text-2xl" />
               </div>
+              <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">No patients found</h3>
+              <p className="text-sm md:text-base text-gray-500">
+                {searchTerm || statusFilter !== 'all'
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'No patients assigned to you yet'
+                }
+              </p>
             </div>
-          ))}
+          )}
         </div>
-
-        {filteredPatients.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <IconWithFallback icon="search_off" emoji="🔍❌" className="text-gray-400 text-2xl" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-600 mb-2">No patients found</h3>
-            <p className="text-gray-500">Try adjusting your search or filter criteria</p>
-          </div>
-        )}
       </div>
 
       {/* New Patient Modal */}
       {showNewPatientModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-strong w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-strong w-full max-w-2xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-gray-800">Add New Patient</h3>
-                <button 
+                <h3 className="text-lg md:text-xl font-semibold text-gray-800">Add New Patient</h3>
+                <button
                   onClick={() => setShowNewPatientModal(false)}
-                  className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-friendly"
                 >
                   <IconWithFallback icon="close" emoji="❌" />
                 </button>
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               <form className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                    <input type="text" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" />
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">First Name</label>
+                    <input type="text" className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                    <input type="text" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" />
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Last Name</label>
+                    <input type="text" className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" />
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Email</label>
+                    <input type="email" className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                    <input type="tel" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" />
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Phone</label>
+                    <input type="tel" className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
-                    <input type="date" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" />
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Date of Birth</label>
+                    <input type="date" className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Smoking Status</label>
-                    <select className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300">
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Smoking Status</label>
+                    <select className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly">
                       <option>Current Smoker</option>
                       <option>Former Smoker</option>
                       <option>Never Smoked</option>
@@ -419,19 +425,19 @@ export default function ProviderPatientsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Medical History</label>
-                  <textarea rows={3} className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" placeholder="Brief medical history..."></textarea>
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Medical History</label>
+                  <textarea rows={3} className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly" placeholder="Brief medical history..."></textarea>
                 </div>
               </form>
             </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-              <button 
+            <div className="p-4 md:p-6 border-t border-gray-200 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+              <button
                 onClick={() => setShowNewPatientModal(false)}
-                className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                className="px-4 md:px-6 py-2 text-sm md:text-base text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors touch-friendly"
               >
                 Cancel
               </button>
-              <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-medium hover:shadow-strong">
+              <button className="px-4 md:px-6 py-2 text-sm md:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong touch-friendly">
                 Add Patient
               </button>
             </div>

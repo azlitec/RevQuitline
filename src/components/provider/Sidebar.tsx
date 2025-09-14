@@ -6,118 +6,88 @@ import { usePathname } from 'next/navigation';
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+  isMobile?: boolean;
 }
 
 const navigationItems = [
-  { 
-    name: 'Dashboard', 
-    href: '/provider/dashboard', 
-    icon: 'dashboard',
-    emoji: '🏠',
-    svg: '⚡'
-  },
-  { 
-    name: 'Appointments', 
-    href: '/provider/appointments', 
-    icon: 'calendar_today',
-    emoji: '📅',
-    svg: '📋'
-  },
-  { 
-    name: 'Patients', 
-    href: '/provider/patients', 
-    icon: 'people',
-    emoji: '👥',
-    svg: '👤'
-  },
-  { 
-    name: 'Consultations', 
-    href: '/provider/consultations', 
-    icon: 'local_hospital',
-    emoji: '🏥',
-    svg: '💬'
-  },
-  { 
-    name: 'Prescriptions', 
-    href: '/provider/prescriptions', 
-    icon: 'medication',
-    emoji: '💊',
-    svg: '💉'
-  },
-  { 
-    name: 'Reports', 
-    href: '/provider/reports', 
-    icon: 'assignment',
-    emoji: '📊',
-    svg: '📈'
-  },
-  { 
-    name: 'Billing', 
-    href: '/provider/billing', 
-    icon: 'receipt',
-    emoji: '💰',
-    svg: '🧾'
-  },
+  { name: 'Dashboard', href: '/provider/dashboard', icon: 'dashboard' },
+  { name: 'Appointments', href: '/provider/appointments', icon: 'calendar_today' },
+  { name: 'Patients', href: '/provider/patients', icon: 'people' },
+  { name: 'Inbox', href: '/provider/inbox', icon: 'chat' },
+  { name: 'Profile', href: '/provider/profile', icon: 'person' },
+  { name: 'Consultations', href: '/provider/consultations', icon: 'local_hospital' },
+  { name: 'Prescriptions', href: '/provider/prescriptions', icon: 'medication' },
+  { name: 'Reports', href: '/provider/reports', icon: 'assignment' },
+  { name: 'Billing', href: '/provider/billing', icon: 'receipt' },
 ];
 
-// Enhanced Icon component with multiple fallbacks
-const IconWithFallback = ({ icon, emoji, svg, className = '', isActive = false }: { 
-  icon: string; 
-  emoji: string; 
-  svg: string; 
-  className?: string; 
-  isActive?: boolean;
-}) => {
-  const iconClass = isActive ? 'text-blue-500' : 'text-gray-500 group-hover:text-blue-500';
-  
-  return (
-    <div className={`icon-container relative ${className}`}>
-      {/* Primary Material Icon */}
-      <span 
-        className={`material-icons transition-all duration-300 ${iconClass}`} 
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
-      
-      {/* Emoji Fallback */}
-      <span 
-        className={`emoji-fallback absolute inset-0 flex items-center justify-center transition-all duration-300 ${iconClass}`}
-        style={{ 
-          fontSize: '20px',
-          display: 'none'
-        }}
-      >
-        {emoji}
-      </span>
-    </div>
-  );
-};
-
-export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen = true, onClose, isMobile = false }: SidebarProps) {
   const pathname = usePathname();
 
-  return (
-    <aside className="w-20 flex flex-col items-center py-6 space-y-6 shadow-soft" style={{ backgroundColor: '#FFFFFF' }}>
-      {/* Enhanced Logo */}
-      <div className="text-blue-500 font-bold text-2xl mb-4 p-2 rounded-xl hover:bg-blue-50 transition-all duration-300 cursor-pointer glow-effect">
-        L
+  if (isMobile) {
+    return (
+      <div className="h-full flex flex-col bg-white">
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="text-blue-500 font-bold text-2xl">L</div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">LumeLife Portal</h2>
+              <p className="text-sm text-gray-500">Healthcare Management</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+          >
+            <span className="material-icons">close</span>
+          </button>
+        </div>
+
+        {/* Mobile Navigation */}
+        <nav className="flex-1 p-4">
+          <div className="space-y-2">
+            {navigationItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={onClose}
+                  className={`flex items-center space-x-4 p-4 rounded-xl transition-all duration-300 ${
+                    isActive 
+                      ? 'bg-blue-50 text-blue-700 shadow-md' 
+                      : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'
+                  }`}
+                >
+                  <span className={`material-icons ${isActive ? 'text-blue-500' : 'text-gray-500'}`}>
+                    {item.icon}
+                  </span>
+                  <span className="font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Mobile Settings */}
+        <div className="p-4 border-t border-gray-200">
+          <button className="flex items-center space-x-4 w-full p-4 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+            <span className="material-icons text-gray-500">settings</span>
+            <span className="font-medium">Settings</span>
+          </button>
+        </div>
       </div>
+    );
+  }
+
+  // Desktop sidebar (original design)
+  return (
+    <aside className="w-20 flex flex-col items-center py-6 space-y-6" style={{ backgroundColor: '#FFFFFF' }}>
+      {/* Logo */}
+      <div className="text-blue-500 font-bold text-2xl mb-4">L</div>
       
-      {/* Enhanced Navigation */}
+      {/* Navigation */}
       <nav className="flex flex-col items-center space-y-6 flex-grow">
         {navigationItems.map((item) => {
           const isActive = pathname === item.href;
@@ -125,43 +95,26 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <Link
               key={item.name}
               href={item.href}
-              className={`group nav-item p-3 transition-all duration-300 rounded-xl relative ${
+              className={`nav-item p-3 transition-all duration-300 rounded-xl ${
                 isActive 
-                  ? 'bg-blue-50 shadow-medium scale-110' 
-                  : 'hover:bg-blue-50 hover:shadow-medium hover:scale-110'
+                  ? 'bg-blue-50 shadow-md' 
+                  : 'hover:bg-blue-50 hover:shadow-md'
               }`}
               title={item.name}
             >
-              <IconWithFallback 
-                icon={item.icon}
-                emoji={item.emoji}
-                svg={item.svg}
-                isActive={isActive}
-                className="transition-all duration-300"
-              />
-              
-              {/* Tooltip */}
-              <div className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50">
-                {item.name}
-              </div>
+              <span className={`material-icons ${
+                isActive ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+              }`}>
+                {item.icon}
+              </span>
             </Link>
           );
         })}
       </nav>
       
-      {/* Enhanced Settings */}
-      <div className="group nav-item p-3 hover:bg-blue-50 hover:shadow-medium hover:scale-110 rounded-xl transition-all duration-300 cursor-pointer relative" title="Settings">
-        <IconWithFallback 
-          icon="settings"
-          emoji="⚙️"
-          svg="🔧"
-          className="text-gray-500 group-hover:text-blue-500 transition-all duration-300"
-        />
-        
-        {/* Tooltip */}
-        <div className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50">
-          Settings
-        </div>
+      {/* Settings */}
+      <div className="text-gray-500 p-3 nav-item hover:bg-blue-50 hover:shadow-md rounded-xl transition-all duration-300 cursor-pointer" title="Settings">
+        <span className="material-icons hover:text-blue-500">settings</span>
       </div>
     </aside>
   );

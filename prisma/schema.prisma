@@ -50,6 +50,8 @@ model User {
   medicationsPrescribed Medication[] @relation("MedicationPrescribedBy")
   medicationsAsPatient Medication[] @relation("MedicationPatient")
   notifications Notification[] @relation("NotificationUser")
+  doctorConnections DoctorPatientConnection[] @relation("DoctorConnections")
+  patientConnections DoctorPatientConnection[] @relation("PatientConnections")
 }
 
 // Simple appointment model for now - we'll add more complex relations later
@@ -172,4 +174,27 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@index([createdAt])
+}
+
+model DoctorPatientConnection {
+  id            String   @id @default(cuid())
+  providerId    String
+  provider      User     @relation("DoctorConnections", fields: [providerId], references: [id], onDelete: Cascade)
+  patientId     String
+  patient       User     @relation("PatientConnections", fields: [patientId], references: [id], onDelete: Cascade)
+  treatmentType String
+  status        String   @default("pending") // pending, approved, rejected, disconnected
+  requestMessage String? @db.Text
+  approvedAt    DateTime?
+  disconnectedAt DateTime?
+  disconnectReason String?
+  outstandingBalance Float @default(0)
+  canDisconnect Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([providerId, patientId, treatmentType])
+  @@index([providerId])
+  @@index([patientId])
+  @@index([status])
 }

@@ -1,212 +1,316 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/auth';
-import { prisma } from '@/lib/db';
+'use client';
 
-export default async function PatientDashboardPage() {
-  try {
-    // Auth check on the server
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
-      redirect('/login?callbackUrl=/patient/dashboard');
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+
+// Enhanced Icon component with fallbacks
+const IconWithFallback = ({ icon, emoji, className = '' }: {
+  icon: string;
+  emoji: string;
+  className?: string;
+}) => {
+  return (
+    <span className={`icon-container ${className}`}>
+      <span
+        className="material-icons"
+        style={{
+          fontSize: '24px',
+          fontWeight: 'normal',
+          fontStyle: 'normal',
+          lineHeight: '1',
+          letterSpacing: 'normal',
+          textTransform: 'none',
+          display: 'inline-block',
+          whiteSpace: 'nowrap',
+          wordWrap: 'normal',
+          direction: 'ltr',
+          WebkitFontFeatureSettings: '"liga"',
+          WebkitFontSmoothing: 'antialiased'
+        }}
+      >
+        {icon}
+      </span>
+      <span
+        className="emoji-fallback"
+        style={{
+          fontSize: '20px',
+          display: 'none'
+        }}
+      >
+        {emoji}
+      </span>
+    </span>
+  );
+};
+
+interface PatientDashboardData {
+  totalDoctors: number;
+  activeConnections: number;
+  upcomingAppointments: number;
+  completedAppointments: number;
+  outstandingBalance: number;
+  recentAppointments: any[];
+  connectedDoctors: any[];
+}
+
+export default function PatientDashboardPage() {
+  const { data: session } = useSession();
+  const [dashboardData, setDashboardData] = useState<PatientDashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session?.user && !session.user.isProvider) {
+      fetchDashboardData();
     }
+  }, [session]);
 
-    // Check if user is a patient (not provider or admin)
-    if (session.user.isProvider || session.user.isAdmin || session.user.isClerk) {
-      // Redirect to appropriate dashboard based on user role
-      if (session.user.isAdmin) {
-        redirect('/admin/dashboard');
-      } else if (session.user.isClerk) {
-        redirect('/clerk/dashboard');
-      } else if (session.user.isProvider) {
-        redirect('/provider/dashboard');
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/patient/dashboard');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
       }
+      
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching dashboard data:', err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Fetch patient data
-    const patientData = await prisma.user.findUnique({
-      where: { id: session.user.id as string },
-    });
-
-    if (!patientData) {
-      redirect('/login');
-    }
-
-    // Mock data for patient dashboard
-    const mockAppointments = [
-      {
-        id: '1',
-        providerName: 'Dr. Smith',
-        date: new Date(),
-        status: 'Scheduled',
-        type: 'Initial Consultation'
-      },
-      {
-        id: '2',
-        providerName: 'Dr. Johnson',
-        date: new Date(Date.now() - 86400000),
-        status: 'Completed',
-        type: 'Follow-up'
-      }
-    ];
-
-    const healthStats = {
-      daysSmokeFree: 7,
-      cravingsToday: 3,
-      moneySaved: 42.50,
-      healthImprovement: '15%'
-    };
-
+  if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-blue-900">Patient Dashboard</h1>
-            <p className="text-blue-700">Welcome back, {patientData.email || 'Patient'}</p>
+      <div className="flex items-center justify-center min-h-96">
+        <div className="flex items-center space-x-3">
+          <div className="animate-spin">
+            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
           </div>
-          <div className="text-sm text-blue-600">
-            Last updated: {new Date().toLocaleDateString()}
-          </div>
+          <span className="text-gray-600 font-medium">Loading dashboard...</span>
         </div>
-
-        {/* Health Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg border border-blue-200/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-700">Days Smoke-Free</p>
-                <p className="text-2xl font-bold text-blue-800 mt-1">{healthStats.daysSmokeFree}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
-                <span className="text-white text-2xl">🎯</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg border border-blue-200/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-700">Cravings Today</p>
-                <p className="text-2xl font-bold text-blue-800 mt-1">{healthStats.cravingsToday}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
-                <span className="text-white text-2xl">💪</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg border border-blue-200/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-700">Money Saved</p>
-                <p className="text-2xl font-bold text-blue-800 mt-1">${healthStats.moneySaved}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
-                <span className="text-white text-2xl">💰</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg border border-blue-200/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-700">Health Improvement</p>
-                <p className="text-2xl font-bold text-blue-800 mt-1">{healthStats.healthImprovement}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
-                <span className="text-white text-2xl">❤️</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Upcoming Appointments */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-200/50">
-            <h3 className="text-lg font-semibold text-blue-900 mb-6">Upcoming Appointments</h3>
-            <div className="space-y-4">
-              {mockAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between p-4 rounded-xl bg-white/80 backdrop-blur-sm border border-blue-200/50 hover:border-blue-300 hover:shadow-md transition-all duration-200"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-full flex items-center justify-center shadow-md">
-                      <span className="text-white text-sm font-medium">📅</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-blue-900">{appointment.providerName}</h4>
-                      <p className="text-sm text-blue-700">
-                        {new Intl.DateTimeFormat('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }).format(new Date(appointment.date))} • {appointment.type}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium shadow-sm ${
-                    appointment.status === 'Scheduled' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                    appointment.status === 'Completed' ? 'bg-green-100 text-green-800 border border-green-200' :
-                    'bg-gray-100 text-gray-800 border border-gray-200'
-                  }`}>
-                    {appointment.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-200/50">
-            <h3 className="text-lg font-semibold text-blue-900 mb-6">Quick Actions</h3>
-            <div className="grid grid-cols-1 gap-4">
-              <button className="flex items-center p-4 rounded-xl bg-white/80 backdrop-blur-sm border border-blue-200/50 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-2xl text-white shadow-md mr-4">
-                  📅
-                </div>
-                <div>
-                  <h4 className="font-medium text-blue-900">Schedule Appointment</h4>
-                  <p className="text-sm text-blue-700">Book a new consultation</p>
-                </div>
-              </button>
-
-              <button className="flex items-center p-4 rounded-xl bg-white/80 backdrop-blur-sm border border-blue-200/50 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-2xl text-white shadow-md mr-4">
-                  📝
-                </div>
-                <div>
-                  <h4 className="font-medium text-blue-900">Health Journal</h4>
-                  <p className="text-sm text-blue-700">Record your progress</p>
-                </div>
-              </button>
-
-              <button className="flex items-center p-4 rounded-xl bg-white/80 backdrop-blur-sm border border-blue-200/50 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-2xl text-white shadow-md mr-4">
-                  💊
-                </div>
-                <div>
-                  <h4 className="font-medium text-blue-900">Medication Tracking</h4>
-                  <p className="text-sm text-blue-700">Manage your prescriptions</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-    
-  } catch (error) {
-    console.error("Patient dashboard error:", error);
-    
-    return (
-      <div className="p-8 bg-red-50 text-red-700 rounded-lg max-w-3xl mx-auto mt-8">
-        <h2 className="text-xl font-bold mb-4">Error Loading Patient Dashboard</h2>
-        <p>We encountered a problem loading your dashboard data.</p>
-        <p className="mt-2">Please try again later or contact support.</p>
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="p-6 md:p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
+        <div className="flex items-center space-x-3 mb-4">
+          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <h2 className="text-xl font-bold">Error Loading Dashboard</h2>
+        </div>
+        <p className="mb-4">{error}</p>
+        <button
+          onClick={fetchDashboardData}
+          className="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-6 py-2 rounded-lg font-medium transition-colors touch-friendly"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Welcome Section */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Patient Dashboard</h1>
+          <p className="text-sm md:text-base text-gray-500">Manage your healthcare connections and appointments</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Link
+            href="/patient/doctors"
+            className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
+          >
+            <IconWithFallback icon="search" emoji="🔍" className="text-white" />
+            <span>Find Doctors</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+        <div className="card p-3 md:p-6 hover-effect shadow-soft">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="bg-blue-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="people" emoji="👥" className="text-blue-600 text-sm md:text-base" />
+            </div>
+            <div>
+              <p className="text-xs md:text-sm text-gray-500">Connected Doctors</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">{dashboardData?.activeConnections || 0}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-3 md:p-6 hover-effect shadow-soft">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="bg-green-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="event" emoji="📅" className="text-green-600 text-sm md:text-base" />
+            </div>
+            <div>
+              <p className="text-xs md:text-sm text-gray-500">Upcoming</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">{dashboardData?.upcomingAppointments || 0}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-3 md:p-6 hover-effect shadow-soft">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="bg-purple-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="task_alt" emoji="✅" className="text-purple-600 text-sm md:text-base" />
+            </div>
+            <div>
+              <p className="text-xs md:text-sm text-gray-500">Completed</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">{dashboardData?.completedAppointments || 0}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-3 md:p-6 hover-effect shadow-soft">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="bg-orange-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="payment" emoji="💰" className="text-orange-600 text-sm md:text-base" />
+            </div>
+            <div>
+              <p className="text-xs md:text-sm text-gray-500">Outstanding</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">RM {dashboardData?.outstandingBalance || 0}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        {/* Connected Doctors */}
+        <div className="lg:col-span-2">
+          <div className="card p-4 md:p-6 shadow-soft">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 md:mb-6 space-y-3 sm:space-y-0">
+              <h3 className="text-base md:text-lg font-semibold text-gray-800">My Doctors</h3>
+              <Link
+                href="/patient/my-doctors"
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 w-fit"
+              >
+                <span>View All</span>
+                <IconWithFallback icon="arrow_forward" emoji="→" className="text-xs" />
+              </Link>
+            </div>
+            
+            {dashboardData?.connectedDoctors && dashboardData.connectedDoctors.length > 0 ? (
+              <div className="space-y-3 md:space-y-4">
+                {dashboardData.connectedDoctors.slice(0, 3).map((doctor: any) => (
+                  <div key={doctor.id} className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                        {doctor.initials}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-800 text-sm md:text-base">{doctor.name}</h4>
+                        <p className="text-xs md:text-sm text-gray-500">{doctor.specialty}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Link
+                        href={`/patient/appointments?doctor=${doctor.id}`}
+                        className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors touch-friendly"
+                        title="Book Appointment"
+                      >
+                        <IconWithFallback icon="event" emoji="📅" className="text-sm" />
+                      </Link>
+                      <button className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 rounded-lg transition-colors touch-friendly">
+                        <IconWithFallback icon="chat" emoji="💬" className="text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 md:py-12">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                  <IconWithFallback icon="search" emoji="🔍" className="text-gray-400 text-lg md:text-2xl" />
+                </div>
+                <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">No doctors connected yet</h3>
+                <p className="text-sm md:text-base text-gray-500 mb-4">Find and connect with healthcare providers</p>
+                <Link
+                  href="/patient/doctors"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm font-medium touch-friendly"
+                >
+                  Find Doctors
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="space-y-6">
+          {/* Recent Appointments */}
+          <div className="card p-4 md:p-6 shadow-soft">
+            <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4 md:mb-6">Recent Appointments</h3>
+            
+            {dashboardData?.recentAppointments && dashboardData.recentAppointments.length > 0 ? (
+              <div className="space-y-3">
+                {dashboardData.recentAppointments.slice(0, 3).map((appointment: any) => (
+                  <div key={appointment.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <IconWithFallback icon="event" emoji="📅" className="text-blue-600 text-sm" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-800 text-sm">{appointment.doctorName}</h4>
+                      <p className="text-xs text-gray-500">{appointment.date}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      appointment.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      appointment.status === 'upcoming' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {appointment.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <IconWithFallback icon="event_note" emoji="📅" className="text-gray-400 text-2xl mb-2" />
+                <p className="text-sm text-gray-500">No recent appointments</p>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="card p-4 md:p-6 shadow-soft">
+            <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4 md:mb-6">Quick Actions</h3>
+            <div className="space-y-3">
+              <Link
+                href="/patient/doctors"
+                className="flex items-center space-x-3 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors touch-friendly"
+              >
+                <IconWithFallback icon="search" emoji="🔍" className="text-blue-600" />
+                <span className="font-medium text-sm">Find New Doctor</span>
+              </Link>
+              <Link
+                href="/patient/appointments"
+                className="flex items-center space-x-3 p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors touch-friendly"
+              >
+                <IconWithFallback icon="event" emoji="📅" className="text-green-600" />
+                <span className="font-medium text-sm">Schedule Appointment</span>
+              </Link>
+              <Link
+                href="/patient/health-records"
+                className="flex items-center space-x-3 p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors touch-friendly"
+              >
+                <IconWithFallback icon="folder" emoji="📋" className="text-purple-600" />
+                <span className="font-medium text-sm">Health Records</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }

@@ -12,31 +12,31 @@ export default function PatientLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-gray-50">
+      {/* Desktop Sidebar - Icon Only */}
       <div className="hidden lg:block">
-        <PatientSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <PatientSidebar />
       </div>
       
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 lg:hidden"
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
       
       {/* Mobile sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white transform transition-transform lg:hidden ${
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform lg:hidden ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <PatientSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <PatientSidebar isMobile={true} onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-20">
         <PatientHeader onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-y-auto p-6 bg-white/80 backdrop-blur-sm rounded-tl-3xl">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
           {children}
         </main>
       </div>

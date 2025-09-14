@@ -61,6 +61,97 @@ body {
   font-size: 18px;
 }
 
+/* Mobile Responsive Enhancements */
+@media (max-width: 640px) {
+  .card {
+    margin: 0.5rem 0;
+    padding: 1rem !important;
+    border-radius: 1rem;
+  }
+  
+  .grid {
+    gap: 0.75rem !important;
+  }
+  
+  .text-3xl {
+    font-size: 2rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  .text-xl {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Mobile table enhancements */
+  table {
+    font-size: 0.875rem;
+  }
+  
+  td, th {
+    padding: 0.5rem !important;
+  }
+  
+  /* Mobile button adjustments */
+  button {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  /* Mobile modal adjustments */
+  .modal {
+    margin: 1rem;
+  }
+  
+  /* Mobile sidebar adjustments */
+  .nav-item {
+    padding: 0.75rem;
+  }
+}
+
+/* Extra small mobile screens (320px and below) */
+@media (max-width: 375px) {
+  .card {
+    padding: 0.75rem !important;
+    margin: 0.25rem 0;
+  }
+  
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  
+  .grid-cols-3 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  .text-3xl {
+    font-size: 1.75rem !important;
+  }
+  
+  .w-64 {
+    width: 100% !important;
+  }
+  
+  .space-x-4 > * + * {
+    margin-left: 0.5rem !important;
+  }
+  
+  .p-8 {
+    padding: 1rem !important;
+  }
+  
+  .p-6 {
+    padding: 0.75rem !important;
+  }
+  
+  /* Hide less important elements on very small screens */
+  .hidden-xs {
+    display: none !important;
+  }
+}
+
 /* Custom animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -162,6 +253,14 @@ body {
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
 }
 
+/* Mobile hover effects */
+@media (max-width: 640px) {
+  .hover-effect:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+}
+
 .nav-item {
   transition: all 0.3s ease;
   border-radius: 12px;
@@ -194,6 +293,19 @@ body {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
+/* Mobile appointment cards */
+@media (max-width: 640px) {
+  .appointment-card:hover {
+    transform: translateX(2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .appointment-card {
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+}
+
 .patient-avatar {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
@@ -215,6 +327,14 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
   box-shadow: 0 10px 25px rgba(59, 130, 246, 0.15);
 }
 
+/* Mobile input adjustments */
+@media (max-width: 640px) {
+  input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, select:focus, textarea:focus {
+    transform: none;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.15);
+  }
+}
+
 /* Enhanced button styles */
 button {
   transition: all 0.3s ease;
@@ -222,6 +342,50 @@ button {
 
 button:hover {
   transform: translateY(-2px);
+}
+
+/* Mobile button adjustments */
+@media (max-width: 640px) {
+  button:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* Mobile table responsiveness */
+@media (max-width: 768px) {
+  .table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  table {
+    min-width: 600px;
+  }
+  
+  th, td {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Very small mobile table */
+@media (max-width: 480px) {
+  table {
+    min-width: 500px;
+  }
+  
+  th, td {
+    padding: 0.375rem;
+    font-size: 0.75rem;
+  }
+  
+  .patient-avatar {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.75rem;
+  }
 }
 
 /* Custom scrollbar */
@@ -276,4 +440,65 @@ button:hover {
 
 .shadow-strong {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile-specific utility classes */
+@media (max-width: 640px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-text-sm {
+    font-size: 0.875rem !important;
+  }
+  
+  .mobile-p-2 {
+    padding: 0.5rem !important;
+  }
+  
+  .mobile-mx-2 {
+    margin-left: 0.5rem !important;
+    margin-right: 0.5rem !important;
+  }
+  
+  .mobile-space-y-2 > * + * {
+    margin-top: 0.5rem !important;
+  }
+  
+  .mobile-rounded {
+    border-radius: 0.75rem !important;
+  }
+}
+
+/* Touch-friendly mobile interactions */
+@media (hover: none) and (pointer: coarse) {
+  .hover-effect:hover {
+    transform: none;
+  }
+  
+  .hover-effect:active {
+    transform: scale(0.95);
+  }
+  
+  button:hover {
+    transform: none;
+  }
+  
+  button:active {
+    transform: scale(0.95);
+  }
+  
+  .nav-item:hover {
+    transform: none;
+    background-color: #EBF8FF;
+  }
+  
+  .nav-item:active {
+    transform: scale(0.95);
+    background-color: #DBEAFE;
+  }
 }
