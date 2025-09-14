@@ -103,9 +103,19 @@ export async function POST(request: NextRequest) {
       serviceName,
       price,
       providerId,
-      patientId,
+      patientId: requestedPatientId,
       meetingLink
     } = body;
+
+    // Determine the actual patient ID based on user role
+    let patientId: string;
+    if (session.user.isProvider || session.user.isAdmin) {
+      // Provider/Admin creating appointment - use provided patientId
+      patientId = requestedPatientId;
+    } else {
+      // Patient booking appointment - use their own ID as patientId
+      patientId = session.user.id;
+    }
 
     // Validate required fields
     if (!title || !date || !providerId || !patientId) {
@@ -122,14 +132,6 @@ export async function POST(request: NextRequest) {
     if (type === 'quitline_smoking_cessation') {
       finalServiceName = finalServiceName || 'Quitline Free-Smoking Session (INRT)';
       finalPrice = finalPrice || 150;
-    }
-
-    // Check if user has permission to create appointment
-    if (!session.user.isProvider && !session.user.isAdmin) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
-      );
     }
 
     const appointment = await prisma.appointment.create({

@@ -65,44 +65,18 @@ export default function ProviderPrescriptionsPage() {
   const fetchPrescriptions = async () => {
     try {
       setLoading(true);
-      
-      // Mock data for demonstration
-      const mockPrescriptions: Prescription[] = [
-        {
-          id: '1',
-          patientName: 'Ahmad Rahman',
-          patientInitials: 'AR',
-          medication: 'Nicotine Patch',
-          dosage: '21mg/24hr, 1 patch daily',
-          duration: '4 weeks',
-          date: 'Sept 9, 2025',
-          status: 'dispensed'
-        },
-        {
-          id: '2',
-          patientName: 'Siti Nurhaliza',
-          patientInitials: 'SN',
-          medication: 'Paracetamol',
-          dosage: '500mg tablets, 2 tablets TID',
-          duration: '7 days',
-          date: 'Sept 9, 2025',
-          status: 'pending'
-        },
-        {
-          id: '3',
-          patientName: 'Raj Kumar',
-          patientInitials: 'RK',
-          medication: 'Bupropion',
-          dosage: '150mg tablets, 1 tablet daily',
-          duration: '12 weeks',
-          date: 'Sept 8, 2025',
-          status: 'dispensed'
-        }
-      ];
-      
-      setPrescriptions(mockPrescriptions);
+
+      const response = await fetch('/api/provider/prescriptions');
+
+      if (response.ok) {
+        const data = await response.json();
+        setPrescriptions(data.prescriptions || []);
+      } else {
+        setPrescriptions([]);
+      }
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
+      setPrescriptions([]);
     } finally {
       setLoading(false);
     }
@@ -156,8 +130,8 @@ export default function ProviderPrescriptionsPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">This Week</p>
-              <p className="text-3xl font-bold text-gray-800">89</p>
-              <p className="text-sm text-green-600">+12% from last week</p>
+              <p className="text-3xl font-bold text-gray-800">{prescriptions.length}</p>
+              <p className="text-sm text-green-600">Prescriptions issued</p>
             </div>
           </div>
         </div>
@@ -168,7 +142,7 @@ export default function ProviderPrescriptionsPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Pending</p>
-              <p className="text-3xl font-bold text-gray-800">12</p>
+              <p className="text-3xl font-bold text-gray-800">{prescriptions.filter(p => p.status === 'pending').length}</p>
               <p className="text-sm text-yellow-600">Awaiting approval</p>
             </div>
           </div>
@@ -180,7 +154,7 @@ export default function ProviderPrescriptionsPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Dispensed</p>
-              <p className="text-3xl font-bold text-gray-800">77</p>
+              <p className="text-3xl font-bold text-gray-800">{prescriptions.filter(p => p.status === 'dispensed').length}</p>
               <p className="text-sm text-green-600">Successfully delivered</p>
             </div>
           </div>
@@ -274,9 +248,7 @@ export default function ProviderPrescriptionsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Patient</label>
                     <select className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300">
                       <option>Select Patient</option>
-                      <option>Ahmad Rahman</option>
-                      <option>Siti Nurhaliza</option>
-                      <option>Raj Kumar</option>
+                      {/* Patient options will be populated from API */}
                     </select>
                   </div>
                   <div>

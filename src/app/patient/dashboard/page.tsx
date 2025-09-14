@@ -324,7 +324,7 @@ export default function PatientDashboardPage() {
                 </div>
                 <p className="text-gray-500 mt-4 text-sm font-medium">Health Records</p>
                 <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">
-                  {Math.floor(Math.random() * 5) + 1}
+                  {dashboardData?.recentAppointments?.length || 0}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Records updated</p>
                 <div className="mt-4 flex items-center">
@@ -343,12 +343,12 @@ export default function PatientDashboardPage() {
                 </div>
                 <p className="text-gray-500 mt-4 text-sm font-medium">Medications</p>
                 <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">
-                  {Math.floor(Math.random() * 3) + 1}
+                  0
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Active prescriptions</p>
                 <div className="mt-4 flex items-center">
                   <div className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
-                    {Math.floor(Math.random() * 2)} due soon
+                    0 due soon
                   </div>
                 </div>
               </div>

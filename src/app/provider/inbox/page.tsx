@@ -96,128 +96,19 @@ export default function ProviderInboxPage() {
   const fetchConversations = async () => {
     try {
       setLoading(true);
-      
+
       const response = await fetch('/api/provider/messages');
-      
+
       if (response.ok) {
         const data = await response.json();
         setConversations(data.conversations || []);
       } else {
-        // Show demo conversations for display purposes
-        setConversations([
-          {
-            id: '1',
-            patient: {
-              id: 'patient1',
-              firstName: 'Ahmad',
-              lastName: 'Ibrahim',
-              email: 'ahmad.ibrahim@email.com',
-              phone: '+60123456789',
-              isOnline: true
-            },
-            messages: [
-              {
-                id: '1',
-                content: 'Hello Dr., I have some questions about my smoking cessation program.',
-                senderId: 'patient1',
-                senderName: 'Ahmad Ibrahim',
-                senderType: 'patient',
-                timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-                read: false
-              }
-            ],
-            unreadCount: 1,
-            lastMessage: {
-              id: '1',
-              content: 'Hello Dr., I have some questions about my smoking cessation program.',
-              senderId: 'patient1',
-              senderName: 'Ahmad Ibrahim',
-              senderType: 'patient',
-              timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-              read: false
-            }
-          },
-          {
-            id: '2',
-            patient: {
-              id: 'patient2',
-              firstName: 'Siti',
-              lastName: 'Nurhaliza',
-              email: 'siti.nurhaliza@email.com',
-              phone: '+60198765432',
-              isOnline: false,
-              lastSeen: new Date(Date.now() - 30 * 60 * 1000).toISOString() // 30 minutes ago
-            },
-            messages: [
-              {
-                id: '2',
-                content: 'Thank you for the medication advice. I feel much better now.',
-                senderId: 'patient2',
-                senderName: 'Siti Nurhaliza',
-                senderType: 'patient',
-                timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-                read: true
-              },
-              {
-                id: '3',
-                content: 'You\'re welcome! Continue taking the medication as prescribed and let me know if you have any side effects.',
-                senderId: session?.user?.id || 'doctor1',
-                senderName: session?.user?.name || 'Doctor',
-                senderType: 'doctor',
-                timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
-                read: true
-              }
-            ],
-            unreadCount: 0,
-            lastMessage: {
-              id: '3',
-              content: 'You\'re welcome! Continue taking the medication as prescribed and let me know if you have any side effects.',
-              senderId: session?.user?.id || 'doctor1',
-              senderName: session?.user?.name || 'Doctor',
-              senderType: 'doctor',
-              timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-              read: true
-            }
-          }
-        ]);
+        // Set empty array when API is not available
+        setConversations([]);
       }
     } catch (err) {
-      // Show demo conversations even if API fails
-      console.log('Provider messaging API not yet implemented - showing demo conversations');
-      setConversations([
-        {
-          id: '1',
-          patient: {
-            id: 'patient1',
-            firstName: 'Ahmad',
-            lastName: 'Ibrahim',
-            email: 'ahmad.ibrahim@email.com',
-            phone: '+60123456789',
-            isOnline: true
-          },
-          messages: [
-            {
-              id: '1',
-              content: 'Hello Dr., I have some questions about my smoking cessation program.',
-              senderId: 'patient1',
-              senderName: 'Ahmad Ibrahim',
-              senderType: 'patient',
-              timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-              read: false
-            }
-          ],
-          unreadCount: 1,
-          lastMessage: {
-            id: '1',
-            content: 'Hello Dr., I have some questions about my smoking cessation program.',
-            senderId: 'patient1',
-            senderName: 'Ahmad Ibrahim',
-            senderType: 'patient',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            read: false
-          }
-        }
-      ]);
+      console.log('Provider messaging API not yet implemented');
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -242,58 +133,12 @@ export default function ProviderInboxPage() {
         await fetchConversations();
         setNewMessage('');
       } else {
-        // Simulate message sent for demo - add to current conversation
-        const currentConversation = conversations.find(c => c.id === conversationId);
-        if (currentConversation) {
-          const newMsg = {
-            id: Date.now().toString(),
-            content: newMessage.trim(),
-            senderId: session?.user?.id || 'doctor',
-            senderName: session?.user?.name || 'Doctor',
-            senderType: 'doctor' as const,
-            timestamp: new Date().toISOString(),
-            read: true
-          };
-          
-          const updatedConversation = {
-            ...currentConversation,
-            messages: [...currentConversation.messages, newMsg],
-            lastMessage: newMsg,
-            unreadCount: 0
-          };
-          
-          setConversations(convs => 
-            convs.map(c => c.id === conversationId ? updatedConversation : c)
-          );
-        }
-        setNewMessage('');
+        console.error('Failed to send message');
+        // Could show error toast here
       }
     } catch (err) {
-      // Simulate message sent for demo
-      const currentConversation = conversations.find(c => c.id === conversationId);
-      if (currentConversation) {
-        const newMsg = {
-          id: Date.now().toString(),
-          content: newMessage.trim(),
-          senderId: session?.user?.id || 'doctor',
-          senderName: session?.user?.name || 'Doctor',
-          senderType: 'doctor' as const,
-          timestamp: new Date().toISOString(),
-          read: true
-        };
-        
-        const updatedConversation = {
-          ...currentConversation,
-          messages: [...currentConversation.messages, newMsg],
-          lastMessage: newMsg,
-          unreadCount: 0
-        };
-        
-        setConversations(convs => 
-          convs.map(c => c.id === conversationId ? updatedConversation : c)
-        );
-      }
-      setNewMessage('');
+      console.error('Error sending message:', err);
+      // Could show error toast here
     }
   };
 

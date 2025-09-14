@@ -350,12 +350,12 @@ export default function ProviderDashboardPage() {
                 </div>
                 <p className="text-gray-500 mt-4 text-sm font-medium">Prescriptions</p>
                 <p className="text-3xl font-bold text-gray-800 mt-2">
-                  {Math.floor(monthlyStats.completedAppointments * 0.7)}
+                  0
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Issued this week</p>
                 <div className="mt-4 flex items-center">
                   <div className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
-                    {Math.floor(monthlyStats.completedAppointments * 0.1)} pending
+                    0 pending
                   </div>
                 </div>
               </div>
@@ -419,63 +419,12 @@ export default function ProviderDashboardPage() {
           </button>
         </div>
         <div className="card p-6 shadow-soft">
-          <div className="space-y-4">
-            {/* Mock intake forms data - in real app this would come from API */}
-            <div className="appointment-card p-4 rounded-lg border-l-4 border-purple-500 bg-gradient-to-r from-purple-50 to-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    JD
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800">John Doe</p>
-                    <p className="text-sm text-gray-500 flex items-center space-x-1">
-                      <span>Quitline Smoking Cessation</span>
-                      <span>•</span>
-                      <span>Completed 2 days ago</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <span className="bg-green-100 text-green-700 text-sm font-semibold py-2 px-4 rounded-full">
-                    Form Completed
-                  </span>
-                  <button className="text-purple-600 hover:text-purple-800 p-2 hover:bg-purple-50 rounded-lg transition-all duration-300 hover:scale-110">
-                    <IconWithFallback icon="visibility" emoji="👁️" className="text-sm" />
-                  </button>
-                </div>
-              </div>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+              <IconWithFallback icon="assignment" emoji="📝" className="text-gray-400 text-2xl" />
             </div>
-
-            <div className="appointment-card p-4 rounded-lg border-l-4 border-yellow-500 bg-gradient-to-r from-yellow-50 to-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    AS
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800">Alice Smith</p>
-                    <p className="text-sm text-gray-500 flex items-center space-x-1">
-                      <span>Quitline Smoking Cessation</span>
-                      <span>•</span>
-                      <span>In Progress (Step 3/5)</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <span className="bg-yellow-100 text-yellow-700 text-sm font-semibold py-2 px-4 rounded-full">
-                    In Progress
-                  </span>
-                  <button className="text-yellow-600 hover:text-yellow-800 p-2 hover:bg-yellow-50 rounded-lg transition-all duration-300 hover:scale-110">
-                    <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center py-4">
-              <p className="text-gray-500 text-sm">More intake forms will appear here as patients complete them</p>
-            </div>
+            <h3 className="text-lg font-medium text-gray-600 mb-2">No intake forms yet</h3>
+            <p className="text-gray-500 text-sm">Intake forms will appear here as patients complete them</p>
           </div>
         </div>
       </section>

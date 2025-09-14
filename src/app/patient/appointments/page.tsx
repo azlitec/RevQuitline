@@ -49,6 +49,12 @@ function PatientAppointmentsContent() {
   const [intakeFormAppointmentId, setIntakeFormAppointmentId] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [selectedService, setSelectedService] = useState<string>('consultation');
+  const [selectedDoctor, setSelectedDoctor] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   // Check if we should show booking form based on service parameter
   useEffect(() => {
@@ -58,6 +64,13 @@ function PatientAppointmentsContent() {
       fetchDoctors();
     }
   }, [serviceParam]);
+
+  // Fetch doctors when booking form is shown
+  useEffect(() => {
+    if (showBookingForm) {
+      fetchDoctors();
+    }
+  }, [showBookingForm]);
 
   useEffect(() => {
     fetchAppointments();
@@ -95,6 +108,7 @@ function PatientAppointmentsContent() {
       setDoctors(data.doctors || []);
     } catch (err) {
       console.error('Error fetching doctors:', err);
+      setDoctors([]); // Set empty array instead of mock data
     }
   };
 
@@ -121,6 +135,78 @@ function PatientAppointmentsContent() {
     } catch (err) {
       console.error('Error cancelling appointment:', err);
       alert('Failed to cancel appointment. Please try again.');
+    }
+  };
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBookingError(null);
+
+    // Validation
+    if (!selectedDoctor) {
+      setBookingError('Please select a doctor');
+      return;
+    }
+    if (!selectedDate) {
+      setBookingError('Please select a date');
+      return;
+    }
+    if (!selectedTime) {
+      setBookingError('Please select a time');
+      return;
+    }
+
+    setBookingLoading(true);
+
+    try {
+      // Combine date and time
+      const appointmentDateTime = new Date(`${selectedDate}T${selectedTime}`);
+
+      const appointmentData = {
+        title: `${selectedServiceInfo?.label} with ${doctors.find(d => d.id === selectedDoctor)?.firstName} ${doctors.find(d => d.id === selectedDoctor)?.lastName}`,
+        description: notes || undefined,
+        date: appointmentDateTime.toISOString(),
+        duration: 30, // Default duration
+        type: selectedService,
+        serviceName: selectedServiceInfo?.label,
+        price: selectedServiceInfo?.price,
+        providerId: selectedDoctor,
+        meetingLink: undefined, // Will be set later if virtual
+        reason: notes || undefined
+      };
+
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appointmentData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to book appointment');
+      }
+
+      const newAppointment = await response.json();
+
+      // Reset form
+      setSelectedDoctor('');
+      setSelectedDate('');
+      setSelectedTime('');
+      setNotes('');
+      setShowBookingForm(false);
+
+      // Refresh appointments list
+      fetchAppointments();
+
+      alert('Appointment booked successfully!');
+
+    } catch (err) {
+      console.error('Error booking appointment:', err);
+      setBookingError(err instanceof Error ? err.message : 'Failed to book appointment');
+    } finally {
+      setBookingLoading(false);
     }
   };
 
@@ -220,7 +306,7 @@ function PatientAppointmentsContent() {
             </button>
           </div>
 
-          <form className="space-y-6">
+          <form onSubmit={handleBookingSubmit} className="space-y-6">
             {/* Service Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -252,11 +338,15 @@ function PatientAppointmentsContent() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Doctor
               </label>
-              <select className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white">
+              <select
+                value={selectedDoctor}
+                onChange={(e) => setSelectedDoctor(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white"
+              >
                 <option value="">Choose a doctor...</option>
                 {doctors.map((doctor) => (
                   <option key={doctor.id} value={doctor.id}>
-                    {doctor.firstName} {doctor.lastName} - {doctor.specialty || 'Healthcare Provider'}
+                    {doctor.firstName} {doctor.lastName} - {doctor.specialty}
                   </option>
                 ))}
               </select>
@@ -270,6 +360,9 @@ function PatientAppointmentsContent() {
                 </label>
                 <input
                   type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]} // Prevent past dates
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white"
                 />
               </div>
@@ -277,7 +370,11 @@ function PatientAppointmentsContent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Preferred Time
                 </label>
-                <select className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white">
+                <select
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white"
+                >
                   <option value="">Select time...</option>
                   <option value="09:00">9:00 AM</option>
                   <option value="10:00">10:00 AM</option>
@@ -296,25 +393,43 @@ function PatientAppointmentsContent() {
               </label>
               <textarea
                 rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white resize-none"
                 placeholder="Any specific concerns or information you'd like to share..."
               />
             </div>
+
+            {/* Error Display */}
+            {bookingError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-700 text-sm font-medium">{bookingError}</p>
+              </div>
+            )}
 
             {/* Enhanced Submit Buttons */}
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
                 onClick={() => setShowBookingForm(false)}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 font-medium"
+                disabled={bookingLoading}
+                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 shadow-medium hover:shadow-strong transition-all duration-300 font-semibold hover:scale-105"
+                disabled={bookingLoading}
+                className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 shadow-medium hover:shadow-strong transition-all duration-300 font-semibold hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center space-x-2"
               >
-                Book Appointment
+                {bookingLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Booking...</span>
+                  </>
+                ) : (
+                  <span>Book Appointment</span>
+                )}
               </button>
             </div>
           </form>
