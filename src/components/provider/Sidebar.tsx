@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -10,83 +9,160 @@ interface SidebarProps {
 }
 
 const navigationItems = [
-  { name: 'Dashboard', href: '/provider/dashboard', icon: '🏠' },
-  { name: 'Appointments', href: '/provider/appointments', icon: '📅' },
-  { name: 'Patients', href: '/provider/patients', icon: '👥' },
-  { name: 'Consultations', href: '/provider/consultations', icon: '💬' },
-  { name: 'Prescriptions', href: '/provider/prescriptions', icon: '💊' },
-  { name: 'Reports', href: '/provider/reports', icon: '📊' },
-  { name: 'Billing', href: '/provider/billing', icon: '💰' },
-  { name: 'Settings', href: '/provider/settings', icon: '⚙️' },
+  { 
+    name: 'Dashboard', 
+    href: '/provider/dashboard', 
+    icon: 'dashboard',
+    emoji: '🏠',
+    svg: '⚡'
+  },
+  { 
+    name: 'Appointments', 
+    href: '/provider/appointments', 
+    icon: 'calendar_today',
+    emoji: '📅',
+    svg: '📋'
+  },
+  { 
+    name: 'Patients', 
+    href: '/provider/patients', 
+    icon: 'people',
+    emoji: '👥',
+    svg: '👤'
+  },
+  { 
+    name: 'Consultations', 
+    href: '/provider/consultations', 
+    icon: 'local_hospital',
+    emoji: '🏥',
+    svg: '💬'
+  },
+  { 
+    name: 'Prescriptions', 
+    href: '/provider/prescriptions', 
+    icon: 'medication',
+    emoji: '💊',
+    svg: '💉'
+  },
+  { 
+    name: 'Reports', 
+    href: '/provider/reports', 
+    icon: 'assignment',
+    emoji: '📊',
+    svg: '📈'
+  },
+  { 
+    name: 'Billing', 
+    href: '/provider/billing', 
+    icon: 'receipt',
+    emoji: '💰',
+    svg: '🧾'
+  },
 ];
+
+// Enhanced Icon component with multiple fallbacks
+const IconWithFallback = ({ icon, emoji, svg, className = '', isActive = false }: { 
+  icon: string; 
+  emoji: string; 
+  svg: string; 
+  className?: string; 
+  isActive?: boolean;
+}) => {
+  const iconClass = isActive ? 'text-blue-500' : 'text-gray-500 group-hover:text-blue-500';
+  
+  return (
+    <div className={`icon-container relative ${className}`}>
+      {/* Primary Material Icon */}
+      <span 
+        className={`material-icons transition-all duration-300 ${iconClass}`} 
+        style={{ 
+          fontSize: '24px',
+          fontWeight: 'normal',
+          fontStyle: 'normal',
+          lineHeight: '1',
+          letterSpacing: 'normal',
+          textTransform: 'none',
+          display: 'inline-block',
+          whiteSpace: 'nowrap',
+          wordWrap: 'normal',
+          direction: 'ltr',
+          WebkitFontFeatureSettings: '"liga"',
+          WebkitFontSmoothing: 'antialiased'
+        }}
+      >
+        {icon}
+      </span>
+      
+      {/* Emoji Fallback */}
+      <span 
+        className={`emoji-fallback absolute inset-0 flex items-center justify-center transition-all duration-300 ${iconClass}`}
+        style={{ 
+          fontSize: '20px',
+          display: 'none'
+        }}
+      >
+        {emoji}
+      </span>
+    </div>
+  );
+};
 
 export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className={`bg-white border-r border-blue-100/50 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'} ${!isOpen ? 'hidden' : 'block'} shadow-lg`}>
-      {/* Logo and toggle */}
-      <div className="flex items-center justify-between p-4 border-b border-blue-100/50">
-        {!isCollapsed && (
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
-              Q
-            </div>
-            <span className="ml-3 text-lg font-semibold text-blue-900">Quitline Portal</span>
-          </div>
-        )}
-        {isCollapsed && (
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg flex items-center justify-center text-white font-bold mx-auto shadow-md">
-            Q
-          </div>
-        )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1 rounded-md hover:bg-blue-50 text-blue-600"
-        >
-          {isCollapsed ? '→' : '←'}
-        </button>
+    <aside className="w-20 flex flex-col items-center py-6 space-y-6 shadow-soft" style={{ backgroundColor: '#FFFFFF' }}>
+      {/* Enhanced Logo */}
+      <div className="text-blue-500 font-bold text-2xl mb-4 p-2 rounded-xl hover:bg-blue-50 transition-all duration-300 cursor-pointer glow-effect">
+        L
       </div>
-
-      {/* Navigation */}
-      <nav className="p-4">
-        <ul className="space-y-2">
-          {navigationItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm'
-                      : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'
-                  }`}
-                >
-                  <span className="text-lg">{item.icon}</span>
-                  {!isCollapsed && <span className="ml-3">{item.name}</span>}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      
+      {/* Enhanced Navigation */}
+      <nav className="flex flex-col items-center space-y-6 flex-grow">
+        {navigationItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`group nav-item p-3 transition-all duration-300 rounded-xl relative ${
+                isActive 
+                  ? 'bg-blue-50 shadow-medium scale-110' 
+                  : 'hover:bg-blue-50 hover:shadow-medium hover:scale-110'
+              }`}
+              title={item.name}
+            >
+              <IconWithFallback 
+                icon={item.icon}
+                emoji={item.emoji}
+                svg={item.svg}
+                isActive={isActive}
+                className="transition-all duration-300"
+              />
+              
+              {/* Tooltip */}
+              <div className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50">
+                {item.name}
+              </div>
+            </Link>
+          );
+        })}
       </nav>
-
-      {/* User profile section */}
-      {!isCollapsed && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-blue-100/50 bg-white">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-full flex items-center justify-center text-white font-medium shadow-sm">
-              <span className="text-sm font-medium">DR</span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-blue-900">Dr. Smith</p>
-              <p className="text-xs text-blue-600">Provider</p>
-            </div>
-          </div>
+      
+      {/* Enhanced Settings */}
+      <div className="group nav-item p-3 hover:bg-blue-50 hover:shadow-medium hover:scale-110 rounded-xl transition-all duration-300 cursor-pointer relative" title="Settings">
+        <IconWithFallback 
+          icon="settings"
+          emoji="⚙️"
+          svg="🔧"
+          className="text-gray-500 group-hover:text-blue-500 transition-all duration-300"
+        />
+        
+        {/* Tooltip */}
+        <div className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50">
+          Settings
         </div>
-      )}
-    </div>
+      </div>
+    </aside>
   );
 }
