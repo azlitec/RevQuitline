@@ -409,6 +409,77 @@ export default function ProviderDashboardPage() {
         </div>
       </section>
 
+      {/* Intake Forms Section */}
+      <section className="mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-gray-800">Patient Intake Forms</h2>
+          <button className="text-blue-600 font-semibold hover:underline flex items-center space-x-2">
+            <span>View All</span>
+            <IconWithFallback icon="arrow_forward" emoji="→" className="text-blue-600" />
+          </button>
+        </div>
+        <div className="card p-6 shadow-soft">
+          <div className="space-y-4">
+            {/* Mock intake forms data - in real app this would come from API */}
+            <div className="appointment-card p-4 rounded-lg border-l-4 border-purple-500 bg-gradient-to-r from-purple-50 to-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    JD
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">John Doe</p>
+                    <p className="text-sm text-gray-500 flex items-center space-x-1">
+                      <span>Quitline Smoking Cessation</span>
+                      <span>•</span>
+                      <span>Completed 2 days ago</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className="bg-green-100 text-green-700 text-sm font-semibold py-2 px-4 rounded-full">
+                    Form Completed
+                  </span>
+                  <button className="text-purple-600 hover:text-purple-800 p-2 hover:bg-purple-50 rounded-lg transition-all duration-300 hover:scale-110">
+                    <IconWithFallback icon="visibility" emoji="👁️" className="text-sm" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="appointment-card p-4 rounded-lg border-l-4 border-yellow-500 bg-gradient-to-r from-yellow-50 to-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    AS
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Alice Smith</p>
+                    <p className="text-sm text-gray-500 flex items-center space-x-1">
+                      <span>Quitline Smoking Cessation</span>
+                      <span>•</span>
+                      <span>In Progress (Step 3/5)</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className="bg-yellow-100 text-yellow-700 text-sm font-semibold py-2 px-4 rounded-full">
+                    In Progress
+                  </span>
+                  <button className="text-yellow-600 hover:text-yellow-800 p-2 hover:bg-yellow-50 rounded-lg transition-all duration-300 hover:scale-110">
+                    <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center py-4">
+              <p className="text-gray-500 text-sm">More intake forms will appear here as patients complete them</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Recent Patient Activities */}
       <section>
         <div className="flex justify-between items-center mb-6">

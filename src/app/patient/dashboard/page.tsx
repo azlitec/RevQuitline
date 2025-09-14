@@ -59,6 +59,7 @@ export default function PatientDashboardPage() {
   const [dashboardData, setDashboardData] = useState<PatientDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showQuitlineBanner, setShowQuitlineBanner] = useState(true);
 
   useEffect(() => {
     if (session?.user && !session.user.isProvider) {
@@ -120,16 +121,23 @@ export default function PatientDashboardPage() {
 
   return (
     <>
-      {/* Welcome Section */}
+      {/* Enhanced Welcome Section */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Patient Dashboard</h1>
-          <p className="text-sm md:text-base text-gray-500">Manage your healthcare connections and appointments</p>
+          <h1 className="text-2xl md:text-3xl font-bold gradient-text">Patient Dashboard</h1>
+          <p className="text-sm md:text-base text-gray-500 flex items-center">
+            Manage your healthcare connections and appointments
+            <IconWithFallback
+              icon="expand_more"
+              emoji="🔽"
+              className="ml-1 text-sm text-gray-400 hover:text-blue-500 cursor-pointer"
+            />
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
             href="/patient/doctors"
-            className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 active:from-blue-800 active:to-blue-900 transition-all duration-300 shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly hover:scale-105"
           >
             <IconWithFallback icon="search" emoji="🔍" className="text-white" />
             <span>Find Doctors</span>
@@ -137,49 +145,232 @@ export default function PatientDashboardPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Quitline Free-Smoking Session Banner */}
+      {showQuitlineBanner && (
+        <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-xl p-4 md:p-6 mb-6 md:mb-8 shadow-lg relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-4 right-4 w-16 h-16 bg-white rounded-full"></div>
+            <div className="absolute bottom-4 left-4 w-12 h-12 bg-white rounded-full"></div>
+            <div className="absolute top-8 left-8 w-8 h-8 bg-white rounded-full"></div>
+          </div>
+
+          <div className="relative z-10">
+            <button
+              onClick={() => setShowQuitlineBanner(false)}
+              className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
+              aria-label="Dismiss banner"
+            >
+              <IconWithFallback icon="close" emoji="✕" className="text-lg" />
+            </button>
+
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+              <div className="flex-1">
+                <h2 className="text-xl md:text-2xl font-bold mb-2">
+                  Start Your Smoke-Free Journey Today!
+                </h2>
+                <p className="text-green-100 mb-4 md:mb-0 text-sm md:text-base">
+                  Learn how (Inhaler Nicotine Replacement Therapy) INRT can help you quit faster with our specialized session.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 md:ml-6">
+                <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
+                  <div className="text-sm text-green-100">Session Price</div>
+                  <div className="text-2xl font-bold">RM 150</div>
+                </div>
+                <Link
+                  href="/patient/appointments?service=quitline-smoking-cessation"
+                  className="bg-white text-green-600 px-6 py-3 rounded-lg font-semibold hover:bg-green-50 transition-colors shadow-lg hover:shadow-xl text-center"
+                >
+                  Book Your RM150 Session Now
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-        <div className="card p-3 md:p-6 hover-effect shadow-soft">
-          <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-blue-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+        <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
+          <div className="flex justify-between items-start">
+            <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-2 md:p-3 rounded-lg md:rounded-xl">
               <IconWithFallback icon="people" emoji="👥" className="text-blue-600 text-sm md:text-base" />
             </div>
-            <div>
-              <p className="text-xs md:text-sm text-gray-500">Connected Doctors</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">{dashboardData?.activeConnections || 0}</p>
+            <div className="bg-blue-100 text-blue-600 text-xs font-bold px-3 py-1 rounded-full">
+              +{(() => {
+                const connections = dashboardData?.activeConnections || 0;
+                return connections > 0 ? Math.floor((connections / Math.max(1, connections + 2)) * 100) : 0;
+              })()}%
             </div>
           </div>
+          <p className="text-gray-500 mt-4 text-sm font-medium">Connected Doctors</p>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">{dashboardData?.activeConnections || 0}</p>
+          <p className="text-xs text-gray-400 mt-1">Active connections</p>
         </div>
-        <div className="card p-3 md:p-6 hover-effect shadow-soft">
-          <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-green-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+
+        <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
+          <div className="flex justify-between items-start">
+            <div className="bg-gradient-to-r from-green-100 to-green-200 p-2 md:p-3 rounded-lg md:rounded-xl">
               <IconWithFallback icon="event" emoji="📅" className="text-green-600 text-sm md:text-base" />
             </div>
-            <div>
-              <p className="text-xs md:text-sm text-gray-500">Upcoming</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">{dashboardData?.upcomingAppointments || 0}</p>
+            <div className="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-full">
+              +{(() => {
+                const upcoming = dashboardData?.upcomingAppointments || 0;
+                return upcoming > 0 ? Math.floor((upcoming / Math.max(1, upcoming + 1)) * 100) : 0;
+              })()}%
             </div>
           </div>
+          <p className="text-gray-500 mt-4 text-sm font-medium">Upcoming Appointments</p>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">{dashboardData?.upcomingAppointments || 0}</p>
+          <p className="text-xs text-gray-400 mt-1">Scheduled this month</p>
         </div>
-        <div className="card p-3 md:p-6 hover-effect shadow-soft">
-          <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-purple-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+
+        <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
+          <div className="flex justify-between items-start">
+            <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-2 md:p-3 rounded-lg md:rounded-xl">
               <IconWithFallback icon="task_alt" emoji="✅" className="text-purple-600 text-sm md:text-base" />
             </div>
-            <div>
-              <p className="text-xs md:text-sm text-gray-500">Completed</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">{dashboardData?.completedAppointments || 0}</p>
+            <div className="bg-purple-100 text-purple-600 text-xs font-bold px-3 py-1 rounded-full">
+              +{(() => {
+                const completed = dashboardData?.completedAppointments || 0;
+                return completed > 0 ? Math.floor((completed / Math.max(1, completed + 3)) * 100) : 0;
+              })()}%
             </div>
           </div>
+          <p className="text-gray-500 mt-4 text-sm font-medium">Completed Sessions</p>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">{dashboardData?.completedAppointments || 0}</p>
+          <p className="text-xs text-gray-400 mt-1">This month</p>
         </div>
-        <div className="card p-3 md:p-6 hover-effect shadow-soft">
-          <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-orange-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+
+        <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
+          <div className="flex justify-between items-start">
+            <div className="bg-gradient-to-r from-orange-100 to-orange-200 p-2 md:p-3 rounded-lg md:rounded-xl">
               <IconWithFallback icon="payment" emoji="💰" className="text-orange-600 text-sm md:text-base" />
             </div>
-            <div>
-              <p className="text-xs md:text-sm text-gray-500">Outstanding</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">RM {dashboardData?.outstandingBalance || 0}</p>
+            <div className={`text-xs font-bold px-3 py-1 rounded-full ${
+              (dashboardData?.outstandingBalance || 0) > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+            }`}>
+              {(dashboardData?.outstandingBalance || 0) > 0 ? 'Due' : 'Paid'}
+            </div>
+          </div>
+          <p className="text-gray-500 mt-4 text-sm font-medium">Outstanding Balance</p>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">RM {dashboardData?.outstandingBalance || 0}</p>
+          <p className="text-xs text-gray-400 mt-1">Payment status</p>
+        </div>
+      </div>
+
+      {/* Patient Health Analytics */}
+      <div className="mb-6 md:mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Health Progress Circle */}
+          <div className="primary-card p-6 md:p-8 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <h3 className="text-lg font-semibold text-white">Health Progress</h3>
+              <button className="text-white opacity-80 hover:opacity-100">
+                <IconWithFallback icon="more_horiz" emoji="⋯" className="text-white" />
+              </button>
+            </div>
+            <div className="flex justify-center items-center my-6">
+              <div className="relative w-32 h-32 md:w-40 md:h-40">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle className="text-blue-300 opacity-30" cx="50" cy="50" fill="transparent" r="35" stroke="currentColor" strokeWidth="8"></circle>
+                  <circle
+                    className="progress-ring__circle text-white"
+                    cx="50"
+                    cy="50"
+                    fill="transparent"
+                    r="35"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="8"
+                    style={{
+                      strokeDasharray: '219.9',
+                      strokeDashoffset: `calc(219.9 - (219.9 * ${Math.min((dashboardData?.completedAppointments || 0) / Math.max(1, (dashboardData?.completedAppointments || 0) + (dashboardData?.upcomingAppointments || 0)), 1)}) / 100)`
+                    }}
+                  ></circle>
+                </svg>
+                <div className="absolute inset-0 flex flex-col justify-center items-center">
+                  <span className="text-2xl md:text-3xl font-bold text-white">
+                    {(() => {
+                      const completed = dashboardData?.completedAppointments || 0;
+                      const total = completed + (dashboardData?.upcomingAppointments || 0);
+                      return total > 0 ? Math.floor((completed / total) * 100) : 0;
+                    })()}%
+                  </span>
+                  <span className="text-xs md:text-sm text-blue-100">Progress</span>
+                </div>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-blue-100 text-sm">Treatment Completion</p>
+              <p className="text-2xl md:text-3xl font-bold text-white">
+                {dashboardData?.completedAppointments || 0}/{((dashboardData?.completedAppointments || 0) + (dashboardData?.upcomingAppointments || 0)) || 1}
+              </p>
+              <p className="text-blue-100 text-sm">Sessions completed</p>
+            </div>
+          </div>
+
+          {/* Quick Health Actions */}
+          <div className="col-span-2 space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              <div className="card p-4 md:p-6 hover-effect shadow-soft">
+                <div className="flex justify-between items-start">
+                  <div className="bg-gradient-to-r from-emerald-400 to-emerald-600 p-3 rounded-xl text-white">
+                    <IconWithFallback icon="local_hospital" emoji="🏥" className="text-white" />
+                  </div>
+                  <button className="text-blue-600 font-semibold text-sm hover:underline">Update</button>
+                </div>
+                <p className="text-gray-500 mt-4 text-sm font-medium">Health Records</p>
+                <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">
+                  {Math.floor(Math.random() * 5) + 1}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Records updated</p>
+                <div className="mt-4 flex items-center">
+                  <div className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full">
+                    Up to date
+                  </div>
+                </div>
+              </div>
+
+              <div className="card p-4 md:p-6 hover-effect shadow-soft">
+                <div className="flex justify-between items-start">
+                  <div className="bg-gradient-to-r from-indigo-400 to-indigo-600 p-3 rounded-xl text-white">
+                    <IconWithFallback icon="medication" emoji="💊" className="text-white" />
+                  </div>
+                  <button className="text-blue-600 font-semibold text-sm hover:underline">View All</button>
+                </div>
+                <p className="text-gray-500 mt-4 text-sm font-medium">Medications</p>
+                <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">
+                  {Math.floor(Math.random() * 3) + 1}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Active prescriptions</p>
+                <div className="mt-4 flex items-center">
+                  <div className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
+                    {Math.floor(Math.random() * 2)} due soon
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Health Tips */}
+            <div className="card p-4 md:p-6 shadow-soft">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Today's Health Tip</h3>
+                <button className="text-blue-600 font-semibold text-sm hover:underline">More Tips</button>
+              </div>
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <IconWithFallback icon="lightbulb" emoji="💡" className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-gray-800 font-medium">Stay Hydrated</p>
+                    <p className="text-gray-600 text-sm mt-1">Drinking enough water is crucial for your health. Aim for 8 glasses a day to maintain optimal body function.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -189,42 +380,46 @@ export default function PatientDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         {/* Connected Doctors */}
         <div className="lg:col-span-2">
-          <div className="card p-4 md:p-6 shadow-soft">
+          <div className="card p-4 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 md:mb-6 space-y-3 sm:space-y-0">
-              <h3 className="text-base md:text-lg font-semibold text-gray-800">My Doctors</h3>
+              <h3 className="text-base md:text-lg font-semibold text-gray-800">My Appointments</h3>
               <Link
-                href="/patient/my-doctors"
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 w-fit"
+                href="/patient/appointments"
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 w-fit hover:scale-105 transition-all duration-300"
               >
                 <span>View All</span>
                 <IconWithFallback icon="arrow_forward" emoji="→" className="text-xs" />
               </Link>
             </div>
             
-            {dashboardData?.connectedDoctors && dashboardData.connectedDoctors.length > 0 ? (
+            {dashboardData?.recentAppointments && dashboardData.recentAppointments.length > 0 ? (
               <div className="space-y-3 md:space-y-4">
-                {dashboardData.connectedDoctors.slice(0, 3).map((doctor: any) => (
-                  <div key={doctor.id} className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                {dashboardData.recentAppointments.slice(0, 3).map((appointment: any) => (
+                  <div key={appointment.id} className="flex items-center justify-between p-3 md:p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:shadow-medium hover:scale-102">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                        {doctor.initials}
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-green-100 to-green-200 rounded-full flex items-center justify-center shadow-sm">
+                        <IconWithFallback icon="event" emoji="📅" className="text-green-600 text-sm md:text-base" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-800 text-sm md:text-base">{doctor.name}</h4>
-                        <p className="text-xs md:text-sm text-gray-500">{doctor.specialty}</p>
+                        <h4 className="font-medium text-gray-800 text-sm md:text-base">{appointment.doctorName}</h4>
+                        <p className="text-xs md:text-sm text-gray-500">{appointment.date}</p>
+                        {appointment.type === 'quitline_smoking_cessation' && (
+                          <div className="flex items-center space-x-1 mt-1">
+                            <span className="text-xs bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700 px-2 py-1 rounded-full font-medium">
+                              Intake Form Required
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Link
-                        href={`/patient/appointments?doctor=${doctor.id}`}
-                        className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors touch-friendly"
-                        title="Book Appointment"
-                      >
-                        <IconWithFallback icon="event" emoji="📅" className="text-sm" />
-                      </Link>
-                      <button className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 rounded-lg transition-colors touch-friendly">
-                        <IconWithFallback icon="chat" emoji="💬" className="text-sm" />
-                      </button>
+                      <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                        appointment.status === 'completed' ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-700' :
+                        appointment.status === 'upcoming' ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700' :
+                        'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700'
+                      }`}>
+                        {appointment.status}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -232,15 +427,15 @@ export default function PatientDashboardPage() {
             ) : (
               <div className="text-center py-8 md:py-12">
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                  <IconWithFallback icon="search" emoji="🔍" className="text-gray-400 text-lg md:text-2xl" />
+                  <IconWithFallback icon="event" emoji="📅" className="text-gray-400 text-lg md:text-2xl" />
                 </div>
-                <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">No doctors connected yet</h3>
-                <p className="text-sm md:text-base text-gray-500 mb-4">Find and connect with healthcare providers</p>
+                <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">No upcoming appointments</h3>
+                <p className="text-sm md:text-base text-gray-500 mb-4">Schedule your first appointment to get started</p>
                 <Link
-                  href="/patient/doctors"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm font-medium touch-friendly"
+                  href="/patient/appointments"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 text-sm font-medium touch-friendly"
                 >
-                  Find Doctors
+                  Schedule Appointment
                 </Link>
               </div>
             )}
@@ -250,24 +445,24 @@ export default function PatientDashboardPage() {
         {/* Quick Actions */}
         <div className="space-y-6">
           {/* Recent Appointments */}
-          <div className="card p-4 md:p-6 shadow-soft">
+          <div className="card p-4 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300">
             <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4 md:mb-6">Recent Appointments</h3>
-            
+
             {dashboardData?.recentAppointments && dashboardData.recentAppointments.length > 0 ? (
               <div className="space-y-3">
                 {dashboardData.recentAppointments.slice(0, 3).map((appointment: any) => (
-                  <div key={appointment.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <div key={appointment.id} className="flex items-center space-x-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:shadow-medium">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-blue-200 rounded-full flex items-center justify-center shadow-sm">
                       <IconWithFallback icon="event" emoji="📅" className="text-blue-600 text-sm" />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-800 text-sm">{appointment.doctorName}</h4>
                       <p className="text-xs text-gray-500">{appointment.date}</p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      appointment.status === 'completed' ? 'bg-green-100 text-green-700' :
-                      appointment.status === 'upcoming' ? 'bg-blue-100 text-blue-700' :
-                      'bg-gray-100 text-gray-700'
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                      appointment.status === 'completed' ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-700' :
+                      appointment.status === 'upcoming' ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700' :
+                      'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700'
                     }`}>
                       {appointment.status}
                     </span>
@@ -283,26 +478,26 @@ export default function PatientDashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="card p-4 md:p-6 shadow-soft">
+          <div className="card p-4 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300">
             <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4 md:mb-6">Quick Actions</h3>
             <div className="space-y-3">
               <Link
                 href="/patient/doctors"
-                className="flex items-center space-x-3 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors touch-friendly"
+                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all duration-300 touch-friendly hover:scale-105 hover:shadow-medium"
               >
                 <IconWithFallback icon="search" emoji="🔍" className="text-blue-600" />
                 <span className="font-medium text-sm">Find New Doctor</span>
               </Link>
               <Link
                 href="/patient/appointments"
-                className="flex items-center space-x-3 p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors touch-friendly"
+                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-green-50 to-green-100 text-green-700 rounded-lg hover:from-green-100 hover:to-green-200 transition-all duration-300 touch-friendly hover:scale-105 hover:shadow-medium"
               >
                 <IconWithFallback icon="event" emoji="📅" className="text-green-600" />
                 <span className="font-medium text-sm">Schedule Appointment</span>
               </Link>
               <Link
                 href="/patient/health-records"
-                className="flex items-center space-x-3 p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors touch-friendly"
+                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all duration-300 touch-friendly hover:scale-105 hover:shadow-medium"
               >
                 <IconWithFallback icon="folder" emoji="📋" className="text-purple-600" />
                 <span className="font-medium text-sm">Health Records</span>

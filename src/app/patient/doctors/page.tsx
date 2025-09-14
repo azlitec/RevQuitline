@@ -317,24 +317,26 @@ export default function FindDoctorsPage() {
 
   return (
     <>
-      {/* Header */}
+      {/* Enhanced Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Find Healthcare Providers</h1>
-          <p className="text-sm md:text-base text-gray-500">
+          <h1 className="text-2xl md:text-3xl font-bold gradient-text">Find Healthcare Providers</h1>
+          <p className="text-sm md:text-base text-gray-500 flex items-center">
             Discover and connect with qualified doctors for your healthcare needs
+            <span className="ml-2 text-sm text-gray-400">•</span>
+            <span className="ml-2 text-sm text-blue-600 font-medium">{filteredDoctors.length} available</span>
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <div className="text-sm text-gray-500">
+          <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium">
             {filteredDoctors.length} of {doctors.length} doctors
           </div>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="card p-4 md:p-6 mb-6 md:mb-8 shadow-soft">
-        {/* Search Bar */}
+      {/* Enhanced Search and Filters */}
+      <div className="card p-4 md:p-6 mb-6 md:mb-8 shadow-strong hover:shadow-xl transition-all duration-300">
+        {/* Enhanced Search Bar */}
         <div className="mb-4 md:mb-6">
           <div className="relative">
             <input
@@ -342,22 +344,22 @@ export default function FindDoctorsPage() {
               placeholder="Search by doctor name, specialty, location, or treatment..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 text-sm md:text-base touch-friendly"
+              className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm md:text-base bg-gray-50 hover:bg-white touch-friendly"
             />
-            <IconWithFallback 
-              icon="search" 
-              emoji="🔍" 
-              className="text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" 
+            <IconWithFallback
+              icon="search"
+              emoji="🔍"
+              className="text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2"
             />
           </div>
         </div>
 
-        {/* Filter Grid */}
+        {/* Enhanced Filter Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-4">
           <select
             value={filters.specialty}
             onChange={(e) => setFilters({...filters, specialty: e.target.value})}
-            className="p-2 md:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm touch-friendly"
+            className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm bg-gray-50 hover:bg-white touch-friendly"
           >
             <option value="">All Specialties</option>
             {filterOptions.specialties.map(specialty => (
@@ -368,7 +370,7 @@ export default function FindDoctorsPage() {
           <select
             value={filters.treatmentType}
             onChange={(e) => setFilters({...filters, treatmentType: e.target.value})}
-            className="p-2 md:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm touch-friendly"
+            className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm bg-gray-50 hover:bg-white touch-friendly"
           >
             <option value="">Treatment Type</option>
             {filterOptions.treatmentTypes.map(type => (
@@ -379,7 +381,7 @@ export default function FindDoctorsPage() {
           <select
             value={filters.location}
             onChange={(e) => setFilters({...filters, location: e.target.value})}
-            className="p-2 md:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm touch-friendly"
+            className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm bg-gray-50 hover:bg-white touch-friendly"
           >
             <option value="">All Locations</option>
             {filterOptions.locations.map(location => (
@@ -390,7 +392,7 @@ export default function FindDoctorsPage() {
           <select
             value={filters.experience}
             onChange={(e) => setFilters({...filters, experience: e.target.value})}
-            className="p-2 md:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm touch-friendly"
+            className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm bg-gray-50 hover:bg-white touch-friendly"
           >
             <option value="">Experience</option>
             <option value="1">1+ Years</option>
@@ -402,7 +404,7 @@ export default function FindDoctorsPage() {
           <select
             value={filters.rating}
             onChange={(e) => setFilters({...filters, rating: e.target.value})}
-            className="p-2 md:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm touch-friendly"
+            className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm bg-gray-50 hover:bg-white touch-friendly"
           >
             <option value="">All Ratings</option>
             <option value="4">4+ Stars</option>
@@ -413,7 +415,7 @@ export default function FindDoctorsPage() {
           <select
             value={filters.priceRange}
             onChange={(e) => setFilters({...filters, priceRange: e.target.value})}
-            className="p-2 md:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm touch-friendly"
+            className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm bg-gray-50 hover:bg-white touch-friendly"
           >
             <option value="">Price Range</option>
             <option value="0-100">RM 0-100</option>
@@ -423,13 +425,13 @@ export default function FindDoctorsPage() {
           </select>
         </div>
 
-        {/* Sort and View Controls */}
+        {/* Enhanced Sort and View Controls */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
           <div className="flex items-center space-x-3">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm touch-friendly"
+              className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm bg-gray-50 hover:bg-white touch-friendly"
             >
               <option value="rating">Sort by Rating</option>
               <option value="experience">Sort by Experience</option>
@@ -437,28 +439,28 @@ export default function FindDoctorsPage() {
               <option value="price-high">Price: High to Low</option>
               <option value="name">Sort by Name</option>
             </select>
-            
+
             <button
               onClick={clearFilters}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors touch-friendly"
+              className="text-blue-600 hover:text-blue-800 text-sm font-semibold px-4 py-2 hover:bg-blue-50 rounded-lg transition-all duration-300 touch-friendly hover:scale-105"
             >
               Clear Filters
             </button>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors touch-friendly ${
-                viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
+              className={`p-3 rounded-md transition-all duration-300 touch-friendly hover:scale-110 ${
+                viewMode === 'grid' ? 'bg-white text-blue-600 shadow-medium' : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
               <IconWithFallback icon="grid_view" emoji="⊞" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors touch-friendly ${
-                viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
+              className={`p-3 rounded-md transition-all duration-300 touch-friendly hover:scale-110 ${
+                viewMode === 'list' ? 'bg-white text-blue-600 shadow-medium' : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
               <IconWithFallback icon="list" emoji="☰" />
@@ -485,17 +487,17 @@ export default function FindDoctorsPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 md:py-16">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <IconWithFallback icon="search_off" emoji="🔍❌" className="text-gray-400 text-2xl md:text-3xl" />
+        <div className="text-center py-16 md:py-20">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
+            <IconWithFallback icon="search_off" emoji="🔍❌" className="text-gray-400 text-3xl md:text-4xl" />
           </div>
-          <h3 className="text-lg md:text-xl font-medium text-gray-600 mb-2">No doctors found</h3>
-          <p className="text-sm md:text-base text-gray-500 mb-6">
-            Try adjusting your search criteria or filters
+          <h3 className="text-xl md:text-2xl font-bold text-gray-700 mb-3">No doctors found</h3>
+          <p className="text-base md:text-lg text-gray-500 mb-8">
+            Try adjusting your search criteria or filters to find more healthcare providers
           </p>
           <button
             onClick={clearFilters}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors font-medium touch-friendly"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-4 rounded-lg hover:shadow-strong transition-all duration-300 font-semibold touch-friendly hover:scale-105"
           >
             Clear All Filters
           </button>
@@ -529,60 +531,60 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
 
   if (viewMode === 'list') {
     return (
-      <div className="card p-4 md:p-6 shadow-soft hover:shadow-medium transition-shadow">
+      <div className="card p-4 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-102">
         <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-6">
-          {/* Doctor Info */}
+          {/* Enhanced Doctor Info */}
           <div className="flex items-center space-x-4 flex-1">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-medium hover:shadow-strong transition-all duration-300">
               {initials}
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-800">{doctor.name}</h3>
-              <p className="text-blue-600 font-medium">{doctor.specialty}</p>
-              <div className="flex items-center space-x-2 mt-1">
+              <h3 className="text-lg font-bold text-gray-800">{doctor.name}</h3>
+              <p className="text-blue-600 font-semibold">{doctor.specialty}</p>
+              <div className="flex items-center space-x-2 mt-2">
                 <div className="flex items-center space-x-1">
                   {getRatingStars(doctor.rating)}
                 </div>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-gray-600 font-medium">
                   {doctor.rating} ({doctor.reviewsCount} reviews)
                 </span>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                <IconWithFallback icon="location_on" emoji="📍" className="text-xs mr-1" />
+              <p className="text-sm text-gray-600 mt-2 flex items-center">
+                <IconWithFallback icon="location_on" emoji="📍" className="text-gray-400 text-xs mr-2" />
                 {doctor.location} • {doctor.yearsOfExperience} years experience
               </p>
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Enhanced Actions */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
             {doctor.isConnected && (
-              <div className="text-right">
+              <div className="text-right bg-gray-50 p-3 rounded-lg">
                 <p className="text-lg font-bold text-gray-800">RM {doctor.consultationFee}</p>
                 <p className="text-xs text-gray-500">per consultation</p>
               </div>
             )}
-            
+
             {doctor.isConnected ? (
               <div className="flex space-x-2">
                 <Link
                   href={`/patient/appointments?doctor=${doctor.id}`}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium touch-friendly"
+                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-green-800 shadow-medium hover:shadow-strong transition-all duration-300 text-sm font-semibold touch-friendly hover:scale-105"
                 >
                   Book Appointment
                 </Link>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm font-medium touch-friendly">
+                <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 text-sm font-semibold touch-friendly hover:scale-105">
                   Message
                 </button>
               </div>
             ) : doctor.connectionStatus === 'pending' ? (
-              <button disabled className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
+              <button disabled className="bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-700 px-6 py-3 rounded-lg text-sm font-semibold cursor-not-allowed shadow-sm">
                 Request Pending
               </button>
             ) : (
               <button
                 onClick={() => setShowTreatmentModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm font-medium touch-friendly"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 text-sm font-semibold touch-friendly hover:scale-105"
               >
                 Connect
               </button>
@@ -637,37 +639,37 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
     );
   }
 
-  // Grid view card (existing implementation would be similar but more compact)
+  // Enhanced Grid view card
   return (
-    <div className="card p-4 md:p-6 shadow-soft hover:shadow-medium transition-shadow">
-      {/* Grid view implementation */}
+    <div className="card p-4 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
+      {/* Enhanced Grid view implementation */}
       <div className="text-center mb-4">
-        <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg mx-auto mb-3">
+        <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-medium hover:shadow-strong transition-all duration-300 mx-auto mb-3">
           {initials}
         </div>
-        <h3 className="text-lg font-semibold text-gray-800">{doctor.name}</h3>
-        <p className="text-blue-600 font-medium text-sm">{doctor.specialty}</p>
+        <h3 className="text-lg font-bold text-gray-800">{doctor.name}</h3>
+        <p className="text-blue-600 font-semibold text-sm">{doctor.specialty}</p>
         <div className="flex items-center justify-center space-x-1 mt-2">
           {getRatingStars(doctor.rating)}
-          <span className="text-sm text-gray-500 ml-1">
+          <span className="text-sm text-gray-600 font-medium ml-1">
             ({doctor.reviewsCount})
           </span>
         </div>
       </div>
 
-      <div className="space-y-2 mb-4 text-sm">
+      <div className="space-y-3 mb-4 text-sm bg-gray-50 p-3 rounded-lg">
         <div className="flex items-center justify-between">
-          <span className="text-gray-500">Experience:</span>
-          <span className="font-medium">{doctor.yearsOfExperience} years</span>
+          <span className="text-gray-600 font-medium">Experience:</span>
+          <span className="font-bold text-gray-800">{doctor.yearsOfExperience} years</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-gray-500">Location:</span>
-          <span className="font-medium">{doctor.location}</span>
+          <span className="text-gray-600 font-medium">Location:</span>
+          <span className="font-bold text-gray-800">{doctor.location}</span>
         </div>
         {doctor.isConnected && (
           <div className="flex items-center justify-between">
-            <span className="text-gray-500">Fee:</span>
-            <span className="font-bold text-gray-800">RM {doctor.consultationFee}</span>
+            <span className="text-gray-600 font-medium">Fee:</span>
+            <span className="font-bold text-green-600">RM {doctor.consultationFee}</span>
           </div>
         )}
       </div>
@@ -677,22 +679,22 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
           <div className="space-y-2">
             <Link
               href={`/patient/appointments?doctor=${doctor.id}`}
-              className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium text-center block touch-friendly"
+              className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-lg hover:from-green-700 hover:to-green-800 shadow-medium hover:shadow-strong transition-all duration-300 text-sm font-semibold text-center block touch-friendly hover:scale-105"
             >
               Book Appointment
             </Link>
-            <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm font-medium touch-friendly">
+            <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 text-sm font-semibold touch-friendly hover:scale-105">
               Message Doctor
             </button>
           </div>
         ) : doctor.connectionStatus === 'pending' ? (
-          <button disabled className="w-full bg-yellow-100 text-yellow-700 py-2 px-4 rounded-lg text-sm font-medium cursor-not-allowed">
+          <button disabled className="w-full bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-700 py-3 px-4 rounded-lg text-sm font-semibold cursor-not-allowed shadow-sm">
             Connection Pending
           </button>
         ) : (
           <button
             onClick={() => setShowTreatmentModal(true)}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm font-medium touch-friendly"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 text-sm font-semibold touch-friendly hover:scale-105"
           >
             Connect with Doctor
           </button>

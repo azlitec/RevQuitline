@@ -52,27 +52,41 @@ model User {
   notifications Notification[] @relation("NotificationUser")
   doctorConnections DoctorPatientConnection[] @relation("DoctorConnections")
   patientConnections DoctorPatientConnection[] @relation("PatientConnections")
+  patientInvoices Invoice[] @relation("PatientInvoices")
+  providerInvoices Invoice[] @relation("ProviderInvoices")
+  intakeForms IntakeForm[] @relation("IntakeFormPatient")
+}
+
+// Service types enum
+enum ServiceType {
+  consultation
+  follow_up
+  emergency
+  quitline_smoking_cessation
 }
 
 // Simple appointment model for now - we'll add more complex relations later
 model Appointment {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
-  description String?  @db.Text
+  description String?     @db.Text
   date        DateTime
-  duration    Int      @default(30) // minutes
-  status      String   @default("scheduled") // scheduled, completed, cancelled, no-show
-  type        String   @default("consultation") // consultation, follow-up, emergency
+  duration    Int         @default(30) // minutes
+  status      String      @default("scheduled") // scheduled, completed, cancelled, no-show
+  type        ServiceType @default(consultation)
+  serviceName String?     // Human readable service name
+  price       Float?      // Service price in RM
   meetingLink String?
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  notes       String?     @db.Text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   // Simple relations for now
   providerId String
   provider   User   @relation("ProviderAppointments", fields: [providerId], references: [id], onDelete: Cascade, map: "Appointment_providerId_fkey")
   patientId  String
   patient    User   @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade, map: "Appointment_patientId_fkey")
+  invoice    Invoice? @relation("AppointmentInvoice")
 }
 
 // EHR Models for comprehensive patient data management
@@ -197,4 +211,45 @@ model DoctorPatientConnection {
   @@index([providerId])
   @@index([patientId])
   @@index([status])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  patientId     String
+  patient       User     @relation("PatientInvoices", fields: [patientId], references: [id], onDelete: Cascade)
+  providerId    String?
+  provider      User?    @relation("ProviderInvoices", fields: [providerId], references: [id])
+  appointmentId String?  @unique
+  appointment   Appointment? @relation("AppointmentInvoice", fields: [appointmentId], references: [id])
+  description   String
+  amount        Float
+  status        String   @default("pending") // pending, paid, overdue, cancelled
+  dueDate       DateTime
+  paidAt        DateTime?
+  paymentMethod String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model IntakeForm {
+  id            String   @id @default(cuid())
+  appointmentId String   @unique
+  patientId     String
+  patient       User     @relation("IntakeFormPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  formData      Json     // Store the complete form data as JSON
+  currentStep   Int      @default(1)
+  completed     Boolean  @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([appointmentId])
+  @@index([patientId])
+  @@index([completed])
 }

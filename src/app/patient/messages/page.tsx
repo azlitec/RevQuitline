@@ -355,15 +355,19 @@ export default function PatientMessagesPage() {
 
   return (
     <>
-      {/* Header */}
+      {/* Enhanced Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Messages</h2>
-          <p className="text-sm md:text-base text-gray-500">Chat with your doctors</p>
+          <h2 className="text-xl md:text-2xl font-bold gradient-text">Messages</h2>
+          <p className="text-sm md:text-base text-gray-500 flex items-center">
+            Chat with your doctors
+            <span className="ml-2 text-sm text-gray-400">•</span>
+            <span className="ml-2 text-sm text-blue-600 font-medium">{conversations.length} conversations</span>
+          </p>
         </div>
         <button
           onClick={() => setShowDoctorList(true)}
-          className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
         >
           <IconWithFallback icon="add" emoji="➕" className="text-white" />
           <span className="hidden sm:inline">New Message</span>
@@ -371,8 +375,8 @@ export default function PatientMessagesPage() {
         </button>
       </div>
 
-      {/* Messages Interface */}
-      <div className="card shadow-soft overflow-hidden">
+      {/* Enhanced Messages Interface */}
+      <div className="card shadow-strong hover:shadow-xl transition-all duration-300 overflow-hidden">
         <div className="flex h-[600px] md:h-[700px]">
           {/* Conversations List */}
           <div className={`w-full md:w-1/3 border-r border-gray-200 ${selectedConversation ? 'hidden md:block' : ''}`}>
@@ -389,8 +393,8 @@ export default function PatientMessagesPage() {
                   <div
                     key={conversation.id}
                     onClick={() => setSelectedConversation(conversation.id)}
-                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      selectedConversation === conversation.id ? 'bg-blue-50 border-blue-200' : ''
+                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:shadow-medium ${
+                      selectedConversation === conversation.id ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-medium' : ''
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -408,7 +412,7 @@ export default function PatientMessagesPage() {
                             Dr. {conversation.doctor.firstName} {conversation.doctor.lastName}
                           </h4>
                           {conversation.unreadCount > 0 && (
-                            <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
+                            <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs px-3 py-1 rounded-full shadow-medium font-semibold">
                               {conversation.unreadCount}
                             </span>
                           )}
@@ -425,14 +429,14 @@ export default function PatientMessagesPage() {
                 ))
               ) : (
                 <div className="p-8 text-center">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <IconWithFallback icon="chat_bubble_outline" emoji="💭" className="text-gray-400 text-2xl" />
+                  <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
+                    <IconWithFallback icon="chat_bubble_outline" emoji="💭" className="text-gray-400 text-3xl" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-600 mb-2">No conversations yet</h3>
-                  <p className="text-gray-500 mb-4">Start a conversation with your doctors</p>
+                  <h3 className="text-xl font-bold text-gray-700 mb-3">No conversations yet</h3>
+                  <p className="text-gray-500 text-lg mb-6">Start a conversation with your doctors</p>
                   <button
                     onClick={() => setShowDoctorList(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105"
                   >
                     Start New Conversation
                   </button>
@@ -508,10 +512,10 @@ export default function PatientMessagesPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input */}
-                <div className="p-4 border-t border-gray-200 bg-gray-50">
+                {/* Enhanced Message Input */}
+                <div className="p-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
                   <div className="flex items-center space-x-3">
-                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button className="p-3 hover:bg-white hover:shadow-medium rounded-lg transition-all duration-300 hover:scale-110">
                       <IconWithFallback icon="attach_file" emoji="📎" className="text-gray-600" />
                     </button>
                     <div className="flex-1 relative">
@@ -525,16 +529,16 @@ export default function PatientMessagesPage() {
                           }
                         }}
                         placeholder="Type your message..."
-                        className="w-full p-3 pr-12 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+                        className="w-full p-4 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white hover:bg-gray-50"
                       />
-                      <button className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors">
+                      <button className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-lg transition-all duration-300 hover:scale-110">
                         <IconWithFallback icon="emoji_emotions" emoji="😊" className="text-gray-400" />
                       </button>
                     </div>
                     <button
                       onClick={() => sendMessage(selectedConversation)}
                       disabled={!newMessage.trim()}
-                      className="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
                     >
                       <IconWithFallback icon="send" emoji="➤" className="text-white" />
                     </button>
@@ -544,11 +548,11 @@ export default function PatientMessagesPage() {
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <IconWithFallback icon="chat" emoji="💬" className="text-gray-400 text-2xl" />
+                  <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
+                    <IconWithFallback icon="chat" emoji="💬" className="text-gray-400 text-3xl" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-600 mb-2">Select a conversation</h3>
-                  <p className="text-gray-500">Choose a conversation to start messaging</p>
+                  <h3 className="text-xl font-bold text-gray-700 mb-3">Select a conversation</h3>
+                  <p className="text-gray-500 text-lg">Choose a conversation to start messaging</p>
                 </div>
               </div>
             )}

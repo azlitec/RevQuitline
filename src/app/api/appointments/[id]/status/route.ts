@@ -92,6 +92,36 @@ export async function PATCH(
       }
     });
 
+    // Auto-generate invoice for completed quitline sessions
+    if (newStatus === 'completed' && existingAppointment.type === 'quitline_smoking_cessation' && existingAppointment.price) {
+      // Check if invoice already exists
+      const existingInvoice = await prisma.invoice.findUnique({
+        where: { appointmentId: appointmentId }
+      });
+
+      if (!existingInvoice) {
+        // Generate invoice number
+        const invoiceCount = await prisma.invoice.count();
+        const invoiceNumber = `INV-${String(invoiceCount + 1).padStart(6, '0')}`;
+
+        // Create invoice due in 30 days
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30);
+
+        await prisma.invoice.create({
+          data: {
+            invoiceNumber,
+            patientId: existingAppointment.patientId,
+            providerId: existingAppointment.providerId,
+            appointmentId: appointmentId,
+            description: `Quitline Free-Smoking Session (INRT) - ${existingAppointment.serviceName || 'Smoking Cessation Consultation'}`,
+            amount: existingAppointment.price,
+            dueDate
+          }
+        });
+      }
+    }
+
     return NextResponse.json(updatedAppointment);
 
   } catch (error) {

@@ -140,15 +140,19 @@ export default function PatientMedicationsPage() {
 
   return (
     <>
-      {/* Header */}
+      {/* Enhanced Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Medication Management</h2>
-          <p className="text-sm md:text-base text-gray-500">Track and manage your medications</p>
+          <h2 className="text-xl md:text-2xl font-bold gradient-text">Medication Management</h2>
+          <p className="text-sm md:text-base text-gray-500 flex items-center">
+            Track and manage your medications
+            <span className="ml-2 text-sm text-gray-400">•</span>
+            <span className="ml-2 text-sm text-blue-600 font-medium">{medications.filter(m => m.status === 'active').length} active</span>
+          </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
         >
           <IconWithFallback icon="add" emoji="➕" className="text-white" />
           <span className="hidden sm:inline">Add Medication</span>
@@ -156,55 +160,59 @@ export default function PatientMedicationsPage() {
         </button>
       </div>
 
-      {/* Medication Stats */}
+      {/* Enhanced Medication Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-        <div className="card p-3 md:p-6 shadow-soft">
+        <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-green-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+            <div className="bg-gradient-to-r from-green-100 to-green-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
               <IconWithFallback icon="medication" emoji="💊" className="text-green-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Active</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Active</p>
               <p className="text-lg md:text-2xl font-bold text-gray-800">
                 {medications.filter(m => m.status === 'active').length}
               </p>
+              <p className="text-xs text-gray-400 mt-1">Currently taking</p>
             </div>
           </div>
         </div>
-        <div className="card p-3 md:p-6 shadow-soft">
+        <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-blue-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+            <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
               <IconWithFallback icon="check_circle" emoji="✅" className="text-blue-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Completed</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Completed</p>
               <p className="text-lg md:text-2xl font-bold text-gray-800">
                 {medications.filter(m => m.status === 'completed').length}
               </p>
+              <p className="text-xs text-gray-400 mt-1">Successfully finished</p>
             </div>
           </div>
         </div>
-        <div className="card p-3 md:p-6 shadow-soft">
+        <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-yellow-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+            <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
               <IconWithFallback icon="schedule" emoji="⏰" className="text-yellow-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Due Today</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Due Today</p>
               <p className="text-lg md:text-2xl font-bold text-gray-800">
                 {medications.filter(m => m.status === 'active').length}
               </p>
+              <p className="text-xs text-gray-400 mt-1">Need attention</p>
             </div>
           </div>
         </div>
-        <div className="card p-3 md:p-6 shadow-soft">
+        <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-purple-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+            <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
               <IconWithFallback icon="medical_services" emoji="🏥" className="text-purple-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Total</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Total</p>
               <p className="text-lg md:text-2xl font-bold text-gray-800">{medications.length}</p>
+              <p className="text-xs text-gray-400 mt-1">All medications</p>
             </div>
           </div>
         </div>
@@ -237,25 +245,25 @@ export default function PatientMedicationsPage() {
         ))}
       </div>
 
-      {/* Medications List */}
-      <div className="card p-4 md:p-6 shadow-soft">
+      {/* Enhanced Medications List */}
+      <div className="card p-4 md:p-6 shadow-strong hover:shadow-xl transition-all duration-300">
         {filteredMedications.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredMedications.map((medication) => {
               const statusIcon = getStatusIcon(medication.status);
               return (
-                <div key={medication.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all duration-300 hover:border-blue-200">
-                  {/* Medication Header */}
+                <div key={medication.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-strong bg-gradient-to-r from-white to-gray-50 hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:border-blue-300 hover:scale-102">
+                  {/* Enhanced Medication Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800 text-sm md:text-base mb-1">
+                      <h4 className="font-bold text-gray-800 text-sm md:text-base mb-1">
                         {medication.name}
                       </h4>
-                      <p className="text-xs md:text-sm text-gray-500">
+                      <p className="text-xs md:text-sm text-gray-600 font-medium">
                         {medication.dosage} • {medication.frequency}
                       </p>
                     </div>
-                    <span className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(medication.status)}`}>
+                    <span className={`inline-flex items-center space-x-1 px-3 py-2 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(medication.status)}`}>
                       <IconWithFallback
                         icon={statusIcon.icon}
                         emoji={statusIcon.emoji}
@@ -265,43 +273,43 @@ export default function PatientMedicationsPage() {
                     </span>
                   </div>
 
-                  {/* Medication Details */}
-                  <div className="space-y-2 mb-4 text-xs md:text-sm">
+                  {/* Enhanced Medication Details */}
+                  <div className="space-y-3 mb-4 text-xs md:text-sm bg-gray-50 p-3 rounded-lg">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Prescribed by:</span>
-                      <span className="text-gray-800 font-medium">{medication.prescribedBy}</span>
+                      <span className="text-gray-600 font-medium">Prescribed by:</span>
+                      <span className="text-gray-800 font-bold">{medication.prescribedBy}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Start Date:</span>
-                      <span className="text-gray-800 font-medium">
+                      <span className="text-gray-600 font-medium">Start Date:</span>
+                      <span className="text-gray-800 font-bold">
                         {new Date(medication.startDate).toLocaleDateString()}
                       </span>
                     </div>
                     {medication.endDate && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">End Date:</span>
-                        <span className="text-gray-800 font-medium">
+                        <span className="text-gray-600 font-medium">End Date:</span>
+                        <span className="text-gray-800 font-bold">
                           {new Date(medication.endDate).toLocaleDateString()}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  {/* Instructions */}
+                  {/* Enhanced Instructions */}
                   <div className="mb-3">
-                    <p className="text-xs text-gray-500 mb-1">Instructions:</p>
-                    <p className="text-xs md:text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                    <p className="text-xs text-gray-600 font-medium mb-2">Instructions:</p>
+                    <p className="text-xs md:text-sm text-gray-700 bg-blue-50 p-3 rounded-lg border border-blue-100">
                       {medication.instructions}
                     </p>
                   </div>
 
-                  {/* Action Buttons */}
+                  {/* Enhanced Action Buttons */}
                   <div className="flex space-x-2">
-                    <button className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg text-xs font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors touch-friendly">
+                    <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-3 rounded-lg text-xs font-semibold hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 touch-friendly hover:scale-105">
                       <IconWithFallback icon="visibility" emoji="👁️" className="text-white text-sm mr-1" />
                       View Details
                     </button>
-                    <button className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-friendly">
+                    <button className="px-3 py-3 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-blue-400 active:bg-gray-100 transition-all duration-300 touch-friendly hover:scale-110">
                       <IconWithFallback icon="edit" emoji="✏️" className="text-gray-600" />
                     </button>
                   </div>
@@ -310,15 +318,15 @@ export default function PatientMedicationsPage() {
             })}
           </div>
         ) : (
-          <div className="text-center py-8 md:py-12">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <IconWithFallback icon="medication" emoji="💊" className="text-gray-400 text-lg md:text-2xl" />
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
+              <IconWithFallback icon="medication" emoji="💊" className="text-gray-400 text-3xl" />
             </div>
-            <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">
-              {selectedTab === 'active' ? 'No active medications' : 
-               selectedTab === 'history' ? 'No medication history' : 'No medications found'}
+            <h3 className="text-xl font-bold text-gray-700 mb-3">
+              {selectedTab === 'active' ? 'No active medications' :
+              selectedTab === 'history' ? 'No medication history' : 'No medications found'}
             </h3>
-            <p className="text-sm md:text-base text-gray-500">
+            <p className="text-base text-gray-500 mb-6">
               {selectedTab === 'active'
                 ? 'You have no active medications at the moment'
                 : selectedTab === 'history'
@@ -326,6 +334,14 @@ export default function PatientMedicationsPage() {
                 : 'Start by adding your medications'
               }
             </p>
+            {selectedTab === 'active' && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105"
+              >
+                Add Your First Medication
+              </button>
+            )}
           </div>
         )}
       </div>

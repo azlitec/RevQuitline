@@ -201,16 +201,20 @@ export default function PatientBillingPage() {
 
   return (
     <>
-      {/* Header */}
+      {/* Enhanced Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Billing & Payments</h2>
-          <p className="text-sm md:text-base text-gray-500">Manage your medical bills and payment methods</p>
+          <h2 className="text-xl md:text-2xl font-bold gradient-text">Billing & Payments</h2>
+          <p className="text-sm md:text-base text-gray-500 flex items-center">
+            Manage your medical bills and payment methods
+            <span className="ml-2 text-sm text-gray-400">•</span>
+            <span className="ml-2 text-sm text-red-600 font-medium">RM {stats.totalOutstanding.toFixed(2)} outstanding</span>
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={() => setShowAddMethodModal(true)}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-700 active:bg-gray-800 transition-colors flex items-center justify-center space-x-2 text-sm touch-friendly"
+            className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 text-sm touch-friendly"
           >
             <IconWithFallback icon="credit_card" emoji="💳" className="text-white" />
             <span>Add Payment Method</span>
@@ -218,49 +222,53 @@ export default function PatientBillingPage() {
         </div>
       </div>
 
-      {/* Billing Stats */}
+      {/* Enhanced Billing Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-        <div className="card p-3 md:p-6 shadow-soft">
+        <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-red-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+            <div className="bg-gradient-to-r from-red-100 to-red-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
               <IconWithFallback icon="account_balance_wallet" emoji="💰" className="text-red-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Outstanding</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Outstanding</p>
               <p className="text-lg md:text-2xl font-bold text-gray-800">RM {stats.totalOutstanding.toFixed(2)}</p>
+              <p className="text-xs text-gray-400 mt-1">Needs attention</p>
             </div>
           </div>
         </div>
-        <div className="card p-3 md:p-6 shadow-soft">
+        <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-yellow-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+            <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
               <IconWithFallback icon="warning" emoji="⚠️" className="text-yellow-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Overdue</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Overdue</p>
               <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.overdueBills}</p>
+              <p className="text-xs text-gray-400 mt-1">Past due date</p>
             </div>
           </div>
         </div>
-        <div className="card p-3 md:p-6 shadow-soft">
+        <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-green-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+            <div className="bg-gradient-to-r from-green-100 to-green-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
               <IconWithFallback icon="payments" emoji="💸" className="text-green-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Paid This Month</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Paid This Month</p>
               <p className="text-lg md:text-2xl font-bold text-gray-800">RM {stats.paidThisMonth.toFixed(2)}</p>
+              <p className="text-xs text-gray-400 mt-1">Recent payments</p>
             </div>
           </div>
         </div>
-        <div className="card p-3 md:p-6 shadow-soft">
+        <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="bg-blue-100 p-2 md:p-3 rounded-lg md:rounded-xl">
+            <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
               <IconWithFallback icon="receipt" emoji="🧾" className="text-blue-600 text-sm md:text-base" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Total Paid</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Total Paid</p>
               <p className="text-lg md:text-2xl font-bold text-gray-800">RM {stats.totalPaid.toFixed(2)}</p>
+              <p className="text-xs text-gray-400 mt-1">All time</p>
             </div>
           </div>
         </div>
@@ -293,8 +301,8 @@ export default function PatientBillingPage() {
         ))}
       </div>
 
-      {/* Content based on selected tab */}
-      <div className="card p-4 md:p-6 shadow-soft">
+      {/* Enhanced Content based on selected tab */}
+      <div className="card p-4 md:p-6 shadow-strong hover:shadow-xl transition-all duration-300">
         {selectedTab === 'bills' && (
           <>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Outstanding Bills</h3>
@@ -303,7 +311,7 @@ export default function PatientBillingPage() {
                 {pendingBills.map((bill) => {
                   const statusIcon = getStatusIcon(bill.status);
                   return (
-                    <div key={bill.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all duration-300">
+                    <div key={bill.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-strong bg-gradient-to-r from-white to-gray-50 hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:border-blue-300 hover:scale-102">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
@@ -344,7 +352,7 @@ export default function PatientBillingPage() {
                               setSelectedBill(bill);
                               setShowPaymentModal(true);
                             }}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm touch-friendly"
+                            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 text-sm touch-friendly"
                           >
                             Pay Now
                           </button>
@@ -355,12 +363,12 @@ export default function PatientBillingPage() {
                 })}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <IconWithFallback icon="receipt_long" emoji="📋" className="text-gray-400 text-2xl" />
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-gradient-to-r from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
+                  <IconWithFallback icon="receipt_long" emoji="📋" className="text-green-600 text-3xl" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-600 mb-2">No outstanding bills</h3>
-                <p className="text-gray-500">You're all caught up with your payments!</p>
+                <h3 className="text-xl font-bold text-gray-700 mb-3">No outstanding bills</h3>
+                <p className="text-gray-500 text-lg">You're all caught up with your payments!</p>
               </div>
             )}
           </>
@@ -372,7 +380,7 @@ export default function PatientBillingPage() {
             {paidBills.length > 0 ? (
               <div className="space-y-4">
                 {paidBills.map((bill) => (
-                  <div key={bill.id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={bill.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-strong bg-gradient-to-r from-white to-gray-50 hover:from-green-50 hover:to-blue-50 transition-all duration-300 hover:border-green-300 hover:scale-102">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
@@ -439,7 +447,7 @@ export default function PatientBillingPage() {
             {paymentMethods.length > 0 ? (
               <div className="space-y-4">
                 {paymentMethods.map((method) => (
-                  <div key={method.id} className="border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                  <div key={method.id} className="border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:shadow-strong bg-gradient-to-r from-white to-gray-50 hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:border-blue-300 hover:scale-102">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                         <IconWithFallback 
@@ -472,15 +480,15 @@ export default function PatientBillingPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <IconWithFallback icon="credit_card" emoji="💳" className="text-gray-400 text-2xl" />
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
+                  <IconWithFallback icon="credit_card" emoji="💳" className="text-gray-400 text-3xl" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-600 mb-2">No payment methods</h3>
-                <p className="text-gray-500 mb-4">Add a payment method to pay your bills</p>
+                <h3 className="text-xl font-bold text-gray-700 mb-3">No payment methods</h3>
+                <p className="text-gray-500 text-lg mb-6">Add a payment method to pay your bills</p>
                 <button
                   onClick={() => setShowAddMethodModal(true)}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105"
                 >
                   Add Payment Method
                 </button>

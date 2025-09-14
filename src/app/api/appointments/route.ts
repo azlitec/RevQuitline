@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
       date,
       duration,
       type,
+      serviceName,
+      price,
       providerId,
       patientId,
       meetingLink
@@ -111,6 +113,15 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    // Set default service name and price based on type
+    let finalServiceName = serviceName;
+    let finalPrice = price;
+
+    if (type === 'quitline_smoking_cessation') {
+      finalServiceName = finalServiceName || 'Quitline Free-Smoking Session (INRT)';
+      finalPrice = finalPrice || 150;
     }
 
     // Check if user has permission to create appointment
@@ -128,6 +139,8 @@ export async function POST(request: NextRequest) {
         date: new Date(date),
         duration: duration || 30,
         type: type || 'consultation',
+        serviceName: finalServiceName,
+        price: finalPrice,
         status: 'scheduled',
         meetingLink,
         providerId,
