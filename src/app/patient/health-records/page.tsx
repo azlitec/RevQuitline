@@ -1,104 +1,180 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/auth';
-import { prisma } from '@/lib/db';
+'use client';
 
-export default async function PatientHealthRecordsPage() {
-  try {
-    // Auth check on the server
-    const session = await getServerSession(authOptions);
-    
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import HealthRecordModal from '@/components/patient/HealthRecordModal';
+
+interface HealthRecord {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  date: string;
+  provider: {
+    firstName: string;
+    lastName: string;
+    specialty: string | null;
+  };
+}
+
+interface VitalSign {
+  bloodPressure: string | null;
+  heartRate: number | null;
+  oxygenSaturation: number | null;
+  respiratoryRate: number | null;
+  temperature: number | null;
+}
+
+interface SmokingMetric {
+  cigarettesPerDay: number | null;
+  peakFlow: number | null;
+  carbonMonoxideLevel: number | null;
+  quitDurationDays: number | null;
+}
+
+export default function PatientHealthRecordsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const [vitalStats, setVitalStats] = useState({
+    bloodPressure: 'N/A',
+    heartRate: 'N/A',
+    oxygenSaturation: 'N/A',
+    respiratoryRate: 'N/A',
+    temperature: 'N/A'
+  });
+  const [smokingMetrics, setSmokingMetrics] = useState({
+    cigarettesPerDay: 0,
+    peakFlow: 'N/A',
+    carbonMonoxide: 'N/A',
+    quitDuration: '0 days'
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (status === 'loading') return;
+
     if (!session || !session.user) {
-      redirect('/login?callbackUrl=/patient/health-records');
+      router.push('/login?callbackUrl=/patient/health-records');
+      return;
     }
 
     // Check if user is a patient (not provider or admin)
     if (session.user.isProvider || session.user.isAdmin || session.user.isClerk) {
       // Redirect to appropriate dashboard based on user role
       if (session.user.isAdmin) {
-        redirect('/admin/dashboard');
+        router.push('/admin/dashboard');
       } else if (session.user.isClerk) {
-        redirect('/clerk/dashboard');
+        router.push('/clerk/dashboard');
       } else if (session.user.isProvider) {
-        redirect('/provider/dashboard');
+        router.push('/provider/dashboard');
       }
+      return;
     }
 
-    // Fetch patient data
-    const patientData = await prisma.user.findUnique({
-      where: { id: session.user.id as string },
-    });
+    fetchData();
+  }, [session, status, router]);
 
-    if (!patientData) {
-      redirect('/login');
-    }
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    // Fetch health records for the patient
-    const healthRecords = await prisma.healthRecord.findMany({
-      where: {
-        patientId: session.user.id as string
-      },
-      include: {
-        provider: {
-          select: {
-            firstName: true,
-            lastName: true,
-            specialty: true
-          }
+      // Fetch health records
+      const recordsResponse = await fetch('/api/patient/health-records');
+      if (recordsResponse.ok) {
+        const recordsData = await recordsResponse.json();
+        setHealthRecords(recordsData.healthRecords || []);
+      }
+
+      // Fetch latest vital signs and smoking metrics from the dashboard API
+      const dashboardResponse = await fetch('/api/patient/dashboard');
+      if (dashboardResponse.ok) {
+        const dashboardData = await dashboardResponse.json();
+
+        // Format vital stats
+        if (dashboardData.latestVitalSign) {
+          const vitals = dashboardData.latestVitalSign;
+          setVitalStats({
+            bloodPressure: vitals.bloodPressure || 'N/A',
+            heartRate: vitals.heartRate ? `${vitals.heartRate} bpm` : 'N/A',
+            oxygenSaturation: vitals.oxygenSaturation ? `${vitals.oxygenSaturation}%` : 'N/A',
+            respiratoryRate: vitals.respiratoryRate ? `${vitals.respiratoryRate} breaths/min` : 'N/A',
+            temperature: vitals.temperature ? `${vitals.temperature}°F` : 'N/A'
+          });
         }
-      },
-      orderBy: {
-        date: 'desc'
+
+        // Format smoking metrics
+        if (dashboardData.latestSmokingMetric) {
+          const smoking = dashboardData.latestSmokingMetric;
+          setSmokingMetrics({
+            cigarettesPerDay: smoking.cigarettesPerDay || 0,
+            peakFlow: smoking.peakFlow ? `${smoking.peakFlow} L/min` : 'N/A',
+            carbonMonoxide: smoking.carbonMonoxideLevel ? `${smoking.carbonMonoxideLevel} ppm` : 'N/A',
+            quitDuration: smoking.quitDurationDays ? `${smoking.quitDurationDays} days` : '0 days'
+          });
+        }
       }
-    });
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load health records data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Fetch latest vital sign entry
-    const latestVitalSign = await prisma.vitalSign.findFirst({
-      where: {
-        patientId: session.user.id as string
-      },
-      orderBy: {
-        recordedAt: 'desc'
-      }
-    });
+  const handleViewDetails = (recordId: string) => {
+    setSelectedRecordId(recordId);
+    setModalOpen(true);
+  };
 
-    // Fetch latest smoking metric entry
-    const latestSmokingMetric = await prisma.smokingMetric.findFirst({
-      where: {
-        patientId: session.user.id as string
-      },
-      orderBy: {
-        recordedAt: 'desc'
-      }
-    });
+  const handleDownloadRecord = (recordId: string) => {
+    window.open(`/api/patient/health-records/${recordId}/download`, '_blank');
+  };
 
-    // Format vital stats from latest entry or use defaults
-    const vitalStats = latestVitalSign ? {
-      bloodPressure: latestVitalSign.bloodPressure || 'N/A',
-      heartRate: latestVitalSign.heartRate ? `${latestVitalSign.heartRate} bpm` : 'N/A',
-      oxygenSaturation: latestVitalSign.oxygenSaturation ? `${latestVitalSign.oxygenSaturation}%` : 'N/A',
-      respiratoryRate: latestVitalSign.respiratoryRate ? `${latestVitalSign.respiratoryRate} breaths/min` : 'N/A',
-      temperature: latestVitalSign.temperature ? `${latestVitalSign.temperature}°F` : 'N/A'
-    } : {
-      bloodPressure: 'N/A',
-      heartRate: 'N/A',
-      oxygenSaturation: 'N/A',
-      respiratoryRate: 'N/A',
-      temperature: 'N/A'
-    };
+  const handleDownloadAllRecords = () => {
+    window.open('/api/patient/health-records/export', '_blank');
+  };
 
-    // Format smoking metrics from latest entry or use defaults
-    const smokingMetrics = latestSmokingMetric ? {
-      cigarettesPerDay: latestSmokingMetric.cigarettesPerDay || 0,
-      peakFlow: latestSmokingMetric.peakFlow ? `${latestSmokingMetric.peakFlow} L/min` : 'N/A',
-      carbonMonoxide: latestSmokingMetric.carbonMonoxideLevel ? `${latestSmokingMetric.carbonMonoxideLevel} ppm` : 'N/A',
-      quitDuration: latestSmokingMetric.quitDurationDays ? `${latestSmokingMetric.quitDurationDays} days` : '0 days'
-    } : {
-      cigarettesPerDay: 0,
-      peakFlow: 'N/A',
-      carbonMonoxide: 'N/A',
-      quitDuration: '0 days'
-    };
+  const closeModal = () => {
+    setModalOpen(false);
+    setSelectedRecordId(null);
+  };
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center space-x-3">
+          <div className="animate-spin">
+            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <span className="text-gray-600 font-medium">Loading health records...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 bg-red-50 text-red-700 rounded-lg max-w-3xl mx-auto mt-8">
+        <h2 className="text-xl font-bold mb-4">Error Loading Health Records</h2>
+        <p>{error}</p>
+        <button
+          onClick={fetchData}
+          className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
     return (
       <div className="space-y-6">
@@ -111,7 +187,10 @@ export default async function PatientHealthRecordsPage() {
               <span className="ml-2 text-sm text-blue-600 font-medium">{healthRecords.length} records</span>
             </p>
           </div>
-          <button className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105">
+          <button
+            onClick={handleDownloadAllRecords}
+            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105"
+          >
             Download Records
           </button>
         </div>
@@ -262,7 +341,7 @@ export default async function PatientHealthRecordsPage() {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
-                          }).format(record.date)}
+                          }).format(new Date(record.date))}
                         </span>
                         <span className="text-sm text-gray-600">• {record.type}</span>
                         <span className="text-sm text-gray-600">• {record.provider ? `${record.provider.firstName} ${record.provider.lastName}` : 'Unknown Provider'}</span>
@@ -270,10 +349,16 @@ export default async function PatientHealthRecordsPage() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-blue-50 hover:border-blue-400 transition-all duration-300 font-medium">
+                    <button
+                      onClick={() => handleViewDetails(record.id)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-blue-50 hover:border-blue-400 transition-all duration-300 font-medium"
+                    >
                       View Details
                     </button>
-                    <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-green-50 hover:border-green-400 transition-all duration-300 font-medium">
+                    <button
+                      onClick={() => handleDownloadRecord(record.id)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-green-50 hover:border-green-400 transition-all duration-300 font-medium"
+                    >
                       Download
                     </button>
                   </div>
@@ -329,18 +414,13 @@ export default async function PatientHealthRecordsPage() {
             </button>
           </div>
         </div>
+
+        {/* Health Record Details Modal */}
+        <HealthRecordModal
+          recordId={selectedRecordId}
+          isOpen={modalOpen}
+          onClose={closeModal}
+        />
       </div>
     );
-    
-  } catch (error) {
-    console.error("Patient health records error:", error);
-    
-    return (
-      <div className="p-8 bg-red-50 text-red-700 rounded-lg max-w-3xl mx-auto mt-8">
-        <h2 className="text-xl font-bold mb-4">Error Loading Health Records</h2>
-        <p>We encountered a problem loading your health record data.</p>
-        <p className="mt-2">Please try again later or contact support.</p>
-      </div>
-    );
-  }
 }

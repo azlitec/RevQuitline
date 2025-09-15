@@ -91,7 +91,6 @@ export async function GET(request: NextRequest) {
         yearsOfExperience: 5, // Default experience
         rating: 4.5, // Default rating
         reviewsCount: 25, // Default review count
-        consultationFee: 150, // Default fee
         availability: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         location: 'Kuala Lumpur', // Default location
         languages: ['English', 'Bahasa Malaysia'],

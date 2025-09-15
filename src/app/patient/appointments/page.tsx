@@ -55,6 +55,11 @@ function PatientAppointmentsContent() {
   const [notes, setNotes] = useState<string>('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [validationWarnings, setValidationWarnings] = useState<any[]>([]);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [pendingBookingData, setPendingBookingData] = useState<any>(null);
+  const [minimumBookingTime, setMinimumBookingTime] = useState<string>('');
+  const [completedIntakeForms, setCompletedIntakeForms] = useState<Set<string>>(new Set());
 
   // Check if we should show booking form based on service parameter
   useEffect(() => {
@@ -64,6 +69,13 @@ function PatientAppointmentsContent() {
       fetchDoctors();
     }
   }, [serviceParam]);
+
+  // Calculate minimum booking time (30 minutes from now)
+  useEffect(() => {
+    const now = new Date();
+    const minTime = new Date(now.getTime() + 30 * 60 * 1000); // 30 minutes from now
+    setMinimumBookingTime(minTime.toTimeString().slice(0, 5)); // HH:MM format
+  }, []);
 
   // Fetch doctors when booking form is shown
   useEffect(() => {
@@ -90,6 +102,16 @@ function PatientAppointmentsContent() {
 
       const data = await response.json();
       setAppointments(data.appointments || []);
+
+      // Check intake form status for quitline appointments
+      const quitlineAppointments = data.appointments?.filter((apt: any) =>
+        apt.type === 'quitline_smoking_cessation'
+      ) || [];
+
+      // Check intake form status for each quitline appointment
+      for (const appointment of quitlineAppointments) {
+        await checkIntakeFormStatus(appointment.id);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       console.error('Error fetching appointments:', err);
@@ -109,6 +131,20 @@ function PatientAppointmentsContent() {
     } catch (err) {
       console.error('Error fetching doctors:', err);
       setDoctors([]); // Set empty array instead of mock data
+    }
+  };
+
+  const checkIntakeFormStatus = async (appointmentId: string) => {
+    try {
+      const response = await fetch(`/api/patient/intake-form?appointmentId=${appointmentId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.completed) {
+          setCompletedIntakeForms(prev => new Set([...prev, appointmentId]));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking intake form status:', error);
     }
   };
 
@@ -138,6 +174,37 @@ function PatientAppointmentsContent() {
     }
   };
 
+  const validateAppointment = async () => {
+    try {
+      // Combine date and time
+      const appointmentDateTime = new Date(`${selectedDate}T${selectedTime}`);
+
+      const validationData = {
+        date: appointmentDateTime.toISOString(),
+        duration: 30, // Default duration
+        providerId: selectedDoctor,
+      };
+
+      const response = await fetch('/api/appointments/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(validationData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to validate appointment');
+      }
+
+      const validationResult = await response.json();
+      return validationResult;
+    } catch (err) {
+      console.error('Error validating appointment:', err);
+      throw err;
+    }
+  };
+
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingError(null);
@@ -159,28 +226,74 @@ function PatientAppointmentsContent() {
     setBookingLoading(true);
 
     try {
-      // Combine date and time
-      const appointmentDateTime = new Date(`${selectedDate}T${selectedTime}`);
+      // First validate the appointment
+      const validationResult = await validateAppointment();
 
-      const appointmentData = {
-        title: `${selectedServiceInfo?.label} with ${doctors.find(d => d.id === selectedDoctor)?.firstName} ${doctors.find(d => d.id === selectedDoctor)?.lastName}`,
-        description: notes || undefined,
-        date: appointmentDateTime.toISOString(),
-        duration: 30, // Default duration
-        type: selectedService,
-        serviceName: selectedServiceInfo?.label,
-        price: selectedServiceInfo?.price,
-        providerId: selectedDoctor,
-        meetingLink: undefined, // Will be set later if virtual
-        reason: notes || undefined
-      };
+      if (!validationResult.valid) {
+        // Show validation errors
+        setBookingError(validationResult.errors[0]?.message || 'Appointment validation failed');
+        setBookingLoading(false);
+        return;
+      }
+
+      // If there are warnings, show them to the user
+      if (validationResult.warnings && validationResult.warnings.length > 0) {
+        setValidationWarnings(validationResult.warnings);
+        setShowValidationModal(true);
+
+        // Store the booking data for later use
+        const appointmentDateTime = new Date(`${selectedDate}T${selectedTime}`);
+        setPendingBookingData({
+          title: `${selectedServiceInfo?.label} with ${doctors.find(d => d.id === selectedDoctor)?.firstName} ${doctors.find(d => d.id === selectedDoctor)?.lastName}`,
+          description: notes || undefined,
+          date: appointmentDateTime.toISOString(),
+          duration: 30,
+          type: selectedService,
+          serviceName: selectedServiceInfo?.label,
+          price: selectedServiceInfo?.price,
+          providerId: selectedDoctor,
+          meetingLink: undefined,
+          reason: notes || undefined
+        });
+
+        setBookingLoading(false);
+        return;
+      }
+
+      // No warnings, proceed with booking
+      await proceedWithBooking();
+
+    } catch (err) {
+      console.error('Error in booking process:', err);
+      setBookingError(err instanceof Error ? err.message : 'Failed to process booking');
+      setBookingLoading(false);
+    }
+  };
+
+  const proceedWithBooking = async (bookingData?: any) => {
+    try {
+      const dataToUse = bookingData || (() => {
+        const appointmentDateTime = new Date(`${selectedDate}T${selectedTime}`);
+        return {
+          title: `${selectedServiceInfo?.label} with ${doctors.find(d => d.id === selectedDoctor)?.firstName} ${doctors.find(d => d.id === selectedDoctor)?.lastName}`,
+          description: notes || undefined,
+          date: appointmentDateTime.toISOString(),
+          duration: 30,
+          type: selectedService,
+          serviceName: selectedServiceInfo?.label,
+          price: selectedServiceInfo?.price,
+          providerId: selectedDoctor,
+          meetingLink: undefined,
+          reason: notes || undefined
+        };
+      })();
 
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(appointmentData),
+        body: JSON.stringify(dataToUse),
       });
 
       if (!response.ok) {
@@ -190,12 +303,15 @@ function PatientAppointmentsContent() {
 
       const newAppointment = await response.json();
 
-      // Reset form
+      // Reset form and state
       setSelectedDoctor('');
       setSelectedDate('');
       setSelectedTime('');
       setNotes('');
       setShowBookingForm(false);
+      setShowValidationModal(false);
+      setValidationWarnings([]);
+      setPendingBookingData(null);
 
       // Refresh appointments list
       fetchAppointments();
@@ -361,10 +477,17 @@ function PatientAppointmentsContent() {
                 <input
                   type="date"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    // Reset time when date changes to recalculate available times
+                    setSelectedTime('');
+                  }}
                   min={new Date().toISOString().split('T')[0]} // Prevent past dates
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  📅 Select a date and time at least 30 minutes from now
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -376,13 +499,19 @@ function PatientAppointmentsContent() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white"
                 >
                   <option value="">Select time...</option>
-                  <option value="09:00">9:00 AM</option>
-                  <option value="10:00">10:00 AM</option>
-                  <option value="11:00">11:00 AM</option>
-                  <option value="14:00">2:00 PM</option>
-                  <option value="15:00">3:00 PM</option>
-                  <option value="16:00">4:00 PM</option>
+                  <option value="09:00" disabled={selectedDate === new Date().toISOString().split('T')[0] && minimumBookingTime > '09:00'}>9:00 AM</option>
+                  <option value="10:00" disabled={selectedDate === new Date().toISOString().split('T')[0] && minimumBookingTime > '10:00'}>10:00 AM</option>
+                  <option value="11:00" disabled={selectedDate === new Date().toISOString().split('T')[0] && minimumBookingTime > '11:00'}>11:00 AM</option>
+                  <option value="14:00" disabled={selectedDate === new Date().toISOString().split('T')[0] && minimumBookingTime > '14:00'}>2:00 PM</option>
+                  <option value="15:00" disabled={selectedDate === new Date().toISOString().split('T')[0] && minimumBookingTime > '15:00'}>3:00 PM</option>
+                  <option value="16:00" disabled={selectedDate === new Date().toISOString().split('T')[0] && minimumBookingTime > '16:00'}>4:00 PM</option>
                 </select>
+                {selectedDate === new Date().toISOString().split('T')[0] && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    📅 Appointments must be booked at least 30 minutes in advance.
+                    {minimumBookingTime && ` Earliest available: ${new Date(`1970-01-01T${minimumBookingTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -513,9 +642,13 @@ function PatientAppointmentsContent() {
                             setIntakeFormAppointmentId(appointment.id);
                             setShowIntakeForm(true);
                           }}
-                          className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg text-sm hover:from-purple-700 hover:to-purple-800 shadow-medium hover:shadow-strong transition-all duration-300 font-semibold hover:scale-105"
+                          className={`px-6 py-2 rounded-lg text-sm font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 ${
+                            completedIntakeForms.has(appointment.id)
+                              ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800'
+                              : 'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800'
+                          }`}
                         >
-                          Complete Intake Form
+                          {completedIntakeForms.has(appointment.id) ? 'Completed (view)' : 'Complete Intake Form'}
                         </button>
                       )}
                       <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:border-blue-400 transition-all duration-300 font-medium">
@@ -586,14 +719,153 @@ function PatientAppointmentsContent() {
             console.log('Intake form completed:', data);
             setShowIntakeForm(false);
             setIntakeFormAppointmentId(null);
+            // Mark this appointment as having completed intake form
+            setCompletedIntakeForms(prev => new Set([...prev, intakeFormAppointmentId]));
             // Refresh appointments to show updated status
             fetchAppointments();
           }}
           onClose={() => {
             setShowIntakeForm(false);
             setIntakeFormAppointmentId(null);
+            // Refresh to get latest status
+            fetchAppointments();
           }}
         />
+      )}
+
+      {/* Validation Warning Modal */}
+      {showValidationModal && validationWarnings.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-strong w-full max-w-2xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-800">Appointment Booking Confirmation</h3>
+                <button
+                  onClick={() => {
+                    setShowValidationModal(false);
+                    setValidationWarnings([]);
+                    setPendingBookingData(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-friendly"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="p-4 md:p-6">
+              <div className="mb-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <span className="text-yellow-600 text-xl">⚠️</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">Please Review Before Booking</h4>
+                    <p className="text-sm text-gray-600">We found some potential scheduling conflicts</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {validationWarnings.map((warning, index) => (
+                    <div key={index} className={`p-4 rounded-lg border ${
+                      warning.severity === 'error' ? 'bg-red-50 border-red-200' :
+                      warning.severity === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                      'bg-blue-50 border-blue-200'
+                    }`}>
+                      <div className="flex items-start space-x-3">
+                        <span className={`text-lg ${
+                          warning.severity === 'error' ? 'text-red-600' :
+                          warning.severity === 'warning' ? 'text-yellow-600' :
+                          'text-blue-600'
+                        }`}>
+                          {warning.severity === 'error' ? '❌' :
+                           warning.severity === 'warning' ? '⚠️' : 'ℹ️'}
+                        </span>
+                        <div className="flex-1">
+                          <p className={`font-medium ${
+                            warning.severity === 'error' ? 'text-red-800' :
+                            warning.severity === 'warning' ? 'text-yellow-800' :
+                            'text-blue-800'
+                          }`}>
+                            {warning.message}
+                          </p>
+
+                          {/* Show additional details for specific warning types */}
+                          {warning.type === 'too_soon' && warning.minimumTime && (
+                            <div className="mt-2 text-sm text-gray-600">
+                              <p className="font-medium">Minimum booking time:</p>
+                              <p className="mt-1">
+                                {new Date(warning.minimumTime).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
+                              </p>
+                            </div>
+                          )}
+
+                          {warning.type === 'same_day_multiple' && warning.existingAppointments && (
+                            <div className="mt-2 text-sm text-gray-600">
+                              <p className="font-medium">Existing appointments today:</p>
+                              <ul className="list-disc list-inside mt-1">
+                                {warning.existingAppointments.map((apt: any, idx: number) => (
+                                  <li key={idx}>
+                                    {new Date(apt.date).toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: true
+                                    })} - {apt.type} ({apt.status})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {warning.type === 'busy_schedule' && warning.nearbyAppointments && (
+                            <div className="mt-2 text-sm text-gray-600">
+                              <p className="font-medium">Nearby appointments:</p>
+                              <ul className="list-disc list-inside mt-1">
+                                {warning.nearbyAppointments.map((apt: any, idx: number) => (
+                                  <li key={idx}>
+                                    {new Date(apt.date).toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: true
+                                    })} - Dr. {apt.provider} ({apt.specialty})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowValidationModal(false);
+                    setValidationWarnings([]);
+                    setPendingBookingData(null);
+                  }}
+                  className="px-4 md:px-6 py-2 text-sm md:text-base text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors touch-friendly"
+                >
+                  Cancel Booking
+                </button>
+                <button
+                  onClick={() => proceedWithBooking(pendingBookingData)}
+                  className="px-6 md:px-8 py-2 text-sm md:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors shadow-medium hover:shadow-strong touch-friendly font-medium"
+                >
+                  Proceed with Booking
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

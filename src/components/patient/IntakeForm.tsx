@@ -100,6 +100,8 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
   const [formData, setFormData] = useState<Partial<IntakeFormData>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [showRetakeOption, setShowRetakeOption] = useState(false);
 
   // Load saved progress on mount
   useEffect(() => {
@@ -116,6 +118,8 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
         if (data.formData) {
           setFormData(data.formData);
           setCurrentStep(data.currentStep || 1);
+          setIsCompleted(data.completed || false);
+          setShowRetakeOption(data.completed || false);
         }
       }
     } catch (error) {
@@ -123,11 +127,13 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
     }
   };
 
-  const saveProgress = async () => {
+  const saveProgress = async (markAsCompleted = false) => {
     if (!appointmentId) return;
 
     setSaving(true);
     try {
+      const completionStatus = markAsCompleted || (currentStep >= STEPS.length && formData);
+
       await fetch('/api/patient/intake-form', {
         method: 'POST',
         headers: {
@@ -137,6 +143,7 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
           appointmentId,
           formData,
           currentStep,
+          completed: completionStatus, // Explicitly send boolean
         }),
       });
     } catch (error) {
@@ -168,7 +175,13 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await saveProgress();
+      // Mark form as completed
+      setIsCompleted(true);
+      setShowRetakeOption(true);
+
+      // Save with completion status
+      await saveProgress(true); // Pass true to mark as completed
+
       if (onComplete) {
         onComplete(formData as IntakeFormData);
       }
@@ -177,6 +190,14 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetake = () => {
+    // Reset form to allow re-taking
+    setCurrentStep(1);
+    setFormData({});
+    setIsCompleted(false);
+    setShowRetakeOption(false);
   };
 
   const renderStepContent = () => {
@@ -233,6 +254,12 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
             <div className="text-center">
               <h3 className="font-semibold text-gray-800">{STEPS[currentStep - 1].title}</h3>
               <p className="text-sm text-gray-600">{STEPS[currentStep - 1].description}</p>
+              {isCompleted && (
+                <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                  <IconWithFallback icon="check_circle" emoji="✅" className="text-green-600 mr-1" />
+                  Form Completed
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -257,22 +284,42 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
             </div>
 
             <div className="flex items-center space-x-3">
-              {currentStep > 1 && (
-                <button
-                  onClick={prevStep}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-300 hover:scale-105"
-                >
-                  Previous
-                </button>
-              )}
+              {showRetakeOption ? (
+                <>
+                  <button
+                    onClick={handleRetake}
+                    className="px-6 py-3 border border-orange-300 text-orange-700 rounded-lg hover:bg-orange-50 transition-all duration-300 hover:scale-105"
+                  >
+                    <IconWithFallback icon="refresh" emoji="🔄" className="mr-2" />
+                    Re-take Form
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105"
+                  >
+                    Close
+                  </button>
+                </>
+              ) : (
+                <>
+                  {currentStep > 1 && (
+                    <button
+                      onClick={prevStep}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-300 hover:scale-105"
+                    >
+                      Previous
+                    </button>
+                  )}
 
-              <button
-                onClick={nextStep}
-                disabled={loading}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Submitting...' : currentStep === STEPS.length ? 'Complete Form' : 'Next Step'}
-              </button>
+                  <button
+                    onClick={nextStep}
+                    disabled={loading}
+                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Submitting...' : currentStep === STEPS.length ? 'Complete Form' : 'Next Step'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -309,8 +356,6 @@ function PersonalDetailsStep({ formData, updateFormData }: {
             <option value="">Select gender</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
-            <option value="other">Other</option>
-            <option value="prefer-not-to-say">Prefer not to say</option>
           </select>
         </div>
 

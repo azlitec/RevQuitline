@@ -55,7 +55,6 @@ interface Doctor {
   bio?: string;
   rating: number;
   reviewsCount: number;
-  consultationFee: number;
   availability: string[];
   location: string;
   languages: string[];
@@ -71,7 +70,6 @@ interface Filters {
   location: string;
   experience: string;
   rating: string;
-  priceRange: string;
   availability: string;
   language: string;
 }
@@ -92,7 +90,6 @@ export default function FindDoctorsPage() {
     location: '',
     experience: '',
     rating: '',
-    priceRange: '',
     availability: '',
     language: ''
   });
@@ -191,12 +188,7 @@ export default function FindDoctorsPage() {
       filtered = filtered.filter(doctor => doctor.rating >= ratingValue);
     }
     
-    if (filters.priceRange) {
-      const [min, max] = filters.priceRange.split('-').map(Number);
-      filtered = filtered.filter(doctor => 
-        doctor.consultationFee >= min && doctor.consultationFee <= max
-      );
-    }
+    // Price range filter removed
     
     if (filters.language) {
       filtered = filtered.filter(doctor => 
@@ -211,10 +203,7 @@ export default function FindDoctorsPage() {
           return b.rating - a.rating;
         case 'experience':
           return b.yearsOfExperience - a.yearsOfExperience;
-        case 'price-low':
-          return a.consultationFee - b.consultationFee;
-        case 'price-high':
-          return b.consultationFee - a.consultationFee;
+        // Price sorting removed
         case 'name':
           return a.name.localeCompare(b.name);
         default:
@@ -266,7 +255,6 @@ export default function FindDoctorsPage() {
       location: '',
       experience: '',
       rating: '',
-      priceRange: '',
       availability: '',
       language: ''
     });
@@ -412,17 +400,7 @@ export default function FindDoctorsPage() {
             <option value="4.8">4.8+ Stars</option>
           </select>
 
-          <select
-            value={filters.priceRange}
-            onChange={(e) => setFilters({...filters, priceRange: e.target.value})}
-            className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm bg-gray-50 hover:bg-white touch-friendly"
-          >
-            <option value="">Price Range</option>
-            <option value="0-100">RM 0-100</option>
-            <option value="100-200">RM 100-200</option>
-            <option value="200-300">RM 200-300</option>
-            <option value="300-500">RM 300+</option>
-          </select>
+          {/* Price range filter removed */}
         </div>
 
         {/* Enhanced Sort and View Controls */}
@@ -435,8 +413,6 @@ export default function FindDoctorsPage() {
             >
               <option value="rating">Sort by Rating</option>
               <option value="experience">Sort by Experience</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
               <option value="name">Sort by Name</option>
             </select>
 
@@ -558,12 +534,7 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
 
           {/* Enhanced Actions */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-            {doctor.isConnected && (
-              <div className="text-right bg-gray-50 p-3 rounded-lg">
-                <p className="text-lg font-bold text-gray-800">RM {doctor.consultationFee}</p>
-                <p className="text-xs text-gray-500">per consultation</p>
-              </div>
-            )}
+            {/* Fee display removed */}
 
             {doctor.isConnected ? (
               <div className="flex space-x-2">
@@ -589,6 +560,14 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
                 Connect
               </button>
             )}
+
+            {/* View Profile Button */}
+            <Link
+              href={`/patient/doctors/${doctor.id}`}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg shadow-medium hover:shadow-strong transition-all duration-300 text-sm font-semibold touch-friendly hover:scale-105 text-center"
+            >
+              View Profile
+            </Link>
           </div>
         </div>
 
@@ -666,12 +645,7 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
           <span className="text-gray-600 font-medium">Location:</span>
           <span className="font-bold text-gray-800">{doctor.location}</span>
         </div>
-        {doctor.isConnected && (
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600 font-medium">Fee:</span>
-            <span className="font-bold text-green-600">RM {doctor.consultationFee}</span>
-          </div>
-        )}
+        {/* Fee display removed */}
       </div>
 
       <div className="space-y-2">
@@ -699,6 +673,14 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
             Connect with Doctor
           </button>
         )}
+
+        {/* View Profile Button */}
+        <Link
+          href={`/patient/doctors/${doctor.id}`}
+          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg shadow-medium hover:shadow-strong transition-all duration-300 text-sm font-semibold text-center block touch-friendly hover:scale-105"
+        >
+          View Profile
+        </Link>
       </div>
 
       {/* Treatment Selection Modal */}

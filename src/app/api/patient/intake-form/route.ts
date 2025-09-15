@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { appointmentId, formData, currentStep } = body;
+    const { appointmentId, formData, currentStep, completed } = body;
 
     if (!appointmentId) {
       return NextResponse.json({ error: 'Appointment ID required' }, { status: 400 });
@@ -89,7 +89,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const isCompleted = currentStep >= 5 && formData; // Assuming 5 steps total
+    // Use the completed field from request body, or calculate it if not provided
+    const isCompleted = completed !== undefined ? completed : (currentStep >= 5 && formData);
+
+    console.log('API Debug - Received data:', { appointmentId, currentStep, isCompleted });
+    console.log('API Debug - Form data keys:', Object.keys(formData || {}));
 
     if (existingForm) {
       // Update existing form
@@ -124,6 +128,8 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      console.log('API Debug - Created new form:', newForm.id);
+
       return NextResponse.json({
         success: true,
         form: newForm,
@@ -133,6 +139,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error saving intake form:', error);
+    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

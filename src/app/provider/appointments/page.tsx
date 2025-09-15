@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
@@ -63,11 +64,15 @@ interface Appointment {
 
 export default function ProviderAppointmentsPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [selectedTab, setSelectedTab] = useState<'today' | 'upcoming' | 'past'>('today');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [patients, setPatients] = useState<any[]>([]);
 
   useEffect(() => {
@@ -141,6 +146,39 @@ export default function ProviderAppointmentsPage() {
     } catch (err) {
       console.error('Error updating appointment status:', err);
       setError(err instanceof Error ? err.message : 'Failed to update status');
+    }
+  };
+
+  const handleViewAppointment = (appointment: any) => {
+    setSelectedAppointment(appointment);
+    setShowViewModal(true);
+  };
+
+  const handleEditAppointment = (appointment: any) => {
+    setSelectedAppointment(appointment);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    if (!confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete appointment');
+      }
+
+      // Refresh appointments after deletion
+      fetchAppointments();
+      alert('Appointment deleted successfully!');
+    } catch (err) {
+      console.error('Error deleting appointment:', err);
+      alert('Failed to delete appointment. Please try again.');
     }
   };
 
@@ -439,10 +477,10 @@ export default function ProviderAppointmentsPage() {
                                 )}
                                 {appointment.rawStatus === 'confirmed' && (
                                   <button
-                                    onClick={() => updateAppointmentStatus(appointment.id, 'in-progress')}
+                                    onClick={() => router.push(`/provider/medical-notes/${appointment.id}`)}
                                     className="px-3 py-1 bg-yellow-600 text-white rounded-md text-sm hover:bg-yellow-700 transition-colors"
                                   >
-                                    Start
+                                    Start Consultation
                                   </button>
                                 )}
                                 {appointment.rawStatus === 'in-progress' && (
@@ -456,15 +494,36 @@ export default function ProviderAppointmentsPage() {
                               </>
                             )}
                             
-                            <button className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors" title="View">
-                              <IconWithFallback icon="visibility" emoji="👁️" className="text-sm" />
-                            </button>
-                            <button className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 rounded-lg transition-colors" title="Edit">
-                              <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
-                            </button>
-                            <button className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                              <IconWithFallback icon="delete" emoji="🗑️" className="text-sm" />
-                            </button>
+                            <button
+                              onClick={() => handleViewAppointment(appointment)}
+                              className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="View Details"
+                            >
+                               <IconWithFallback icon="visibility" emoji="👁️" className="text-sm" />
+                             </button>
+                            {(appointment.rawStatus === 'in-progress' || appointment.rawStatus === 'completed') && (
+                              <button
+                                onClick={() => router.push(`/provider/medical-notes/${appointment.id}`)}
+                                className="text-green-600 hover:text-green-800 p-2 hover:bg-green-50 rounded-lg transition-colors"
+                                title="View Patient History"
+                              >
+                                <IconWithFallback icon="description" emoji="📋" className="text-sm" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleEditAppointment(appointment)}
+                              className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                              title="Edit Appointment"
+                            >
+                               <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
+                             </button>
+                             <button
+                               onClick={() => handleDeleteAppointment(appointment.id)}
+                               className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                               title="Delete Appointment"
+                             >
+                               <IconWithFallback icon="delete" emoji="🗑️" className="text-sm" />
+                             </button>
                           </div>
                         </td>
                       </tr>
@@ -575,10 +634,10 @@ export default function ProviderAppointmentsPage() {
                           )}
                           {appointment.rawStatus === 'confirmed' && (
                             <button
-                              onClick={() => updateAppointmentStatus(appointment.id, 'in-progress')}
+                              onClick={() => router.push(`/provider/medical-notes/${appointment.id}`)}
                               className="px-3 py-1.5 bg-yellow-600 text-white rounded-md text-xs hover:bg-yellow-700 active:bg-yellow-800 transition-colors touch-friendly font-medium"
                             >
-                              Start
+                              Start Consultation
                             </button>
                           )}
                           {appointment.rawStatus === 'in-progress' && (
@@ -592,15 +651,36 @@ export default function ProviderAppointmentsPage() {
                         </>
                       )}
                       
-                      <button className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors touch-friendly" title="View">
-                        <IconWithFallback icon="visibility" emoji="👁️" className="text-sm" />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 active:bg-gray-100 rounded-lg transition-colors touch-friendly" title="Edit">
-                        <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-friendly" title="Delete">
-                        <IconWithFallback icon="delete" emoji="🗑️" className="text-sm" />
-                      </button>
+                      <button
+                        onClick={() => handleViewAppointment(appointment)}
+                        className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors touch-friendly"
+                        title="View Details"
+                      >
+                         <IconWithFallback icon="visibility" emoji="👁️" className="text-sm" />
+                       </button>
+                      {(appointment.rawStatus === 'in-progress' || appointment.rawStatus === 'completed') && (
+                        <button
+                          onClick={() => router.push(`/provider/medical-notes/${appointment.id}`)}
+                          className="text-green-600 hover:text-green-800 p-2 hover:bg-green-50 active:bg-green-100 rounded-lg transition-colors touch-friendly"
+                          title="View Patient History"
+                        >
+                          <IconWithFallback icon="description" emoji="📋" className="text-sm" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleEditAppointment(appointment)}
+                        className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 active:bg-gray-100 rounded-lg transition-colors touch-friendly"
+                        title="Edit Appointment"
+                      >
+                         <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
+                       </button>
+                       <button
+                         onClick={() => handleDeleteAppointment(appointment.id)}
+                         className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-friendly"
+                         title="Delete Appointment"
+                       >
+                         <IconWithFallback icon="delete" emoji="🗑️" className="text-sm" />
+                       </button>
                     </div>
                   </div>
                 );
@@ -735,6 +815,215 @@ export default function ProviderAppointmentsPage() {
                     className="px-4 md:px-6 py-2 text-sm md:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong touch-friendly"
                   >
                     Create Appointment
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Appointment Modal */}
+      {showViewModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-strong w-full max-w-2xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-800">Appointment Details</h3>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-friendly"
+                >
+                  <IconWithFallback icon="close" emoji="❌" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 md:p-6">
+              <div className="space-y-6">
+                {/* Patient Information */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-3">Patient Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Name</p>
+                      <p className="font-medium text-gray-800">{selectedAppointment.patientName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-medium text-gray-800">{selectedAppointment.patientEmail}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Phone</p>
+                      <p className="font-medium text-gray-800">{selectedAppointment.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Status</p>
+                      <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-semibold ${
+                        selectedAppointment.rawStatus === 'completed' ? 'bg-green-100 text-green-700' :
+                        selectedAppointment.rawStatus === 'in-progress' ? 'bg-blue-100 text-blue-700' :
+                        selectedAppointment.rawStatus === 'confirmed' ? 'bg-purple-100 text-purple-700' :
+                        selectedAppointment.rawStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        <IconWithFallback
+                          icon={getStatusIcon(selectedAppointment.rawStatus).icon}
+                          emoji={getStatusIcon(selectedAppointment.rawStatus).emoji}
+                          className="text-xs"
+                        />
+                        <span>{selectedAppointment.status}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Appointment Details */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-3">Appointment Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Service Type</p>
+                      <p className="font-medium text-gray-800">{selectedAppointment.type}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Date & Time</p>
+                      <p className="font-medium text-gray-800">
+                        {selectedAppointment.date.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })} at {selectedAppointment.time}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Duration</p>
+                      <p className="font-medium text-gray-800">{selectedAppointment.duration}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Fee</p>
+                      <p className="font-semibold text-gray-800">{selectedAppointment.fee}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="px-4 md:px-6 py-2 text-sm md:text-base text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors touch-friendly"
+                >
+                  Close
+                </button>
+                {(selectedAppointment.rawStatus === 'in-progress' || selectedAppointment.rawStatus === 'completed') && (
+                  <button
+                    onClick={() => {
+                      setShowViewModal(false);
+                      router.push(`/provider/medical-notes/${selectedAppointment.id}`);
+                    }}
+                    className="px-4 md:px-6 py-2 text-sm md:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors shadow-medium hover:shadow-strong touch-friendly"
+                  >
+                    View Patient History
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Appointment Modal */}
+      {showEditModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-strong w-full max-w-2xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-800">Edit Appointment</h3>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-friendly"
+                >
+                  <IconWithFallback icon="close" emoji="❌" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 md:p-6">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  // Handle edit submission here
+                  setShowEditModal(false);
+                  alert('Edit functionality will be implemented');
+                }}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Service Type</label>
+                    <select
+                      name="type"
+                      defaultValue={selectedAppointment.rawStatus}
+                      className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    >
+                      <option value="consultation">Consultation</option>
+                      <option value="follow-up">Follow-up</option>
+                      <option value="emergency">Emergency</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Date</label>
+                    <input
+                      type="date"
+                      name="date"
+                      defaultValue={selectedAppointment.date.toISOString().split('T')[0]}
+                      className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Time</label>
+                    <input
+                      type="time"
+                      name="time"
+                      defaultValue={selectedAppointment.time.replace(/ (AM|PM)/, '').toLowerCase()}
+                      className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Duration (minutes)</label>
+                    <select
+                      name="duration"
+                      defaultValue={selectedAppointment.duration.replace(' mins', '')}
+                      className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    >
+                      <option value="15">15 minutes</option>
+                      <option value="30">30 minutes</option>
+                      <option value="45">45 minutes</option>
+                      <option value="60">60 minutes</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Notes</label>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    className="w-full p-2 md:p-3 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    placeholder="Additional notes..."
+                  ></textarea>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-4 md:px-6 py-2 text-sm md:text-base text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors touch-friendly"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 md:px-6 py-2 text-sm md:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong touch-friendly"
+                  >
+                    Update Appointment
                   </button>
                 </div>
               </form>
