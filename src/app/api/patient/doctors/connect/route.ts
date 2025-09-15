@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
+import { NotificationService } from '@/lib/notifications/notificationService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,16 +66,16 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create notification for the doctor
-    await prisma.notification.create({
-      data: {
-        userId: doctorId,
-        type: 'info',
-        title: 'New Patient Connection Request',
-        message: `You have a new connection request for ${treatmentType} treatment.`,
-        priority: 'medium'
-      }
-    });
+    // Create notification for the doctor using NotificationService
+    console.log(`[DEBUG] Creating connection request notification for doctor ${doctorId}`);
+    await NotificationService.createNotification(
+      doctorId,
+      'connection_request',
+      'New Patient Connection Request',
+      `You have a new connection request for ${treatmentType} treatment.`,
+      'medium'
+    );
+    console.log(`[DEBUG] Connection request notification created for doctor ${doctorId}`);
 
     return NextResponse.json({
       success: true,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
+import { NotificationService } from '@/lib/notifications/notificationService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -165,6 +166,36 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    console.log(`[DEBUG] Appointment created: ${appointment.id}`);
+    
+    // Create notifications for both patient and provider
+    try {
+      // Notification for patient
+      await NotificationService.createNotification(
+        appointment.patientId,
+        'appointment',
+        'Appointment Scheduled',
+        `Your appointment "${appointment.title}" has been scheduled for ${new Date(appointment.date).toLocaleString()}`,
+        'medium',
+        appointment.meetingLink || undefined
+      );
+
+      // Notification for provider
+      await NotificationService.createNotification(
+        appointment.providerId,
+        'appointment',
+        'New Appointment Scheduled',
+        `You have a new appointment "${appointment.title}" scheduled for ${new Date(appointment.date).toLocaleString()} with ${appointment.patient.firstName} ${appointment.patient.lastName}`,
+        'medium',
+        appointment.meetingLink || undefined
+      );
+
+      console.log(`[DEBUG] Notifications created for appointment ${appointment.id}`);
+    } catch (notificationError) {
+      console.error('Failed to create appointment notifications:', notificationError);
+      // Continue with the appointment creation even if notifications fail
+    }
+
     return NextResponse.json(appointment, { status: 201 });
 
   } catch (error) {
@@ -262,6 +293,28 @@ export async function PATCH(request: NextRequest) {
         }
       }
     });
+
+    console.log(`[DEBUG] Appointment status updated: ${appointmentId} -> ${newStatus}`);
+    
+    // Create notification for status change
+    try {
+      const notificationRecipientId = session.user.isProvider ? existingAppointment.patientId : existingAppointment.providerId;
+      const recipientName = session.user.isProvider ? existingAppointment.patient.firstName : existingAppointment.provider.firstName;
+      
+      await NotificationService.createNotification(
+        notificationRecipientId,
+        'appointment',
+        'Appointment Status Updated',
+        `Your appointment "${existingAppointment.title}" has been updated to ${newStatus} by ${session.user.name || 'the user'}`,
+        'medium',
+        existingAppointment.meetingLink || undefined
+      );
+
+      console.log(`[DEBUG] Status change notification created for appointment ${appointmentId}`);
+    } catch (notificationError) {
+      console.error('Failed to create status change notification:', notificationError);
+      // Continue with the status update even if notification fails
+    }
 
     return NextResponse.json(updatedAppointment);
 

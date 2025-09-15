@@ -5,10 +5,10 @@ import { ClinicalRecommendation } from '@/lib/clinical/decisionSupport';
 export interface Notification {
   id: string;
   userId: string;
-  type: 'alert' | 'warning' | 'info' | 'success';
+  type: string; // Changed from literal types to string to match Prisma model
   title: string;
   message: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: string; // Changed from literal types to string to match Prisma model
   read: boolean;
   actionUrl?: string;
   createdAt: Date;
@@ -33,6 +33,8 @@ export class NotificationService {
     priority: Notification['priority'] = 'medium',
     actionUrl?: string
   ): Promise<Notification> {
+    console.log(`[DEBUG] Creating notification for user ${userId}: ${title} - ${message}`);
+    
     const notification = await prisma.notification.create({
       data: {
         userId,
@@ -45,11 +47,14 @@ export class NotificationService {
       }
     });
 
+    console.log(`[DEBUG] Notification created: ${notification.id}`);
+
     // Get user preferences
     const userPreferences = await this.getUserNotificationPreferences(userId);
     
     // Send email if enabled and high priority
-    if (userPreferences.emailAlerts && (priority === 'high' || userPreferences[`${priority}Priority`])) {
+    const priorityKey = `${priority}Priority` as keyof NotificationPreferences;
+    if (userPreferences.emailAlerts && (priority === 'high' || userPreferences[priorityKey])) {
       await this.sendEmailNotification(userId, title, message, actionUrl);
     }
 
@@ -58,7 +63,10 @@ export class NotificationService {
       await this.sendPushNotification(userId, title, message);
     }
 
-    return notification;
+    return {
+      ...notification,
+      actionUrl: notification.actionUrl || undefined
+    };
   }
 
   static async createClinicalNotification(
@@ -84,7 +92,10 @@ export class NotificationService {
       take: 50
     });
 
-    return notifications;
+    return notifications.map(notification => ({
+      ...notification,
+      actionUrl: notification.actionUrl || undefined
+    }));
   }
 
   static async markAsRead(notificationId: string): Promise<void> {
@@ -102,6 +113,7 @@ export class NotificationService {
   }
 
   static async getUserNotificationPreferences(userId: string): Promise<NotificationPreferences> {
+    console.log(`[DEBUG] Getting notification preferences for user ${userId} - USING HARDCODED DEFAULTS`);
     // For now, return default preferences
     // In a real implementation, this would fetch from user settings
     return {
@@ -159,6 +171,7 @@ export class NotificationService {
     title: string,
     message: string
   ): Promise<void> {
+    console.log(`[DEBUG] PUSH NOTIFICATION NOT IMPLEMENTED - Would send to user ${userId}: ${title}`);
     // TODO: Implement push notification service integration
     // This would integrate with Firebase Cloud Messaging, OneSignal, or similar
     console.log('Push notification:', { userId, title, message });

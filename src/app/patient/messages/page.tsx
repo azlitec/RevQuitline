@@ -112,7 +112,7 @@ export default function PatientMessagesPage() {
       }
     } catch (err) {
       // Don't show error to user - just show empty state like no conversations
-      console.log('Messaging API not yet implemented - showing empty state');
+      console.log('Fetch conversations API call failed, showing empty state', err);
       setConversations([]);
     } finally {
       setLoading(false);
@@ -226,6 +226,7 @@ export default function PatientMessagesPage() {
         setNewMessage('');
       }
     } catch (err) {
+      console.log('API call failed, using fallback mock message for patient', err);
       // Simulate message sent for demo - add to current conversation
       if (currentConversation) {
         const newMsg = {
@@ -302,6 +303,7 @@ export default function PatientMessagesPage() {
         }
       }
     } catch (err) {
+      console.log('API call failed, using fallback mock message for doctor', err);
       // Create a demo conversation for the selected doctor
       const selectedDoctor = availableDoctors.find(d => d.id === doctorId);
       if (selectedDoctor) {
@@ -377,9 +379,9 @@ export default function PatientMessagesPage() {
 
       {/* Enhanced Messages Interface */}
       <div className="card shadow-strong hover:shadow-xl transition-all duration-300 overflow-hidden">
-        <div className="flex h-[600px] md:h-[700px]">
+        <div className="flex min-h-[500px] h-[70vh] max-h-[800px]">
           {/* Conversations List */}
-          <div className={`w-full md:w-1/3 border-r border-gray-200 ${selectedConversation ? 'hidden md:block' : ''}`}>
+          <div className={`w-full md:w-1/3 border-r border-gray-200 bg-white ${selectedConversation ? 'hidden md:block' : ''}`}>
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center space-x-3">
                 <IconWithFallback icon="chat" emoji="💬" className="text-blue-600" />
@@ -387,14 +389,14 @@ export default function PatientMessagesPage() {
               </div>
             </div>
             
-            <div className="overflow-y-auto h-full">
+            <div className="overflow-y-auto h-full bg-white">
               {conversations.length > 0 ? (
                 conversations.map((conversation) => (
                   <div
                     key={conversation.id}
                     onClick={() => setSelectedConversation(conversation.id)}
-                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:shadow-medium ${
-                      selectedConversation === conversation.id ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-medium' : ''
+                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-all duration-200 ${
+                      selectedConversation === conversation.id ? 'bg-blue-50 border-blue-200' : 'bg-white'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -450,7 +452,7 @@ export default function PatientMessagesPage() {
             {selectedConversation && currentConversation ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <div className="p-4 border-b border-gray-200 bg-white">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <button
@@ -460,7 +462,7 @@ export default function PatientMessagesPage() {
                         <IconWithFallback icon="arrow_back" emoji="←" className="text-gray-600" />
                       </button>
                       <div className="relative">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-semibold">
                           {currentConversation.doctor.firstName?.charAt(0)}{currentConversation.doctor.lastName?.charAt(0)}
                         </div>
                         {currentConversation.doctor.isOnline && (
@@ -472,7 +474,7 @@ export default function PatientMessagesPage() {
                           Dr. {currentConversation.doctor.firstName} {currentConversation.doctor.lastName}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          {currentConversation.doctor.isOnline ? 'Online' : 
+                          {currentConversation.doctor.isOnline ? 'Online' :
                            currentConversation.doctor.lastSeen ? `Last seen ${new Date(currentConversation.doctor.lastSeen).toLocaleString()}` : 'Offline'}
                         </p>
                       </div>
@@ -489,19 +491,19 @@ export default function PatientMessagesPage() {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {currentConversation.messages.map((message) => (
                     <div
                       key={message.id}
                       className={`flex ${message.senderType === 'patient' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-lg ${
+                      <div className={`max-w-xs md:max-w-lg px-4 py-3 rounded-xl shadow-sm ${
                         message.senderType === 'patient'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                          : 'bg-white text-gray-800 border border-gray-200'
                       }`}>
-                        <p className="text-sm">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
+                        <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                        <p className={`text-xs mt-2 ${
                           message.senderType === 'patient' ? 'text-blue-100' : 'text-gray-500'
                         }`}>
                           {new Date(message.timestamp).toLocaleTimeString()}
@@ -509,13 +511,13 @@ export default function PatientMessagesPage() {
                       </div>
                     </div>
                   ))}
-                  <div ref={messagesEndRef} />
+                  <div ref={messagesEndRef} className="h-4" />
                 </div>
 
                 {/* Enhanced Message Input */}
-                <div className="p-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+                <div className="p-4 border-t border-gray-200 bg-white">
                   <div className="flex items-center space-x-3">
-                    <button className="p-3 hover:bg-white hover:shadow-medium rounded-lg transition-all duration-300 hover:scale-110">
+                    <button className="p-3 hover:bg-gray-100 rounded-lg transition-all duration-300">
                       <IconWithFallback icon="attach_file" emoji="📎" className="text-gray-600" />
                     </button>
                     <div className="flex-1 relative">
@@ -529,16 +531,16 @@ export default function PatientMessagesPage() {
                           }
                         }}
                         placeholder="Type your message..."
-                        className="w-full p-4 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white hover:bg-gray-50"
+                        className="w-full p-4 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white"
                       />
-                      <button className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-lg transition-all duration-300 hover:scale-110">
-                        <IconWithFallback icon="emoji_emotions" emoji="😊" className="text-gray-400" />
+                      <button className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-lg transition-all duration-300">
+                        <IconWithFallback icon="emoji_emotions" emoji="😊" className="text-gray-500" />
                       </button>
                     </div>
                     <button
                       onClick={() => sendMessage(selectedConversation)}
                       disabled={!newMessage.trim()}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <IconWithFallback icon="send" emoji="➤" className="text-white" />
                     </button>
@@ -562,9 +564,9 @@ export default function PatientMessagesPage() {
 
       {/* New Conversation Modal */}
       {showDoctorList && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl md:rounded-2xl shadow-strong w-full max-w-md max-h-[80vh] overflow-y-auto">
-            <div className="p-4 md:p-6 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-strong w-full max-w-md max-h-[85vh] overflow-y-auto">
+            <div className="p-4 md:p-6 border-b border-gray-200 bg-white sticky top-0 z-10">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg md:text-xl font-semibold text-gray-800">Start New Conversation</h3>
                 <button
@@ -575,16 +577,16 @@ export default function PatientMessagesPage() {
                 </button>
               </div>
             </div>
-            <div className="p-4 md:p-6">
+            <div className="p-4 md:p-6 bg-gray-50">
               <div className="space-y-3">
                 {availableDoctors.map((doctor) => (
                   <div
                     key={doctor.id}
                     onClick={() => startConversation(doctor.id)}
-                    className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all duration-200"
+                    className="flex items-center space-x-3 p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-md cursor-pointer transition-all duration-200"
                   >
                     <div className="relative">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                         {doctor.firstName?.charAt(0)}{doctor.lastName?.charAt(0)}
                       </div>
                       {doctor.isOnline && (
@@ -595,18 +597,18 @@ export default function PatientMessagesPage() {
                       <h4 className="font-medium text-gray-800">
                         Dr. {doctor.firstName} {doctor.lastName}
                       </h4>
-                      <p className="text-sm text-gray-500">{doctor.specialty}</p>
-                      <p className="text-xs text-gray-400">
-                        {doctor.isOnline ? 'Online' : 'Offline'}
+                      <p className="text-sm text-gray-600">{doctor.specialty}</p>
+                      <p className="text-xs text-gray-500">
+                        {doctor.isOnline ? '🟢 Online' : '🔴 Offline'}
                       </p>
                     </div>
-                    <IconWithFallback icon="chat" emoji="💬" className="text-blue-600" />
+                    <IconWithFallback icon="chat" emoji="💬" className="text-blue-600 text-xl" />
                   </div>
                 ))}
                 {availableDoctors.length === 0 && (
-                  <div className="text-center py-8">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <IconWithFallback icon="people" emoji="👥" className="text-gray-400" />
+                  <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <IconWithFallback icon="people" emoji="👥" className="text-gray-400 text-2xl" />
                     </div>
                     <h4 className="font-medium text-gray-600 mb-2">No connected doctors</h4>
                     <p className="text-sm text-gray-500">Connect with doctors first to start messaging</p>
