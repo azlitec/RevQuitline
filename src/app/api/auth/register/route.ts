@@ -38,17 +38,21 @@ export async function POST(request: Request) {
     const hashedPassword = await hash(password, 10);
 
     // Create user with appropriate role based on userType
+    // Doctor accounts now require admin approval: start as non-provider with pending status
+    const createData: any = {
+      firstName,
+      lastName: lastName || "",
+      email,
+      phone: phone || "",
+      password: hashedPassword,
+      isProvider: false,
+      role: userType === 'doctor' ? 'PROVIDER_PENDING' : 'USER',
+      licenseNumber: userType === 'doctor' ? (licenseNumber || "") : null,
+    };
+
+
     const user = await prisma.user.create({
-      data: {
-        firstName,
-        lastName: lastName || "",
-        email,
-        phone: phone || "",
-        password: hashedPassword,
-        isProvider: userType === 'doctor',
-        role: userType === 'doctor' ? 'PROVIDER' : 'USER',
-        licenseNumber: userType === 'doctor' ? licenseNumber || "" : null,
-      },
+      data: createData,
     });
 
     return NextResponse.json({

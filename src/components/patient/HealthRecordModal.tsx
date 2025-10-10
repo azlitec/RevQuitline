@@ -187,33 +187,6 @@ export default function HealthRecordModal({ recordId, isOpen, onClose }: HealthR
                 </div>
               )}
 
-              {/* Vital Signs */}
-              {record.vitalSigns && (
-                <div className="bg-green-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-800 mb-3">Vital Signs</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(() => {
-                      const vitals = typeof record.vitalSigns === 'object' ? record.vitalSigns : JSON.parse(record.vitalSigns);
-                      return Object.entries(vitals).map(([key, value]) => {
-                        if (!value) return null;
-                        const labels: { [key: string]: string } = {
-                          bloodPressure: 'Blood Pressure',
-                          heartRate: 'Heart Rate (bpm)',
-                          temperature: 'Temperature (°F)',
-                          oxygenSaturation: 'Oxygen Saturation (%)',
-                          respiratoryRate: 'Respiratory Rate (breaths/min)'
-                        };
-                        return (
-                          <div key={key}>
-                            <p className="text-sm text-gray-500">{labels[key] || key}</p>
-                            <p className="font-medium text-gray-800">{value as string}</p>
-                          </div>
-                        );
-                      }).filter(Boolean);
-                    })()}
-                  </div>
-                </div>
-              )}
 
               {/* Diagnosis */}
               {record.diagnosis && (
@@ -231,13 +204,6 @@ export default function HealthRecordModal({ recordId, isOpen, onClose }: HealthR
                 </div>
               )}
 
-              {/* Medications */}
-              {record.medications && (
-                <div className="bg-yellow-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-800 mb-3">Medications</h3>
-                  <p className="text-gray-700 whitespace-pre-wrap">{record.medications}</p>
-                </div>
-              )}
 
               {/* Notes */}
               {record.notes && (

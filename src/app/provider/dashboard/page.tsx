@@ -80,23 +80,48 @@ export default function ProviderDashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Determine staged provider status (pending/reviewing)
+  const role = (session?.user?.role as string) || undefined;
+  const isPending = role === 'PROVIDER_PENDING' || role === 'PROVIDER_REVIEWING';
 
+  console.log('[Diag] ProviderDashboardPage render', { status, hasSession: !!session, isPending });
+  
   useEffect(() => {
+    console.log('[Diag] ProviderDashboardPage useEffect triggered', { status, hasSession: !!session });
     if (status === 'loading') return;
     
-    if (!session || !session.user?.isProvider) {
+    if (!session || !session.user) {
       redirect('/login');
+      return;
     }
 
+    const currentRole = (session.user.role as string) || undefined;
+    const isApproved = session.user.isProvider === true || currentRole === 'PROVIDER';
+    const isPendingAccess = currentRole === 'PROVIDER_PENDING' || currentRole === 'PROVIDER_REVIEWING';
+  
+    if (!(isApproved || isPendingAccess)) {
+      // Not provider or pending/reviewing -> send to patient dashboard
+      redirect('/patient/dashboard');
+      return;
+    }
+  
     fetchDashboardData();
   }, [session, status]);
 
+  useEffect(() => {
+    console.log('[Diag] ProviderDashboardPage mount');
+    return () => console.log('[Diag] ProviderDashboardPage unmount');
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
+      console.log('[Diag] fetchDashboardData start');
       setLoading(true);
       setError(null);
       
       const response = await fetch('/api/provider/dashboard');
+      console.log('[Diag] fetchDashboardData response', { status: response.status });
       
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
@@ -104,11 +129,13 @@ export default function ProviderDashboardPage() {
       
       const data = await response.json();
       setDashboardData(data);
+      console.log('[Diag] fetchDashboardData success', { keys: Object.keys(data || {}) });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error fetching dashboard data:', err);
+      console.error('[Diag] Error fetching dashboard data:', err);
     } finally {
       setLoading(false);
+      console.log('[Diag] fetchDashboardData end');
     }
   };
 
@@ -194,6 +221,21 @@ export default function ProviderDashboardPage() {
 
   return (
     <>
+      {/* Status Banner for Pending/Reviewing Providers */}
+      {isPending && (
+        <div className="mb-6 p-4 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded-xl shadow-soft">
+          <div className="flex items-center space-x-3">
+            <IconWithFallback icon="hourglass_top" emoji="⏳" className="text-yellow-600" />
+            <div>
+              <h3 className="font-semibold">Provider account pending approval</h3>
+              <p className="text-sm">
+                Your registration is under review by the system admin. Functional provider features are disabled until approval.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Today's Overview */}
       <section className="mb-8">
         <div className="flex justify-between items-center mb-6">
@@ -327,7 +369,12 @@ export default function ProviderDashboardPage() {
                   <div className="bg-gradient-to-r from-purple-400 to-purple-600 p-3 rounded-xl text-white">
                     <IconWithFallback icon="healing" emoji="⚕️" className="text-white" />
                   </div>
-                  <button className="text-blue-600 font-semibold text-sm hover:underline">View All</button>
+                  <button
+                    className={`text-blue-600 font-semibold text-sm ${isPending ? 'opacity-50 cursor-not-allowed' : 'hover:underline'}`}
+                    disabled={isPending}
+                  >
+                    View All
+                  </button>
                 </div>
                 <p className="text-gray-500 mt-4 text-sm font-medium">Free-smoking Sessions</p>
                 <p className="text-3xl font-bold text-gray-800 mt-2">
@@ -346,7 +393,12 @@ export default function ProviderDashboardPage() {
                   <div className="bg-gradient-to-r from-orange-400 to-orange-600 p-3 rounded-xl text-white">
                     <IconWithFallback icon="description" emoji="📄" className="text-white" />
                   </div>
-                  <button className="text-blue-600 font-semibold text-sm hover:underline">Create New</button>
+                  <button
+                    className={`text-blue-600 font-semibold text-sm ${isPending ? 'opacity-50 cursor-not-allowed' : 'hover:underline'}`}
+                    disabled={isPending}
+                  >
+                    Create New
+                  </button>
                 </div>
                 <p className="text-gray-500 mt-4 text-sm font-medium">Prescriptions</p>
                 <p className="text-3xl font-bold text-gray-800 mt-2">
@@ -409,25 +461,6 @@ export default function ProviderDashboardPage() {
         </div>
       </section>
 
-      {/* Intake Forms Section */}
-      <section className="mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">Patient Intake Forms</h2>
-          <button className="text-blue-600 font-semibold hover:underline flex items-center space-x-2">
-            <span>View All</span>
-            <IconWithFallback icon="arrow_forward" emoji="→" className="text-blue-600" />
-          </button>
-        </div>
-        <div className="card p-6 shadow-soft">
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-              <IconWithFallback icon="assignment" emoji="📝" className="text-gray-400 text-2xl" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-600 mb-2">No intake forms yet</h3>
-            <p className="text-gray-500 text-sm">Intake forms will appear here as patients complete them</p>
-          </div>
-        </div>
-      </section>
 
       {/* Recent Patient Activities */}
       <section>

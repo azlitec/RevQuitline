@@ -51,10 +51,7 @@ interface SidebarProps {
 const navigationItems = [
   { name: 'Dashboard', href: '/patient/dashboard', icon: 'dashboard', emoji: '🏠' },
   { name: 'Find Doctors', href: '/patient/doctors', icon: 'search', emoji: '🔍' },
-  { name: 'My Doctors', href: '/patient/my-doctors', icon: 'people', emoji: '👩‍⚕️' },
   { name: 'Appointments', href: '/patient/appointments', icon: 'event', emoji: '📅' },
-  { name: 'Health Records', href: '/patient/health-records', icon: 'folder', emoji: '📋' },
-  { name: 'Medications', href: '/patient/medications', icon: 'medical_services', emoji: '💊' },
   { name: 'Messages', href: '/patient/messages', icon: 'chat', emoji: '💬' },
   { name: 'Billing', href: '/patient/billing', icon: 'payment', emoji: '💰' },
 ];

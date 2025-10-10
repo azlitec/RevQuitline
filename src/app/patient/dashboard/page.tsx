@@ -261,115 +261,21 @@ export default function PatientDashboardPage() {
         </div>
       </div>
 
-      {/* Patient Health Analytics */}
+      {/* Wellness Tips */}
       <div className="mb-6 md:mb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Health Progress Circle */}
-          <div className="primary-card p-6 md:p-8 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <h3 className="text-lg font-semibold text-white">Health Progress</h3>
-              <button className="text-white opacity-80 hover:opacity-100">
-                <IconWithFallback icon="more_horiz" emoji="⋯" className="text-white" />
-              </button>
-            </div>
-            <div className="flex justify-center items-center my-6">
-              <div className="relative w-32 h-32 md:w-40 md:h-40">
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle className="text-blue-300 opacity-30" cx="50" cy="50" fill="transparent" r="35" stroke="currentColor" strokeWidth="8"></circle>
-                  <circle
-                    className="progress-ring__circle text-white"
-                    cx="50"
-                    cy="50"
-                    fill="transparent"
-                    r="35"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeWidth="8"
-                    style={{
-                      strokeDasharray: '219.9',
-                      strokeDashoffset: `calc(219.9 - (219.9 * ${Math.min((dashboardData?.completedAppointments || 0) / Math.max(1, (dashboardData?.completedAppointments || 0) + (dashboardData?.upcomingAppointments || 0)), 1)}) / 100)`
-                    }}
-                  ></circle>
-                </svg>
-                <div className="absolute inset-0 flex flex-col justify-center items-center">
-                  <span className="text-2xl md:text-3xl font-bold text-white">
-                    {(() => {
-                      const completed = dashboardData?.completedAppointments || 0;
-                      const total = completed + (dashboardData?.upcomingAppointments || 0);
-                      return total > 0 ? Math.floor((completed / total) * 100) : 0;
-                    })()}%
-                  </span>
-                  <span className="text-xs md:text-sm text-blue-100">Progress</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-blue-100 text-sm">Treatment Completion</p>
-              <p className="text-2xl md:text-3xl font-bold text-white">
-                {dashboardData?.completedAppointments || 0}/{((dashboardData?.completedAppointments || 0) + (dashboardData?.upcomingAppointments || 0)) || 1}
-              </p>
-              <p className="text-blue-100 text-sm">Sessions completed</p>
-            </div>
+        <div className="card p-4 md:p-6 shadow-soft">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Today's Health Tip</h3>
+            <button className="text-blue-600 font-semibold text-sm hover:underline">More Tips</button>
           </div>
-
-          {/* Quick Health Actions */}
-          <div className="col-span-2 space-y-4 md:space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="card p-4 md:p-6 hover-effect shadow-soft">
-                <div className="flex justify-between items-start">
-                  <div className="bg-gradient-to-r from-emerald-400 to-emerald-600 p-3 rounded-xl text-white">
-                    <IconWithFallback icon="local_hospital" emoji="🏥" className="text-white" />
-                  </div>
-                  <button className="text-blue-600 font-semibold text-sm hover:underline">Update</button>
-                </div>
-                <p className="text-gray-500 mt-4 text-sm font-medium">Health Records</p>
-                <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">
-                  {dashboardData?.recentAppointments?.length || 0}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">Records updated</p>
-                <div className="mt-4 flex items-center">
-                  <div className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full">
-                    Up to date
-                  </div>
-                </div>
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <IconWithFallback icon="lightbulb" emoji="💡" className="text-blue-600" />
               </div>
-
-              <div className="card p-4 md:p-6 hover-effect shadow-soft">
-                <div className="flex justify-between items-start">
-                  <div className="bg-gradient-to-r from-indigo-400 to-indigo-600 p-3 rounded-xl text-white">
-                    <IconWithFallback icon="medication" emoji="💊" className="text-white" />
-                  </div>
-                  <button className="text-blue-600 font-semibold text-sm hover:underline">View All</button>
-                </div>
-                <p className="text-gray-500 mt-4 text-sm font-medium">Medications</p>
-                <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">
-                  0
-                </p>
-                <p className="text-xs text-gray-400 mt-1">Active prescriptions</p>
-                <div className="mt-4 flex items-center">
-                  <div className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
-                    0 due soon
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Health Tips */}
-            <div className="card p-4 md:p-6 shadow-soft">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Today's Health Tip</h3>
-                <button className="text-blue-600 font-semibold text-sm hover:underline">More Tips</button>
-              </div>
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <IconWithFallback icon="lightbulb" emoji="💡" className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-gray-800 font-medium">Stay Hydrated</p>
-                    <p className="text-gray-600 text-sm mt-1">Drinking enough water is crucial for your health. Aim for 8 glasses a day to maintain optimal body function.</p>
-                  </div>
-                </div>
+              <div>
+                <p className="text-gray-800 font-medium">Stay Hydrated</p>
+                <p className="text-gray-600 text-sm mt-1">Drinking enough water is crucial for your health. Aim for 8 glasses a day to maintain optimal body function.</p>
               </div>
             </div>
           </div>
@@ -494,13 +400,6 @@ export default function PatientDashboardPage() {
               >
                 <IconWithFallback icon="event" emoji="📅" className="text-green-600" />
                 <span className="font-medium text-sm">Schedule Appointment</span>
-              </Link>
-              <Link
-                href="/patient/health-records"
-                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all duration-300 touch-friendly hover:scale-105 hover:shadow-medium"
-              >
-                <IconWithFallback icon="folder" emoji="📋" className="text-purple-600" />
-                <span className="font-medium text-sm">Health Records</span>
               </Link>
             </div>
           </div>

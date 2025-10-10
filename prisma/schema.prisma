@@ -41,7 +41,8 @@ model User {
   availability       Json?
   isOnline           Boolean   @default(false)
   lastSeen           DateTime?
-
+  providerApprovalStatus ProviderApprovalStatus?
+  
   // Relations
   appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
   appointmentsAsPatient  Appointment[] @relation("PatientAppointments")
@@ -68,6 +69,12 @@ enum ServiceType {
   follow_up
   emergency
   quitline_smoking_cessation
+}
+
+enum ProviderApprovalStatus {
+  pending
+  approved
+  rejected
 }
 
 // Simple appointment model for now - we'll add more complex relations later

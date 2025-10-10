@@ -66,6 +66,9 @@ export default function ProviderAppointmentsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState<'today' | 'upcoming' | 'past'>('today');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +216,93 @@ export default function ProviderAppointmentsPage() {
     }
   };
 
+  // Calendar navigation functions
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentMonth(prev => {
+      if (direction === 'prev') {
+        if (prev === 0) {
+          setCurrentYear(year => year - 1);
+          return 11;
+        }
+        return prev - 1;
+      } else {
+        if (prev === 11) {
+          setCurrentYear(year => year + 1);
+          return 0;
+        }
+        return prev + 1;
+      }
+    });
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentMonth(today.getMonth());
+    setCurrentYear(today.getFullYear());
+  };
+
+  // Generate calendar days
+  const generateCalendarDays = () => {
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+    const days = [];
+    const currentDate = new Date(startDate);
+
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return days;
+  };
+
+  // Get appointments for a specific date
+  const getAppointmentsForDate = (date: Date) => {
+    return appointments.filter(apt => {
+      const aptDate = new Date(apt.date);
+      return aptDate.toDateString() === date.toDateString();
+    });
+  };
+
+  // Fetch appointments for current month when in calendar view
+  const fetchMonthAppointments = async () => {
+    if (viewMode !== 'calendar') return;
+
+    try {
+      setLoading(true);
+      const startDate = new Date(currentYear, currentMonth, 1);
+      const endDate = new Date(currentYear, currentMonth + 1, 0);
+
+      const params = new URLSearchParams();
+      params.append('startDate', startDate.toISOString().split('T')[0]);
+      params.append('endDate', endDate.toISOString().split('T')[0]);
+
+      const response = await fetch(`/api/provider/appointments?${params}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch appointments');
+      }
+
+      const data = await response.json();
+      setAppointments(data.appointments || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching appointments:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Effect for calendar view
+  useEffect(() => {
+    if (viewMode === 'calendar') {
+      fetchMonthAppointments();
+    }
+  }, [currentMonth, currentYear, viewMode]);
+
   // Format appointments for display
   const formattedAppointments = appointments.map(apt => {
     const firstName = apt.patient.firstName || '';
@@ -319,14 +409,41 @@ export default function ProviderAppointmentsPage() {
           <h2 className="text-xl md:text-2xl font-bold text-gray-800">Appointments Management</h2>
           <p className="text-sm md:text-base text-gray-500">Manage and track all patient appointments</p>
         </div>
-        <button
-          onClick={() => setShowNewAppointmentModal(true)}
-          className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
-        >
-          <IconWithFallback icon="add" emoji="➕" className="text-white" />
-          <span className="hidden sm:inline">New Appointment</span>
-          <span className="sm:hidden">New</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          {/* View Toggle */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 md:px-4 py-2 rounded-md font-medium transition-all duration-300 text-sm md:text-base ${
+                viewMode === 'list'
+                  ? 'bg-white text-blue-600 shadow-soft'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <IconWithFallback icon="list" emoji="📋" className="text-sm mr-1" />
+              <span className="hidden sm:inline">List</span>
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`px-3 md:px-4 py-2 rounded-md font-medium transition-all duration-300 text-sm md:text-base ${
+                viewMode === 'calendar'
+                  ? 'bg-white text-blue-600 shadow-soft'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <IconWithFallback icon="calendar_view_month" emoji="📅" className="text-sm mr-1" />
+              <span className="hidden sm:inline">Calendar</span>
+            </button>
+          </div>
+          <button
+            onClick={() => setShowNewAppointmentModal(true)}
+            className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
+          >
+            <IconWithFallback icon="add" emoji="➕" className="text-white" />
+            <span className="hidden sm:inline">New Appointment</span>
+            <span className="sm:hidden">New</span>
+          </button>
+        </div>
       </div>
 
       {/* Appointment Filters */}
@@ -393,7 +510,8 @@ export default function ProviderAppointmentsPage() {
       </div>
 
       {/* Appointments List */}
-      <div className="card p-3 md:p-6 shadow-soft">
+      {viewMode === 'list' && (
+        <div className="card p-3 md:p-6 shadow-soft">
         {/* Desktop Table View */}
         <div className="hidden lg:block">
           <div className="overflow-x-auto">
@@ -709,6 +827,117 @@ export default function ProviderAppointmentsPage() {
           )}
         </div>
       </div>
+      )}
+
+      {/* Calendar View */}
+      {viewMode === 'calendar' && (
+        <div className="card p-3 md:p-6 shadow-soft">
+          {/* Calendar Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigateMonth('prev')}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <IconWithFallback icon="chevron_left" emoji="⬅️" className="text-gray-600" />
+              </button>
+              <h3 className="text-lg md:text-xl font-semibold text-gray-800">
+                {new Date(currentYear, currentMonth).toLocaleDateString('en-US', {
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </h3>
+              <button
+                onClick={() => navigateMonth('next')}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <IconWithFallback icon="chevron_right" emoji="➡️" className="text-gray-600" />
+              </button>
+            </div>
+            <button
+              onClick={goToToday}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              Today
+            </button>
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="calendar-grid">
+            {/* Day Headers */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-1">
+              {generateCalendarDays().map((date, index) => {
+                const dayAppointments = getAppointmentsForDate(date);
+                const isCurrentMonth = date.getMonth() === currentMonth;
+                const isToday = date.toDateString() === new Date().toDateString();
+
+                return (
+                  <div
+                    key={index}
+                    className={`min-h-[120px] p-2 border border-gray-200 rounded-lg transition-all duration-200 hover:shadow-md ${
+                      isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+                    } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className={`text-sm font-medium ${
+                        isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
+                      } ${isToday ? 'text-blue-600' : ''}`}>
+                        {date.getDate()}
+                      </span>
+                      {dayAppointments.length > 0 && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                          {dayAppointments.length}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Appointments for this day */}
+                    <div className="space-y-1">
+                      {dayAppointments.slice(0, 3).map((appointment, aptIndex) => {
+                        const patientName = `${appointment.patient.firstName} ${appointment.patient.lastName}`;
+                        const time = new Date(appointment.date).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
+
+                        return (
+                          <div
+                            key={appointment.id}
+                            onClick={() => handleViewAppointment(appointment)}
+                            className={`text-xs p-2 rounded-md cursor-pointer transition-all duration-200 hover:scale-105 ${
+                              appointment.status === 'completed' ? 'bg-green-100 text-green-700' :
+                              appointment.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
+                              appointment.status === 'scheduled' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            <div className="font-medium truncate">{patientName}</div>
+                            <div className="text-xs opacity-75">{time}</div>
+                          </div>
+                        );
+                      })}
+                      {dayAppointments.length > 3 && (
+                        <div className="text-xs text-gray-500 text-center py-1">
+                          +{dayAppointments.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New Appointment Modal */}
       {showNewAppointmentModal && (

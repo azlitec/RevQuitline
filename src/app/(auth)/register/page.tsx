@@ -161,7 +161,8 @@ export default function RegisterPage() {
         throw new Error('Failed to log in after registration');
       }
 
-      // Redirect directly to the appropriate dashboard based on user type
+      // Redirect after successful registration
+      // Doctors are routed to provider dashboard preview while awaiting admin approval
       const dashboardPath = formData.userType === 'doctor' ? '/provider/dashboard' : '/patient/dashboard';
       router.push(dashboardPath);
     } catch (error) {

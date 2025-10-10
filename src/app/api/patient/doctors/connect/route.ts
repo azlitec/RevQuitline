@@ -29,11 +29,13 @@ export async function POST(request: NextRequest) {
     const patientId = session.user.id;
 
     // Check if doctor exists and is a provider
+    const doctorWhere: any = {
+      id: doctorId,
+      isProvider: true,
+    };
+
     const doctor = await prisma.user.findFirst({
-      where: {
-        id: doctorId,
-        isProvider: true
-      }
+      where: doctorWhere
     });
 
     if (!doctor) {

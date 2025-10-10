@@ -59,8 +59,8 @@ const IconWithFallback = ({ icon, emoji, className = '', onClick }: {
   );
 };
 
-export default function Header({ 
-  onMenuClick, 
+export default function Header({
+  onMenuClick,
   customTitle,
   isMobile = false
 }: HeaderProps) {
@@ -69,53 +69,79 @@ export default function Header({
   const [userData, setUserData] = useState<UserData | null>(null);
   const [doctorName, setDoctorName] = useState<string>('Good Morning Doctor');
 
+  console.log('[Diag] ProviderHeader render', { isMobile, hasSession: !!session });
+
   useEffect(() => {
+    console.log('[Diag] ProviderHeader useEffect session change', { isMobile, hasSession: !!session });
     if (session?.user) {
       fetchUserData();
     }
   }, [session]);
 
+  useEffect(() => {
+    console.log('[Diag] ProviderHeader mount', { isMobile });
+    return () => console.log('[Diag] ProviderHeader unmount', { isMobile });
+  }, []);
+
   const fetchUserData = async () => {
     try {
+      console.log('[Diag] fetchUserData start', { isMobile });
       const response = await fetch('/api/user');
+      console.log('[Diag] fetchUserData response', { status: response.status, isMobile });
       if (response.ok) {
         const data = await response.json();
-        setUserData(data.user);
-        
-        // Generate doctor greeting
-        const firstName = data.user.firstName?.trim();
-        const lastName = data.user.lastName?.trim();
-        
-        let displayName = '';
-        if (firstName && lastName) {
-          displayName = `Dr. ${firstName} ${lastName}`;
-        } else if (firstName) {
-          displayName = `Dr. ${firstName}`;
-        } else if (lastName) {
-          displayName = `Dr. ${lastName}`;
-        } else if (data.user.email) {
-          const emailName = data.user.email.split('@')[0];
-          const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-          displayName = `Dr. ${formattedName}`;
+
+        // Ensure data exists and has expected structure
+        if (data && typeof data === 'object') {
+          setUserData(data);
+
+          // Generate doctor greeting with null checks
+          const firstName = data.firstName?.trim();
+          const lastName = data.lastName?.trim();
+
+          let displayName = '';
+          if (firstName && lastName) {
+            displayName = `Dr. ${firstName} ${lastName}`;
+          } else if (firstName) {
+            displayName = `Dr. ${firstName}`;
+          } else if (lastName) {
+            displayName = `Dr. ${lastName}`;
+          } else if (data.email) {
+            const emailName = data.email.split('@')[0];
+            const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+            displayName = `Dr. ${formattedName}`;
+          } else {
+            displayName = 'Doctor';
+          }
+
+          // Time-based greeting
+          const hour = new Date().getHours();
+          let greeting = 'Good Morning';
+          if (hour >= 12 && hour < 17) {
+            greeting = 'Good Afternoon';
+          } else if (hour >= 17) {
+            greeting = 'Good Evening';
+          }
+
+          setDoctorName(`${greeting} ${displayName}`);
+          console.log('[Diag] fetchUserData success', { isMobile });
         } else {
-          displayName = 'Doctor';
+          throw new Error('Invalid user data structure');
         }
-        
-        // Time-based greeting
-        const hour = new Date().getHours();
-        let greeting = 'Good Morning';
-        if (hour >= 12 && hour < 17) {
-          greeting = 'Good Afternoon';
-        } else if (hour >= 17) {
-          greeting = 'Good Evening';
-        }
-        
-        setDoctorName(`${greeting} ${displayName}`);
+      } else {
+        throw new Error(`API request failed with status ${response.status}`);
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('[Diag] Error fetching user data:', error);
+      // Fallback to session data if API fails
       if (session?.user?.name) {
         setDoctorName(`Good Morning Dr. ${session.user.name}`);
+      } else if (session?.user?.email) {
+        const emailName = session.user.email.split('@')[0];
+        const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        setDoctorName(`Good Morning Dr. ${formattedName}`);
+      } else {
+        setDoctorName('Good Morning Doctor');
       }
     }
   };
@@ -129,6 +155,8 @@ export default function Header({
       return `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`.toUpperCase();
     } else if (userData?.firstName) {
       return userData.firstName.slice(0, 2).toUpperCase();
+    } else if (userData?.lastName) {
+      return userData.lastName.slice(0, 2).toUpperCase();
     } else if (session?.user?.name) {
       const nameParts = session.user.name.split(' ');
       if (nameParts.length >= 2) {
@@ -137,6 +165,9 @@ export default function Header({
       return session.user.name.slice(0, 2).toUpperCase();
     } else if (session?.user?.email) {
       const emailName = session.user.email.split('@')[0];
+      return emailName.slice(0, 2).toUpperCase();
+    } else if (userData?.email) {
+      const emailName = userData.email.split('@')[0];
       return emailName.slice(0, 2).toUpperCase();
     }
     return 'DR';
@@ -147,10 +178,15 @@ export default function Header({
       return `Dr. ${userData.firstName} ${userData.lastName}`;
     } else if (userData?.firstName) {
       return `Dr. ${userData.firstName}`;
+    } else if (userData?.lastName) {
+      return `Dr. ${userData.lastName}`;
     } else if (session?.user?.name) {
       return `Dr. ${session.user.name}`;
     } else if (session?.user?.email) {
       const emailName = session.user.email.split('@')[0];
+      return `Dr. ${emailName.charAt(0).toUpperCase() + emailName.slice(1)}`;
+    } else if (userData?.email) {
+      const emailName = userData.email.split('@')[0];
       return `Dr. ${emailName.charAt(0).toUpperCase() + emailName.slice(1)}`;
     }
     return 'Doctor';

@@ -87,3 +87,27 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+// Add endpoint to generate sample notifications for testing
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Generate sample notifications for testing
+    await NotificationService.generateSampleNotifications(session.user.id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Sample notifications generated successfully'
+    });
+  } catch (error) {
+    console.error('Error generating sample notifications:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

@@ -22,12 +22,16 @@ export async function GET(
     const resolvedParams = await params;
     const doctorId = resolvedParams.id;
 
-    const doctor = await prisma.user.findUnique({
-      where: {
-        id: doctorId,
-        isProvider: true
-      },
-      select: {
+    // Use a dynamic where clause and cast to any
+    const whereClause: any = {
+      id: doctorId,
+      isProvider: true
+    };
+
+    const doctor: any = await prisma.user.findFirst({
+      where: whereClause,
+      // Cast select to any while TS types catch up after schema changes
+      select: ({
         id: true,
         firstName: true,
         lastName: true,
@@ -64,7 +68,7 @@ export async function GET(
           },
           take: 100 // Limit for performance
         }
-      }
+      } as any)
     });
 
     if (!doctor) {
@@ -77,12 +81,12 @@ export async function GET(
     const fullName = `${firstName} ${lastName}`.trim() || doctor.email;
 
     // Calculate rating (mock for now - in real app, you'd have a reviews system)
-    const totalAppointments = doctor.appointmentsAsProvider.length;
+    const totalAppointments = (doctor as any).appointmentsAsProvider.length;
     const rating = totalAppointments > 0 ? 4.2 + Math.random() * 0.8 : 4.5; // Mock rating
     const reviewsCount = Math.floor(totalAppointments * 0.7); // Mock review count
 
     // Check connection status
-    const connection = doctor.doctorConnections[0];
+    const connection = (doctor as any).doctorConnections[0];
     const isConnected = connection?.status === 'approved';
     const connectionStatus = connection?.status as 'pending' | 'approved' | undefined;
 

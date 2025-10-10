@@ -1,4 +1,5 @@
-// app/types/index.ts
+ // app/types/index.ts
+export type ProviderApprovalStatus = 'pending' | 'approved' | 'rejected';
 export interface User {
   id: string;
   firstName?: string | null;
@@ -25,6 +26,7 @@ export interface User {
   specialty?: string | null;
   yearsOfExperience?: number | null;
   availability?: any;
+  providerApprovalStatus?: ProviderApprovalStatus;
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Calendar, Clock, Video, MapPin, Loader2 } from 'lucide-react';
 import IntakeForm from '@/components/patient/IntakeForm';
+import { CalendarPicker } from '@/components/ui/CalendarPicker';
 
 interface Appointment {
   id: string;
@@ -61,6 +62,10 @@ function PatientAppointmentsContent() {
   const [minimumBookingTime, setMinimumBookingTime] = useState<string>('');
   const [completedIntakeForms, setCompletedIntakeForms] = useState<Set<string>>(new Set());
 
+  // Simple slot assumptions (can be replaced with real availability later)
+  const defaultTimes = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
+  const [availableSlotsMap, setAvailableSlotsMap] = useState<Record<string, number>>({});
+
   // Check if we should show booking form based on service parameter
   useEffect(() => {
     if (serviceParam === 'quitline-smoking-cessation') {
@@ -76,6 +81,23 @@ function PatientAppointmentsContent() {
     const minTime = new Date(now.getTime() + 30 * 60 * 1000); // 30 minutes from now
     setMinimumBookingTime(minTime.toTimeString().slice(0, 5)); // HH:MM format
   }, []);
+
+  // Naive available slots map for next 60 days (today depends on minimumBookingTime)
+  useEffect(() => {
+    const map: Record<string, number> = {};
+    const today = new Date();
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      if (i === 0) {
+        const count = defaultTimes.filter((t) => !minimumBookingTime || t >= minimumBookingTime).length;
+        map[dateStr] = count;
+      } else {
+        map[dateStr] = defaultTimes.length;
+      }
+    }
+    setAvailableSlotsMap(map);
+  }, [minimumBookingTime]);
 
   // Fetch doctors when booking form is shown
   useEffect(() => {
@@ -474,16 +496,19 @@ function PatientAppointmentsContent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Preferred Date
                 </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
+                <CalendarPicker
+                  selectedDate={selectedDate ? new Date(selectedDate) : null}
+                  onDateSelect={(date) => {
+                    const yyyy = date.getFullYear();
+                    const mm = String(date.getMonth() + 1).padStart(2, '0');
+                    const dd = String(date.getDate()).padStart(2, '0');
+                    const iso = `${yyyy}-${mm}-${dd}`;
+                    setSelectedDate(iso);
                     // Reset time when date changes to recalculate available times
                     setSelectedTime('');
                   }}
-                  min={new Date().toISOString().split('T')[0]} // Prevent past dates
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 hover:bg-white"
+                  minDate={new Date()}
+                  availableSlots={availableSlotsMap}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   📅 Select a date and time at least 30 minutes from now

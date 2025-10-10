@@ -65,6 +65,13 @@ export default function ProviderPatientsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [smokingStatusFilter, setSmokingStatusFilter] = useState('all');
+  const [minAge, setMinAge] = useState('');
+  const [maxAge, setMaxAge] = useState('');
+  const [minVisits, setMinVisits] = useState('');
+  const [maxVisits, setMaxVisits] = useState('');
+  const [lastVisitDays, setLastVisitDays] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
 
   useEffect(() => {
@@ -82,7 +89,7 @@ export default function ProviderPatientsPage() {
     }, 500); // Debounce search
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, statusFilter, session]);
+  }, [searchTerm, statusFilter, smokingStatusFilter, minAge, maxAge, minVisits, maxVisits, lastVisitDays, session]);
 
   const fetchPatients = async () => {
     try {
@@ -92,6 +99,12 @@ export default function ProviderPatientsPage() {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (smokingStatusFilter !== 'all') params.append('smokingStatus', smokingStatusFilter);
+      if (minAge) params.append('minAge', minAge);
+      if (maxAge) params.append('maxAge', maxAge);
+      if (minVisits) params.append('minVisits', minVisits);
+      if (maxVisits) params.append('maxVisits', maxVisits);
+      if (lastVisitDays) params.append('lastVisitDays', lastVisitDays);
 
       const response = await fetch(`/api/provider/patients?${params}`);
       
@@ -133,17 +146,28 @@ export default function ProviderPatientsPage() {
 
   const calculateAge = (dateOfBirth?: string) => {
     if (!dateOfBirth) return 'Unknown';
-    
+
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setSmokingStatusFilter('all');
+    setMinAge('');
+    setMaxAge('');
+    setMinVisits('');
+    setMaxVisits('');
+    setLastVisitDays('');
   };
 
   // Calculate statistics from real data
@@ -263,7 +287,16 @@ export default function ProviderPatientsPage() {
       {/* Search and Filter */}
       <div className="card p-4 md:p-6 mb-6 md:mb-8 shadow-soft">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 space-y-4 md:space-y-0">
-          <h3 className="text-base md:text-lg font-semibold text-gray-800">All Patients</h3>
+          <div className="flex items-center space-x-3">
+            <h3 className="text-base md:text-lg font-semibold text-gray-800">All Patients</h3>
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
+            >
+              <IconWithFallback icon="filter_list" emoji="🔽" className="text-sm" />
+              <span>{showAdvancedFilters ? 'Hide' : 'Show'} Filters</span>
+            </button>
+          </div>
           <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -271,7 +304,7 @@ export default function ProviderPatientsPage() {
               </div>
               <input
                 type="text"
-                placeholder="Search patients..."
+                placeholder="Search by name, email, phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 pr-4 py-2 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 w-full sm:w-56 md:w-64 touch-friendly"
@@ -282,13 +315,99 @@ export default function ProviderPatientsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 md:px-4 py-2 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
             >
-              <option value="all">All Patients</option>
+              <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="vip">VIP</option>
             </select>
+            <button
+              onClick={clearAllFilters}
+              className="px-3 md:px-4 py-2 text-sm md:text-base text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors touch-friendly"
+            >
+              Clear All
+            </button>
           </div>
         </div>
+
+        {/* Advanced Filters */}
+        {showAdvancedFilters && (
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">Smoking Status</label>
+                <select
+                  value={smokingStatusFilter}
+                  onChange={(e) => setSmokingStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                >
+                  <option value="all">All</option>
+                  <option value="Current Smoker">Current Smoker</option>
+                  <option value="Former Smoker">Former Smoker</option>
+                  <option value="Never Smoked">Never Smoked</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">Age Range</label>
+                <div className="flex space-x-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={minAge}
+                    onChange={(e) => setMinAge(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    min="0"
+                    max="120"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={maxAge}
+                    onChange={(e) => setMaxAge(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    min="0"
+                    max="120"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">Visit Count</label>
+                <div className="flex space-x-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={minVisits}
+                    onChange={(e) => setMinVisits(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    min="0"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={maxVisits}
+                    onChange={(e) => setMaxVisits(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                    min="0"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">Last Visit (Days)</label>
+                <select
+                  value={lastVisitDays}
+                  onChange={(e) => setLastVisitDays(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 touch-friendly"
+                >
+                  <option value="">Any time</option>
+                  <option value="7">Last 7 days</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="90">Last 3 months</option>
+                  <option value="180">Last 6 months</option>
+                  <option value="365">Last year</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Patients Grid - Real Data */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -367,11 +486,19 @@ export default function ProviderPatientsPage() {
               </div>
               <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">No patients found</h3>
               <p className="text-sm md:text-base text-gray-500">
-                {searchTerm || statusFilter !== 'all'
+                {searchTerm || statusFilter !== 'all' || smokingStatusFilter !== 'all' || minAge || maxAge || minVisits || maxVisits || lastVisitDays
                   ? 'Try adjusting your search or filter criteria'
                   : 'No patients assigned to you yet'
                 }
               </p>
+              {(searchTerm || statusFilter !== 'all' || smokingStatusFilter !== 'all' || minAge || maxAge || minVisits || maxVisits || lastVisitDays) && (
+                <button
+                  onClick={clearAllFilters}
+                  className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           )}
         </div>

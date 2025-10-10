@@ -173,7 +173,7 @@ export function getReceiptTemplate(props: ReceiptTemplateProps): string {
             </tbody>
           </table>
           
-          <p>Your telehealth consultation details are available in your Quitline patient portal. You can access your appointment history and health records by logging into your account.</p>
+          <p>Your telehealth consultation details are available in your Quitline patient portal. You can access your appointment history by logging into your account.</p>
           
           <div class="contact">
             <p>If you have any questions about your consultation or payment, please contact us at <a href="mailto:support@quitline.com">support@quitline.com</a></p>

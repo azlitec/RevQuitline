@@ -7,7 +7,16 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user || !session.user.isProvider) {
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Allow approved providers or pending/reviewing providers (preview mode) to fetch dashboard data
+    const role = (session.user.role as string) || undefined;
+    const isApprovedProvider = session.user.isProvider === true || role === 'PROVIDER';
+    const isPendingProvider = role === 'PROVIDER_PENDING' || role === 'PROVIDER_REVIEWING';
+
+    if (!(isApprovedProvider || isPendingProvider)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

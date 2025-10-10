@@ -22,8 +22,9 @@ const compare = async (data: string, hash: string) => {
 
 import { prisma } from "@/lib/db";
 
-// Define UserRole type to match Prisma schema
-type UserRole = 'USER' | 'CLERK' | 'ADMIN';
+// Define UserRole type to match Prisma schema and staged provider workflow
+type UserRole = 'USER' | 'CLERK' | 'ADMIN' | 'PROVIDER' | 'PROVIDER_PENDING' | 'PROVIDER_REVIEWING';
+type ProviderApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 // Extend Session type
 declare module "next-auth" {
@@ -34,6 +35,7 @@ declare module "next-auth" {
       isAdmin?: boolean; // Keep for backward compatibility
       isClerk?: boolean; // Computed property for backward compatibility
       isProvider?: boolean; // New provider role
+      providerApprovalStatus?: ProviderApprovalStatus; // Doctor approval state
     } & DefaultSession["user"];
   }
 
@@ -43,6 +45,7 @@ declare module "next-auth" {
     role?: UserRole;
     isAdmin: boolean; // Keep for backward compatibility
     isProvider: boolean; // New provider role
+    providerApprovalStatus?: ProviderApprovalStatus; // Doctor approval state
   }
 }
 
@@ -82,6 +85,7 @@ export const authOptions: NextAuthOptions = {
         const userRole = (user as any).role || 'USER';
         const isClerk = userRole === 'CLERK' || userRole === 'ADMIN';
         const isProvider = (user as any).isProvider || false;
+        const providerApprovalStatus = (user as any).providerApprovalStatus as ProviderApprovalStatus | undefined;
 
         return {
           id: user.id,
@@ -91,7 +95,8 @@ export const authOptions: NextAuthOptions = {
           role: userRole,
           isAdmin: user.isAdmin,
           isClerk: isClerk, // Computed property
-          isProvider: isProvider // New provider property
+          isProvider: isProvider, // New provider property
+          providerApprovalStatus
         };
       }
     })
@@ -109,6 +114,7 @@ export const authOptions: NextAuthOptions = {
         token.isAdmin = user.isAdmin;
         token.isClerk = (user as any).isClerk;
         token.isProvider = (user as any).isProvider;
+        (token as any).providerApprovalStatus = (user as any).providerApprovalStatus;
       }
       return token;
     },
@@ -119,6 +125,7 @@ export const authOptions: NextAuthOptions = {
         session.user.isAdmin = token.isAdmin as boolean;
         session.user.isClerk = token.isClerk as boolean;
         session.user.isProvider = token.isProvider as boolean;
+        session.user.providerApprovalStatus = (token as any).providerApprovalStatus as ProviderApprovalStatus | undefined;
       }
       return session;
     }

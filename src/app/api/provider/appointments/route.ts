@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
+import { NotificationService } from '@/lib/notifications/notificationService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,6 +15,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const date = searchParams.get('date');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
     const patientId = searchParams.get('patientId');
 
     // Build where clause
@@ -31,10 +34,21 @@ export async function GET(request: NextRequest) {
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       where.date = {
         gte: startOfDay,
         lte: endOfDay
+      };
+    } else if (startDate && endDate) {
+      // For calendar view - get appointments within date range
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      where.date = {
+        gte: start,
+        lte: end
       };
     }
 
@@ -123,6 +137,33 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+
+    // Create notification for the provider
+    try {
+      const patientName = `${appointment.patient.firstName} ${appointment.patient.lastName}`;
+      const appointmentDate = new Date(appointment.date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const appointmentTime = new Date(appointment.date).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      await NotificationService.createNotification(
+        session.user.id,
+        'success',
+        'New Appointment Scheduled',
+        `New appointment with ${patientName} on ${appointmentDate} at ${appointmentTime}`,
+        'medium',
+        `/provider/appointments`
+      );
+    } catch (notificationError) {
+      console.error('Failed to create appointment notification:', notificationError);
+      // Don't fail the appointment creation if notification fails
+    }
 
     return NextResponse.json({ appointment }, { status: 201 });
   } catch (error) {

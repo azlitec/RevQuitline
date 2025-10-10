@@ -188,4 +188,56 @@ export class NotificationService {
       }
     });
   }
+
+  // Generate sample notifications for testing
+  static async generateSampleNotifications(userId: string): Promise<void> {
+    const sampleNotifications = [
+      {
+        type: 'success' as const,
+        title: 'Welcome to Quitline!',
+        message: 'Your account has been successfully set up. You can now start managing your patients.',
+        priority: 'low' as const
+      },
+      {
+        type: 'alert' as const,
+        title: 'System Maintenance',
+        message: 'Scheduled maintenance will occur tonight from 2:00 AM to 4:00 AM. Service may be temporarily unavailable.',
+        priority: 'medium' as const
+      },
+      {
+        type: 'warning' as const,
+        title: 'Profile Update Required',
+        message: 'Please update your profile information to ensure accurate patient records.',
+        priority: 'medium' as const,
+        actionUrl: '/provider/profile'
+      },
+      {
+        type: 'success' as const,
+        title: 'New Feature Available',
+        message: 'Calendar view is now available in your appointments section for better scheduling.',
+        priority: 'low' as const,
+        actionUrl: '/provider/appointments'
+      },
+      {
+        type: 'alert' as const,
+        title: 'Security Reminder',
+        message: 'Remember to log out when not using the system and keep your password secure.',
+        priority: 'high' as const
+      }
+    ];
+
+    for (const notification of sampleNotifications) {
+      await this.createNotification(
+        userId,
+        notification.type,
+        notification.title,
+        notification.message,
+        notification.priority,
+        notification.actionUrl
+      );
+
+      // Add some delay to create notifications at different times
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
 }
