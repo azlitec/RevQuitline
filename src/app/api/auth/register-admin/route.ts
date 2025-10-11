@@ -8,10 +8,35 @@ export async function POST(request: NextRequest) {
   try {
     // Get registration data
     const data = await request.json();
-    const { firstName, lastName, email, password, registrationCode } = data;
+    const { firstName, lastName, name, email, password, registrationCode } = data;
 
-    // Validate required fields
-    if (!firstName || !lastName || !email || !password || !registrationCode) {
+    // Diagnostics: log received payload keys without sensitive values
+    try {
+      console.debug('Admin register received keys', Object.keys(data));
+    } catch {}
+
+    // Normalize name fields: if firstName/lastName missing, derive from "name"
+    let normalizedFirstName = typeof firstName === 'string' ? firstName.trim() : '';
+    let normalizedLastName = typeof lastName === 'string' ? lastName.trim() : '';
+
+    if (!normalizedFirstName && typeof name === 'string' && name.trim().length > 0) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) {
+        normalizedFirstName = parts[0];
+      } else {
+        const last = parts.pop() as string;
+        normalizedLastName = normalizedLastName || last;
+        normalizedFirstName = parts.join(' ');
+      }
+    }
+
+    // Diagnostics: log normalized result
+    try {
+      console.debug('Admin register normalized names', { normalizedFirstName, normalizedLastName });
+    } catch {}
+
+    // Validate required fields (lastName optional per schema)
+    if (!normalizedFirstName || !email || !password || !registrationCode) {
       return NextResponse.json(
         { message: 'All fields are required' },
         { status: 400 }
@@ -44,8 +69,8 @@ export async function POST(request: NextRequest) {
     // Create new user with admin role
     const newUser = await prisma.user.create({
       data: {
-        firstName,
-        lastName,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName || null,
         email,
         password: hashedPassword,
         isAdmin: true,

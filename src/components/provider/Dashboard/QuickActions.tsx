@@ -19,13 +19,6 @@ export default function QuickActions() {
       color: 'bg-green-100 text-green-600'
     },
     {
-      title: 'Write Prescription',
-      description: 'Create new medication order',
-      icon: '💊',
-      href: '/provider/prescriptions/new',
-      color: 'bg-purple-100 text-purple-600'
-    },
-    {
       title: 'Generate Report',
       description: 'Create patient reports',
       icon: '📊',

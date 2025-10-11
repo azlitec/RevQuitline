@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
@@ -468,11 +469,15 @@ export default function ProviderPatientsPage() {
                 </div>
                 
                 <div className="flex space-x-2">
-                  <button className="flex-1 bg-blue-600 text-white py-2 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center space-x-1 touch-friendly">
+                  <Link
+                    href={`/provider/patients/${patient.id}/emr`}
+                    className="flex-1 bg-blue-600 text-white py-2 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center space-x-1 touch-friendly"
+                    aria-label="Open patient EMR"
+                  >
                     <IconWithFallback icon="visibility" emoji="👁️" className="text-white text-sm" />
-                    <span className="hidden sm:inline">View Profile</span>
-                    <span className="sm:hidden">View</span>
-                  </button>
+                    <span className="hidden sm:inline">Open EMR</span>
+                    <span className="sm:hidden">EMR</span>
+                  </Link>
                   <button className="px-2 md:px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-friendly">
                     <IconWithFallback icon="more_vert" emoji="⋮" className="text-gray-600" />
                   </button>

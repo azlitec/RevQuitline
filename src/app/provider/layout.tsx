@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ProviderSidebar from '@/components/provider/Sidebar';
 import ProviderHeader from '@/components/provider/Header';
 
@@ -11,6 +11,8 @@ export default function ProviderLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     console.log('[Diag] ProviderLayout mount');
@@ -25,6 +27,16 @@ export default function ProviderLayout({
     mql.addEventListener('change', update);
     return () => mql.removeEventListener('change', update);
   }, []);
+
+  // Validation: log layout rects once viewport branch is known
+  useEffect(() => {
+    if (isDesktop !== null) {
+      const sidebarRect = sidebarRef.current?.getBoundingClientRect();
+      const contentRect = contentRef.current?.getBoundingClientRect();
+      console.log('[Diag] ProviderLayout layout rects', { isDesktop, sidebarRect, contentRect });
+    }
+  }, [isDesktop]);
+
   // Avoid hydration mismatch: render shell until we know viewport
   if (isDesktop === null) {
     return (
@@ -37,11 +49,13 @@ export default function ProviderLayout({
       {isDesktop ? (
         // Desktop Layout
         <div className="flex h-screen bg-gray-50">
-          <div className="hidden lg:block">
+          <div className="hidden lg:block" ref={sidebarRef}>
             <ProviderSidebar />
           </div>
-          <div className="flex-1 flex flex-col overflow-hidden lg:ml-20">
-            <ProviderHeader />
+          <div className="flex-1 flex flex-col overflow-hidden" ref={contentRef}>
+            <div className="px-6 pt-6">
+              <ProviderHeader />
+            </div>
             <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
               {children}
             </main>

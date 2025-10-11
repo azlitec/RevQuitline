@@ -5,41 +5,54 @@ import { getToken } from 'next-auth/jwt';
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // List of public paths that don't require authentication
+  console.log('[Middleware] Path:', path);
+
+  // Always allow NextAuth API routes (signin, signout, session, etc.)
+  if (path.startsWith('/api/auth/')) {
+    console.log('[Middleware] NextAuth API route - allowing');
+    return NextResponse.next();
+  }
+
+  // Allow other API routes (but they should have their own auth checks)
+  // EXCEPT for signout route which needs proper session handling
+  if (path.startsWith('/api/') && path !== '/api/auth/signout') {
+    return NextResponse.next();
+  }
+
+  // List of public paths
   const publicPaths = [
     '/',
     '/login',
     '/register',
     '/about',
     '/contact',
-    '/api/auth/signin',
-    '/api/auth/signout',
-    '/api/auth/session',
-    '/api/auth/csrf',
-    // Adding auth routes explicitly as public paths
     '/admin-auth/login',
     '/admin-auth/register',
     '/clerk-auth/login',
     '/clerk-auth/register'
   ];
 
-  // Check if the current path is a public path (more specific check)
+  // Check if path is public or static
   const isPublicPath = publicPaths.includes(path) || 
-    path.startsWith('/api/auth/') ||
     path.includes('_next') || 
     path.includes('/static/');
 
-  // Get the token, if it exists
+  // Get token
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: process.env.NEXTAUTH_SECRET || "your-fallback-secret-for-development",
   });
 
-  // Public paths should always be accessible without redirects
+  console.log('[Middleware] Token exists:', !!token);
+  console.log('[Middleware] Token role:', token?.role);
+  console.log('[Middleware] Is admin:', token?.isAdmin);
+
+  // Public paths handling
   if (isPublicPath) {
-    // For auth pages, check if already logged in and redirect to appropriate dashboard if true
+    // If user is logged in and trying to access login pages, redirect to dashboard
     if (token) {
       if ((path === '/admin-auth/login' || path === '/admin-auth/register') && token.isAdmin) {
+        console.log('[Middleware] Admin already logged in - redirect to admin dashboard');
         return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       }
       
@@ -49,7 +62,6 @@ export async function middleware(request: NextRequest) {
       }
       
       if (path === '/login' || path === '/register') {
-        // Redirect to appropriate dashboard based on user role
         const role = (token.role as string) || undefined;
         let dashboardPath = '/patient/dashboard';
         if (token.isAdmin) {
@@ -57,23 +69,21 @@ export async function middleware(request: NextRequest) {
         } else if (token.isClerk) {
           dashboardPath = '/clerk/dashboard';
         } else if (token.isProvider || role === 'PROVIDER' || role === 'PROVIDER_PENDING' || role === 'PROVIDER_REVIEWING') {
-          // Approved providers and pending/reviewing providers go to provider dashboard (preview for pending/reviewing)
           dashboardPath = '/provider/dashboard';
         }
+        console.log('[Middleware] User already logged in - redirect to:', dashboardPath);
         return NextResponse.redirect(new URL(dashboardPath, request.url));
       }
     }
     
-    // For all other public paths, just continue
     return NextResponse.next();
   }
 
-  // At this point, we're dealing with protected routes
-  // Redirect to login if accessing a protected route without being authenticated
+  // Protected routes - require authentication
   if (!token) {
-    // Determine the appropriate login page based on the path
-    let loginPath = '/login';
+    console.log('[Middleware] No token - redirect to login');
     
+    let loginPath = '/login';
     if (path.startsWith('/admin')) {
       loginPath = '/admin-auth/login';
     } else if (path.startsWith('/clerk')) {
@@ -85,13 +95,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Special protected routes that require specific roles
-
   // Admin route protection
   if (path.startsWith('/admin')) {
     const isAdmin = token?.role === 'ADMIN' || token?.isAdmin === true;
     if (!isAdmin) {
-      // User is authenticated but not an admin, redirect to appropriate dashboard
+      console.log('[Middleware] Not admin - redirect to appropriate dashboard');
       let dashboardPath = '/patient/dashboard';
       const role = (token.role as string) || undefined;
       if (token.isClerk) {
@@ -112,7 +120,6 @@ export async function middleware(request: NextRequest) {
       token?.isAdmin === true;
 
     if (!isClerkOrAdmin) {
-      // User is authenticated but not a clerk or admin, redirect to appropriate dashboard
       let dashboardPath = '/patient/dashboard';
       const role = (token.role as string) || undefined;
       if (token.isProvider || role === 'PROVIDER' || role === 'PROVIDER_PENDING' || role === 'PROVIDER_REVIEWING') {
@@ -122,7 +129,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Provider route protection with staged approval access
+  // Provider route protection
   if (path.startsWith('/provider')) {
     const role = (token?.role as string) || undefined;
 
@@ -140,22 +147,18 @@ export async function middleware(request: NextRequest) {
       role === 'PROVIDER_PENDING' ||
       role === 'PROVIDER_REVIEWING';
 
-    // Full access for approved providers and privileged roles
     if (isApprovedProvider || isPrivileged) {
-      // allow through
+      // Allow through
     } else if (isPendingProvider) {
-      // Pending providers may only access provider dashboard (preview)
       const allowedPaths = ['/provider', '/provider/', '/provider/dashboard'];
       const isAllowed =
         allowedPaths.includes(path) ||
         path.startsWith('/provider/dashboard');
 
       if (!isAllowed) {
-        // Restrict functional pages until approval
         return NextResponse.redirect(new URL('/provider/dashboard', request.url));
       }
     } else {
-      // Not a provider, clerk, or admin -> redirect to appropriate dashboard
       let dashboardPath = '/patient/dashboard';
       if (token?.isClerk) {
         dashboardPath = '/clerk/dashboard';
@@ -166,13 +169,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    // Match all paths except for static assets and API routes that don't need protection
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 };

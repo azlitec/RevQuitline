@@ -1,18 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, 
-  Users, 
-  ClipboardList, 
-  CreditCard, 
-  Tag, 
-  BarChart4, 
-  Settings,
-  UserCog,
+import {
+  LayoutDashboard,
+  Users,
+  ShieldCheck,
+  CreditCard,
+  BarChart4,
   LogOut,
   Menu,
   X,
@@ -35,6 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Check if user is admin
   useEffect(() => {
@@ -44,8 +42,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       // Redirect to appropriate dashboard based on user role
       if (session.user.isProvider) {
         router.push('/provider/dashboard');
-      } else if (session.user.isClerk) {
-        router.push('/clerk/dashboard');
       } else {
         router.push('/patient/dashboard');
       }
@@ -54,45 +50,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Navigation items
   const navigation: NavItem[] = [
-    { 
-      name: 'Dashboard', 
-      href: '/admin/dashboard', 
-      icon: <LayoutDashboard size={20} /> 
+    {
+      name: 'Dashboard',
+      href: '/admin/dashboard',
+      icon: <LayoutDashboard size={20} />
     },
-    { 
-      name: 'User Management', 
-      href: '/admin/users', 
-      icon: <Users size={20} />,
-      children: [
-        { name: 'All Users', href: '/admin/users', icon: <Users size={20} /> },
-        { name: 'Clerks', href: '/admin/clerks', icon: <UserCog size={20} /> },
-      ]
+    {
+      name: 'User Management',
+      href: '/admin/users',
+      icon: <Users size={20} />
     },
-    { 
-      name: 'Assessments', 
-      href: '/admin/assessments', 
-      icon: <ClipboardList size={20} /> 
+    {
+      name: 'Approvals',
+      href: '/admin/approvals',
+      icon: <ShieldCheck size={20} />
     },
-    { 
-      name: 'Payments', 
-      href: '/admin/payments', 
-      icon: <CreditCard size={20} /> 
+    {
+      name: 'Payments',
+      href: '/admin/payments',
+      icon: <CreditCard size={20} />
     },
-    { 
-      name: 'Coupons', 
-      href: '/admin/coupons', 
-      icon: <Tag size={20} /> 
-    },
-    { 
-      name: 'Reports', 
-      href: '/admin/reports', 
-      icon: <BarChart4 size={20} /> 
-    },
-    { 
-      name: 'Settings', 
-      href: '/admin/settings', 
-      icon: <Settings size={20} /> 
-    },
+    {
+      name: 'Reports',
+      href: '/admin/reports',
+      icon: <BarChart4 size={20} />
+    }
   ];
 
   const toggleExpand = (name: string) => {
@@ -145,6 +127,54 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   };
 
+  // Handle logout with proper NextAuth signOut
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+
+    console.log('[Admin Logout] Starting logout process...');
+    console.log('[Admin Logout] Current session:', session);
+
+    setIsLoggingOut(true);
+
+    try {
+      // Use NextAuth's signOut function with redirect disabled
+      await signOut({
+        redirect: false,
+        callbackUrl: '/admin-auth/login'
+      });
+
+      console.log('[Admin Logout] SignOut completed');
+
+      // Force full page reload to clear all state and redirect
+      window.location.href = '/admin-auth/login';
+    } catch (error) {
+      console.error('[Admin Logout] Error during logout:', error);
+      
+      // Fallback: Try manual signout if NextAuth fails
+      try {
+        const response = await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        console.log('[Admin Logout] Fallback signout response:', response.status);
+        
+        if (response.ok) {
+          window.location.href = '/admin-auth/login';
+        } else {
+          throw new Error('Fallback signout failed');
+        }
+      } catch (fallbackError) {
+        console.error('[Admin Logout] Fallback also failed:', fallbackError);
+        // Even on error, try to redirect
+        window.location.href = '/admin-auth/login';
+      }
+    }
+  };
+
   // If loading or not authenticated as admin, show loading state
   if (status === 'loading' || (status === 'authenticated' && !session?.user?.isAdmin)) {
     return (
@@ -187,15 +217,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {navigation.map(item => renderNavItem(item))}
 
           {/* Logout button */}
-          <div
-            className="flex items-center px-3 py-2 mt-6 text-gray-300 rounded-md cursor-pointer hover:bg-gray-700 hover:text-white"
-            onClick={() => {
-              router.push('/api/auth/signout');
-            }}
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className={`
+              w-full flex items-center px-3 py-2 mt-6 text-gray-300 rounded-md 
+              transition-colors
+              ${isLoggingOut 
+                ? 'opacity-50 cursor-not-allowed bg-gray-700' 
+                : 'hover:bg-gray-700 hover:text-white cursor-pointer'
+              }
+            `}
           >
-            <LogOut size={20} className="mr-3" />
-            <span>Logout</span>
-          </div>
+            <LogOut size={20} className={`mr-3 ${isLoggingOut ? 'animate-spin' : ''}`} />
+            <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+          </button>
         </nav>
       </div>
 

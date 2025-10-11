@@ -52,7 +52,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
     
     // Check if role is valid
-    if (!['isAdmin', 'isClerk'].includes(role)) {
+    if (!['isAdmin', 'isClerk', 'isProvider'].includes(role)) {
       return NextResponse.json({ message: 'Invalid role' }, { status: 400 });
     }
     
@@ -65,14 +65,16 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (value) {
       const roleMapping: Record<string, string> = {
         'isAdmin': 'ADMIN',
-        'isClerk': 'CLERK'
+        'isClerk': 'CLERK',
+        'isProvider': 'PROVIDER'
       };
       
       updateData.role = roleMapping[role];
     } else {
       // If removing a role, check if any other special roles remain
       const hasOtherRoles = (role !== 'isAdmin' && user.isAdmin) ||
-                            (role !== 'isClerk' && user.isClerk);
+                            (role !== 'isClerk' && user.isClerk) ||
+                            (role !== 'isProvider' && user.isProvider);
       
       // If no other special roles, set role back to USER
       if (!hasOtherRoles) {

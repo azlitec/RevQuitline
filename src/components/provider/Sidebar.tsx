@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -9,7 +10,14 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
-const navigationItems = [
+type NavItem = {
+  name: string;
+  href: string;
+  icon: string;
+};
+
+// Provider navigation (EMR modules removed per request)
+const navigationItems: NavItem[] = [
   { name: 'Dashboard', href: '/provider/dashboard', icon: 'dashboard' },
   { name: 'Appointments', href: '/provider/appointments', icon: 'calendar_today' },
   { name: 'Patients', href: '/provider/patients', icon: 'people' },
@@ -23,6 +31,9 @@ const navigationItems = [
 
 export default function Sidebar({ isOpen = true, onClose, isMobile = false }: SidebarProps) {
   const pathname = usePathname();
+
+  // EMR counters removed per requirement
+
 
   if (isMobile) {
     return (
@@ -39,13 +50,14 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+            aria-label="Close sidebar"
           >
             <span className="material-icons">close</span>
           </button>
         </div>
 
         {/* Mobile Navigation */}
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4" aria-label="Provider navigation">
           <div className="space-y-2">
             {navigationItems.map((item) => {
               const isActive = pathname === item.href;
@@ -55,12 +67,13 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
                   href={item.href}
                   onClick={onClose}
                   className={`flex items-center space-x-4 p-4 rounded-xl transition-all duration-300 ${
-                    isActive 
-                      ? 'bg-blue-50 text-blue-700 shadow-md' 
+                    isActive
+                      ? 'bg-blue-50 text-blue-700 shadow-md'
                       : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'
                   }`}
+                  aria-current={isActive ? 'page' : undefined}
                 >
-                  <span className={`material-icons ${isActive ? 'text-blue-500' : 'text-gray-500'}`}>
+                  <span className={`material-icons ${isActive ? 'text-blue-500' : 'text-gray-500'}`} aria-hidden="true">
                     {item.icon}
                   </span>
                   <span className="font-medium">{item.name}</span>
@@ -72,7 +85,10 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
 
         {/* Mobile Settings */}
         <div className="p-4 border-t border-gray-200">
-          <button className="flex items-center space-x-4 w-full p-4 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+          <button
+            className="flex items-center space-x-4 w-full p-4 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+            aria-label="Settings"
+          >
             <span className="material-icons text-gray-500">settings</span>
             <span className="font-medium">Settings</span>
           </button>
@@ -81,40 +97,49 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
     );
   }
 
-  // Desktop sidebar (original design)
+  // Desktop sidebar (original design) with status chips
   return (
-    <aside className="w-20 flex flex-col items-center py-6 space-y-6" style={{ backgroundColor: '#FFFFFF' }}>
+    <aside
+      className="w-20 flex flex-col items-center py-6 space-y-6 relative z-10"
+      style={{ backgroundColor: '#FFFFFF' }}
+      aria-label="Provider sidebar"
+    >
       {/* Logo */}
-      <div className="text-blue-500 font-bold text-2xl mb-4">L</div>
-      
+      <div className="text-blue-500 font-bold text-2xl mb-4" aria-label="LumeLife logo">L</div>
+
       {/* Navigation */}
-      <nav className="flex flex-col items-center space-y-6 flex-grow">
+      <nav className="flex flex-col items-center space-y-6 flex-grow" aria-label="Provider navigation">
         {navigationItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`nav-item p-3 transition-all duration-300 rounded-xl ${
-                isActive 
-                  ? 'bg-blue-50 shadow-md' 
-                  : 'hover:bg-blue-50 hover:shadow-md'
+              className={`relative nav-item p-3 transition-all duration-300 rounded-xl ${
+                isActive ? 'bg-blue-50 shadow-md' : 'hover:bg-blue-50 hover:shadow-md'
               }`}
               title={item.name}
+              aria-current={isActive ? 'page' : undefined}
             >
-              <span className={`material-icons ${
-                isActive ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
-              }`}>
+              <span
+                className={`material-icons ${isActive ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'}`}
+                aria-hidden="true"
+              >
                 {item.icon}
               </span>
             </Link>
           );
         })}
       </nav>
-      
+
       {/* Settings */}
-      <div className="text-gray-500 p-3 nav-item hover:bg-blue-50 hover:shadow-md rounded-xl transition-all duration-300 cursor-pointer" title="Settings">
-        <span className="material-icons hover:text-blue-500">settings</span>
+      <div
+        className="text-gray-500 p-3 nav-item hover:bg-blue-50 hover:shadow-md rounded-xl transition-all duration-300 cursor-pointer"
+        title="Settings"
+        role="button"
+        aria-label="Settings"
+      >
+        <span className="material-icons hover:text-blue-500" aria-hidden="true">settings</span>
       </div>
     </aside>
   );

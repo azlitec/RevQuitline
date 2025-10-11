@@ -168,6 +168,36 @@ export async function POST(request: NextRequest) {
 
     console.log(`[DEBUG] Appointment created: ${appointment.id}`);
     
+    // Ensure doctor-patient connection exists and is approved for this appointment
+    try {
+      const connectionTreatmentType = type || 'consultation';
+      await prisma.doctorPatientConnection.upsert({
+        where: {
+          providerId_patientId_treatmentType: {
+            providerId,
+            patientId,
+            treatmentType: connectionTreatmentType,
+          },
+        },
+        update: {
+          status: 'approved',
+          approvedAt: new Date(),
+          updatedAt: new Date(),
+        },
+        create: {
+          providerId,
+          patientId,
+          treatmentType: connectionTreatmentType,
+          status: 'approved',
+          approvedAt: new Date(),
+        },
+      });
+      console.log(`[DEBUG] Connection ensured/approved for provider=${providerId} patient=${patientId} treatment=${connectionTreatmentType}`);
+    } catch (connErr) {
+      console.error('Failed to ensure doctor-patient connection:', connErr);
+      // Non-blocking
+    }
+    
     // Create notifications for both patient and provider
     try {
       // Notification for patient

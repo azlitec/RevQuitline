@@ -119,19 +119,37 @@ export default function ProviderDashboardPage() {
       console.log('[Diag] fetchDashboardData start');
       setLoading(true);
       setError(null);
-      
-      const response = await fetch('/api/provider/dashboard');
+
+      // Ensure session cookies are included for API auth (KISS)
+      const response = await fetch('/api/provider/dashboard', { credentials: 'include' });
+      const contentType = response.headers.get('content-type') || '';
       console.log('[Diag] fetchDashboardData response', { status: response.status });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
+        let errorPayload: any = null;
+        if (contentType.includes('application/json')) {
+          errorPayload = await response.json().catch(() => null);
+        } else {
+          const text = await response.text().catch(() => '');
+          errorPayload = { error: text || 'Unknown error' };
+        }
+        const statusInfo = `${response.status} ${response.statusText}`.trim();
+        const message = errorPayload?.error
+          ? `${statusInfo}: ${errorPayload.error}`
+          : `Failed to fetch dashboard data (${statusInfo})`;
+        throw new Error(message);
       }
-      
-      const data = await response.json();
+
+      const data = contentType.includes('application/json') ? await response.json() : null;
+      if (!data) {
+        throw new Error('Empty response from dashboard API');
+      }
+
       setDashboardData(data);
       console.log('[Diag] fetchDashboardData success', { keys: Object.keys(data || {}) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const message = err instanceof Error ? err.message : 'An error occurred';
+      setError(message);
       console.error('[Diag] Error fetching dashboard data:', err);
     } finally {
       setLoading(false);
@@ -300,166 +318,9 @@ export default function ProviderDashboardPage() {
             <p className="text-xs text-gray-400 mt-1">This month</p>
           </div>
           
-          <div className="card p-6 shadow-soft hover-effect">
-            <div className="flex justify-between items-start">
-              <div className="bg-green-100 p-3 rounded-xl">
-                <IconWithFallback icon="monetization_on" emoji="💰" className="text-green-600" />
-              </div>
-              <div className="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-full">
-                +{((monthlyStats.revenue / Math.max(1, monthlyStats.revenue * 0.8)) * 100).toFixed(0)}%
-              </div>
-            </div>
-            <p className="text-gray-500 mt-4 text-sm font-medium">Revenue</p>
-            <p className="text-3xl font-bold text-gray-800 mt-2">{formatCurrency(monthlyStats.revenue)}</p>
-            <p className="text-xs text-gray-400 mt-1">This month</p>
-          </div>
         </div>
       </section>
 
-      {/* Patient Analytics & Quick Actions */}
-      <section className="mb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Patient Analytics */}
-          <div className="primary-card p-8 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <h3 className="text-lg font-semibold text-white">Patient Analytics</h3>
-              <button className="text-white opacity-80 hover:opacity-100">
-                <IconWithFallback icon="more_horiz" emoji="⋯" className="text-white" />
-              </button>
-            </div>
-            <div className="flex justify-center items-center my-6">
-              <div className="relative w-40 h-40">
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle className="text-blue-300 opacity-30" cx="50" cy="50" fill="transparent" r="35" stroke="currentColor" strokeWidth="8"></circle>
-                  <circle 
-                    className="progress-ring__circle text-white" 
-                    cx="50" 
-                    cy="50" 
-                    fill="transparent" 
-                    r="35" 
-                    stroke="currentColor" 
-                    strokeLinecap="round" 
-                    strokeWidth="8" 
-                    style={{ 
-                      strokeDasharray: '219.9', 
-                      strokeDashoffset: `calc(219.9 - (219.9 * ${(activePatients / Math.max(1, totalPatients)) * 100}) / 100)`
-                    }}
-                  ></circle>
-                </svg>
-                <div className="absolute inset-0 flex flex-col justify-center items-center">
-                  <span className="text-3xl font-bold text-white">
-                    {totalPatients > 0 ? Math.floor((activePatients / totalPatients) * 100) : 0}%
-                  </span>
-                  <span className="text-sm text-blue-100">Active Rate</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-blue-100 text-sm">Total Active Patients</p>
-              <p className="text-3xl font-bold text-white">{activePatients}</p>
-              <p className="text-blue-100 text-sm">of {totalPatients} registered</p>
-            </div>
-          </div>
-
-          {/* Quick Actions & Services */}
-          <div className="col-span-2 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="card p-3 sm:p-4 lg:p-6 hover-effect shadow-soft">
-                <div className="flex justify-between items-start">
-                  <div className="bg-gradient-to-r from-purple-400 to-purple-600 p-3 rounded-xl text-white">
-                    <IconWithFallback icon="healing" emoji="⚕️" className="text-white" />
-                  </div>
-                  <button
-                    className={`text-blue-600 font-semibold text-sm ${isPending ? 'opacity-50 cursor-not-allowed' : 'hover:underline'}`}
-                    disabled={isPending}
-                  >
-                    View All
-                  </button>
-                </div>
-                <p className="text-gray-500 mt-4 text-sm font-medium">Free-smoking Sessions</p>
-                <p className="text-3xl font-bold text-gray-800 mt-2">
-                  {monthlyStats.completedAppointments}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">Completed this month</p>
-                <div className="mt-4 flex items-center">
-                  <div className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full">
-                    {monthlyStats.completedAppointments > monthlyStats.totalAppointments * 0.6 ? 'Most Popular' : 'Active'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="card p-6 hover-effect shadow-soft">
-                <div className="flex justify-between items-start">
-                  <div className="bg-gradient-to-r from-orange-400 to-orange-600 p-3 rounded-xl text-white">
-                    <IconWithFallback icon="description" emoji="📄" className="text-white" />
-                  </div>
-                  <button
-                    className={`text-blue-600 font-semibold text-sm ${isPending ? 'opacity-50 cursor-not-allowed' : 'hover:underline'}`}
-                    disabled={isPending}
-                  >
-                    Create New
-                  </button>
-                </div>
-                <p className="text-gray-500 mt-4 text-sm font-medium">Prescriptions</p>
-                <p className="text-3xl font-bold text-gray-800 mt-2">
-                  0
-                </p>
-                <p className="text-xs text-gray-400 mt-1">Issued this week</p>
-                <div className="mt-4 flex items-center">
-                  <div className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
-                    0 pending
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Weekly Performance Chart */}
-            <div className="card p-3 sm:p-4 lg:p-6 shadow-soft">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-800">Weekly Performance</h3>
-                <select className="bg-gray-50 text-gray-700 text-sm rounded-lg px-3 py-2 focus:outline-none border border-gray-200 focus:border-blue-400">
-                  <option>This Week</option>
-                  <option>Last Week</option>
-                  <option>This Month</option>
-                </select>
-              </div>
-              <div className="flex items-end justify-between h-40 space-x-3">
-                {weeklyData.map((dayData, index) => {
-                  const height = getMaxHeight(dayData.appointments);
-                  const dayName = getDayName(dayData.date);
-                  const isToday = new Date(dayData.date).toDateString() === new Date().toDateString();
-                  
-                  return (
-                    <div key={dayData.date} className="text-center flex-1">
-                      <div 
-                        className={`rounded-t-lg mb-2 relative overflow-hidden transition-all duration-500 hover:scale-105 ${
-                          dayData.appointments === 0
-                            ? 'bg-gray-200' 
-                            : 'bg-gradient-to-t from-blue-400 to-blue-300'
-                        }`}
-                        style={{ height: `${height}px` }}
-                      >
-                        {dayData.appointments > 0 && (
-                          <div className="absolute inset-0 bg-white opacity-20"></div>
-                        )}
-                        {isToday && dayData.appointments > 0 && (
-                          <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
-                            <div className="w-2 h-2 bg-white rounded-full opacity-60"></div>
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-xs font-medium text-gray-600">{dayName}</p>
-                      <p className="text-xs text-gray-400">
-                        {dayData.appointments === 0 ? 'No appointments' : `${dayData.appointments} patients`}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
 
       {/* Recent Patient Activities */}

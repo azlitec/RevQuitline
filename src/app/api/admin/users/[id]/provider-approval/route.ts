@@ -61,6 +61,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         data: {
           isProvider: true,
           role: 'PROVIDER',
+          providerApprovalStatus: 'approved',
         },
       });
 
@@ -78,6 +79,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       data: {
         isProvider: false,
         role: targetUser.isAdmin ? 'ADMIN' : targetUser.isClerk ? 'CLERK' : 'USER',
+        providerApprovalStatus: 'rejected',
       },
     });
 

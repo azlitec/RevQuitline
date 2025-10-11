@@ -45,11 +45,13 @@ export async function GET(request: NextRequest) {
         case 'admin':
           where.isAdmin = true;
           break;
-        case 'clerk':
-          where.isClerk = true;
+        case 'doctor':
+          where.isProvider = true;
           break;
-        case 'user':
+        case 'patient':
+          // Patients are non-admin, non-provider, non-clerk users
           where.isAdmin = false;
+          where.isProvider = false;
           where.isClerk = false;
           break;
       }
@@ -72,7 +74,7 @@ export async function GET(request: NextRequest) {
         image: true,
         role: true,
         isAdmin: true,
-        isClerk: true,
+        isProvider: true,
         createdAt: true,
       },
       orderBy: {

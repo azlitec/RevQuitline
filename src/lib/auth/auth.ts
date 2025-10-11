@@ -32,10 +32,10 @@ declare module "next-auth" {
     user: {
       id: string;
       role?: UserRole;
-      isAdmin?: boolean; // Keep for backward compatibility
-      isClerk?: boolean; // Computed property for backward compatibility
-      isProvider?: boolean; // New provider role
-      providerApprovalStatus?: ProviderApprovalStatus; // Doctor approval state
+      isAdmin?: boolean;
+      isClerk?: boolean;
+      isProvider?: boolean;
+      providerApprovalStatus?: ProviderApprovalStatus;
     } & DefaultSession["user"];
   }
 
@@ -43,9 +43,9 @@ declare module "next-auth" {
     id: string;
     email: string;
     role?: UserRole;
-    isAdmin: boolean; // Keep for backward compatibility
-    isProvider: boolean; // New provider role
-    providerApprovalStatus?: ProviderApprovalStatus; // Doctor approval state
+    isAdmin: boolean;
+    isProvider: boolean;
+    providerApprovalStatus?: ProviderApprovalStatus;
   }
 }
 
@@ -81,7 +81,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid email or password");
         }
 
-        // Work around TypeScript issues with any for now
         const userRole = (user as any).role || 'USER';
         const isClerk = userRole === 'CLERK' || userRole === 'ADMIN';
         const isProvider = (user as any).isProvider || false;
@@ -94,8 +93,8 @@ export const authOptions: NextAuthOptions = {
           image: user.image,
           role: userRole,
           isAdmin: user.isAdmin,
-          isClerk: isClerk, // Computed property
-          isProvider: isProvider, // New provider property
+          isClerk: isClerk,
+          isProvider: isProvider,
           providerApprovalStatus
         };
       }
@@ -103,7 +102,7 @@ export const authOptions: NextAuthOptions = {
   ],
   pages: {
     signIn: "/login",
-    signOut: "/login",
+    // REMOVE signOut custom page - let NextAuth handle it
     error: "/login",
   },
   callbacks: {
@@ -128,7 +127,37 @@ export const authOptions: NextAuthOptions = {
         session.user.providerApprovalStatus = (token as any).providerApprovalStatus as ProviderApprovalStatus | undefined;
       }
       return session;
+    },
+    // IMPORTANT: Add redirect callback for proper logout
+    async redirect({ url, baseUrl }) {
+      console.log('[NextAuth Redirect] url:', url, 'baseUrl:', baseUrl);
+      
+      // Handle signout - redirect to login
+      if (url.includes('signout')) {
+        console.log('[NextAuth Redirect] Signout detected - redirecting to /login');
+        return `${baseUrl}/login`;
+      }
+
+      // If URL starts with callback
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
+      }
+      
+      // If same origin, allow
+      if (new URL(url).origin === baseUrl) {
+        return url;
+      }
+      
+      return baseUrl;
     }
+  },
+  events: {
+    async signOut({ token, session }) {
+      console.log('[NextAuth Event] User signed out:', {
+        email: token?.email || session?.user?.email,
+        role: token?.role || session?.user?.role,
+      });
+    },
   },
   session: {
     strategy: "jwt",

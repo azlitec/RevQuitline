@@ -2,7 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
+import { auditRead, auditCreate, auditUpdate, buildProvenanceMetadata } from '@/lib/audit/audit';
+import { requirePermission, requireProviderForDraftOrUpdate, parseJson, toProblemJson } from '@/lib/api/guard';
+import { z } from 'zod';
 
+// Zod schemas for legacy HealthRecord progress note payloads
+const LegacyHealthRecordNoteSchema = z.object({
+  appointmentId: z.string().min(1),
+  patientId: z.string().min(1),
+  title: z.string().min(1),
+
+  chiefComplaint: z.string().optional(),
+  historyOfPresentIllness: z.string().optional(),
+  pastMedicalHistory: z.string().optional(),
+  medications: z.string().optional(),
+  allergies: z.string().optional(),
+  socialHistory: z.string().optional(),
+  familyHistory: z.string().optional(),
+  reviewOfSystems: z.string().optional(),
+  physicalExamination: z.string().optional(),
+  assessment: z.string().optional(),
+  plan: z.string().optional(),
+  followUpInstructions: z.string().optional(),
+  prescriptions: z.string().optional(),
+});
+
+const LegacyHealthRecordNoteUpdateSchema = LegacyHealthRecordNoteSchema.extend({
+  id: z.string().min(1),
+});
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -10,7 +37,14 @@ export async function GET(request: NextRequest) {
     if (!session || !session.user || !session.user.isProvider) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    try {
+      requirePermission(session, 'progress_note.read');
+    } catch (err: any) {
+      return NextResponse.json(
+        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
+        { status: err?.status ?? 403 }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const appointmentId = searchParams.get('appointmentId');
     const patientId = searchParams.get('patientId');
@@ -44,6 +78,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    const provenance = buildProvenanceMetadata(session, { appointmentId, patientId });
+    await Promise.all(
+      medicalNotes.map((n: any) =>
+        auditRead(request, session, 'progress_note', n.id, provenance)
+      )
+    );
     return NextResponse.json({ medicalNotes });
   } catch (error) {
     console.error('Error fetching medical notes:', error);
@@ -62,7 +102,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    try {
+      requireProviderForDraftOrUpdate(session);
+    } catch (err: any) {
+      return NextResponse.json(
+        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
+        { status: err?.status ?? 403 }
+      );
+    }
+
+    const body = await parseJson(request as any, LegacyHealthRecordNoteSchema);
     const {
       appointmentId,
       patientId,
@@ -81,14 +130,6 @@ export async function POST(request: NextRequest) {
       followUpInstructions,
       prescriptions
     } = body;
-
-    // Validate required fields
-    if (!appointmentId || !patientId || !title) {
-      return NextResponse.json(
-        { error: 'Appointment ID, Patient ID, and title are required' },
-        { status: 400 }
-      );
-    }
 
     // Verify the appointment belongs to the provider
     const appointment = await prisma.appointment.findFirst({
@@ -151,6 +192,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    await auditCreate(
+      request,
+      session,
+      'progress_note',
+      medicalNote.id,
+      buildProvenanceMetadata(session, { appointmentId, patientId })
+    );
     return NextResponse.json({
       medicalNote: {
         id: medicalNote.id,
@@ -191,7 +239,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    try {
+      requireProviderForDraftOrUpdate(session);
+    } catch (err: any) {
+      return NextResponse.json(
+        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
+        { status: err?.status ?? 403 }
+      );
+    }
+
+    const body = await parseJson(request as any, LegacyHealthRecordNoteUpdateSchema);
     const {
       id,
       appointmentId,
@@ -211,14 +268,6 @@ export async function PUT(request: NextRequest) {
       followUpInstructions,
       prescriptions
     } = body;
-
-    // Validate required fields
-    if (!id || !appointmentId || !patientId || !title) {
-      return NextResponse.json(
-        { error: 'Medical note ID, Appointment ID, Patient ID, and title are required' },
-        { status: 400 }
-      );
-    }
 
     // Verify the medical note belongs to the provider
     const existingNote = await prisma.healthRecord.findFirst({
@@ -269,6 +318,13 @@ export async function PUT(request: NextRequest) {
       }
     });
 
+    await auditUpdate(
+      request,
+      session,
+      'progress_note',
+      updatedNote.id,
+      buildProvenanceMetadata(session, { appointmentId, patientId })
+    );
     return NextResponse.json({
       medicalNote: {
         id: updatedNote.id,

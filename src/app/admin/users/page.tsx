@@ -3,16 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { 
-  Search, 
-  UserPlus, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Search,
+  UserPlus,
+  CheckCircle,
+  XCircle,
   ChevronDown,
   Edit,
   Trash,
-  Shield,
-  UserCog
+  Shield
 } from 'lucide-react';
 
 interface User {
@@ -21,8 +20,7 @@ interface User {
   email: string;
   role: string;
   isAdmin: boolean;
-  isClerk: boolean;
-  isAffiliate: boolean;
+  isProvider: boolean;
   createdAt: string;
   _count: {
     assessments: number;
@@ -141,33 +139,51 @@ export default function AdminUsersPage() {
 
   const deleteUser = async (userId: string) => {
     if (actionLoading) return; // Prevent multiple actions
-    
+
     setActionLoading(userId);
     setConfirmDelete(null);
-    
+
+    // Diagnostics: log initiation
+    console.info('[AdminUsers] deleteUser:init', { userId });
+
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
       });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to delete user');
+
+      // Diagnostics: log raw response status
+      console.debug('[AdminUsers] deleteUser:response', { status: response.status, ok: response.ok });
+
+      // Try to parse response body for more insight (both success and error)
+      let data: any = null;
+      try {
+        data = await response.json();
+        console.debug('[AdminUsers] deleteUser:body', data);
+      } catch (parseErr) {
+        console.warn('[AdminUsers] deleteUser:body-parse-failed', parseErr);
       }
-      
+
+      if (!response.ok) {
+        const message = (data && data.message) ? data.message : 'Failed to delete user';
+        console.warn('[AdminUsers] deleteUser:non-ok', { status: response.status, message });
+        throw new Error(message);
+      }
+
       // Show success message
       setActionSuccess(`User deleted successfully`);
-      
+
       // Remove user from list
       setUsers(users.filter(user => user.id !== userId));
-      
+
       // Clear success message after delay
       setTimeout(() => {
         setActionSuccess(null);
       }, 3000);
     } catch (err) {
+      console.error('[AdminUsers] deleteUser:error', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
+      console.info('[AdminUsers] deleteUser:finalize', { userId });
       setActionLoading(null);
     }
   };
@@ -204,10 +220,9 @@ export default function AdminUsersPage() {
               }}
             >
               <option value="all">All Roles</option>
-              <option value="user">Regular Users</option>
+              <option value="doctor">Doctors</option>
+              <option value="patient">Patients</option>
               <option value="admin">Admins</option>
-              <option value="clerk">Clerks</option>
-              <option value="affiliate">Affiliates</option>
             </select>
           </div>
           
@@ -298,19 +313,14 @@ export default function AdminUsersPage() {
                               Admin
                             </span>
                           )}
-                          {user.isClerk && (
+                          {user.isProvider && (
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                              Clerk
+                              Doctor
                             </span>
                           )}
-                          {user.isAffiliate && (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              Affiliate
-                            </span>
-                          )}
-                          {!user.isAdmin && !user.isClerk && !user.isAffiliate && (
+                          {!user.isAdmin && !user.isProvider && (
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                              User
+                              Patient
                             </span>
                           )}
                         </div>
@@ -320,8 +330,8 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div>
-                          <div>Assessments: {user._count.assessments}</div>
-                          <div>Payments: {user._count.payments}</div>
+                          <div>Assessments: {(user._count?.assessments ?? 0)}</div>
+                          <div>Payments: {(user._count?.payments ?? 0)}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -356,13 +366,6 @@ export default function AdminUsersPage() {
                                   {user.isAdmin ? 'Remove Admin Role' : 'Make Admin'}
                                 </button>
                                 
-                                <button
-                                  onClick={() => changeUserRole(user.id, 'isClerk', !user.isClerk)}
-                                  className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                >
-                                  <UserCog className="h-4 w-4 mr-2" />
-                                  {user.isClerk ? 'Remove Clerk Role' : 'Make Clerk'}
-                                </button>
                                 
                                 <button
                                   onClick={() => setConfirmDelete(user.id)}
