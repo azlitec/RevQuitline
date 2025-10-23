@@ -49,7 +49,7 @@ export const PrescriptionCreateSchema = z
 
 export type CreatePrescriptionInput = z.infer<typeof PrescriptionCreateSchema>;
 
-const PrescriptionUpdateSchema = z
+export const PrescriptionUpdateSchema = z
   .object({
     id: z.string().min(1, 'id is required'),
     status: StatusEnum.optional(),

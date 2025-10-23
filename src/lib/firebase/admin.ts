@@ -9,6 +9,8 @@ import 'server-only';
 import { cert, getApps, initializeApp, App } from 'firebase-admin/app';
 import { getMessaging, Messaging } from 'firebase-admin/messaging';
 
+const DISABLE_PUSH = process.env.DISABLE_PUSH_NOTIFICATIONS === 'true';
+
 type ServiceAccountEnv = {
   projectId?: string;
   clientEmail?: string;
@@ -55,11 +57,12 @@ declare global {
 }
 
 // Cache in global to avoid re-initialization with Next.js hot reload.
-if (!global.__firebaseAdmin__) {
-  global.__firebaseAdmin__ = {};
+const GA = globalThis as any;
+if (!GA.__firebaseAdmin__) {
+  GA.__firebaseAdmin__ = {};
 }
 
-if (!global.__firebaseAdmin__.app || !global.__firebaseAdmin__.messaging) {
+if (!DISABLE_PUSH && (!GA.__firebaseAdmin__.app || !GA.__firebaseAdmin__.messaging)) {
   const sa = getServiceAccountFromEnv();
   validateEnv(sa);
 
@@ -73,18 +76,22 @@ if (!global.__firebaseAdmin__.app || !global.__firebaseAdmin__.messaging) {
 
   messaging = getMessaging(app);
 
-  global.__firebaseAdmin__.app = app;
-  global.__firebaseAdmin__.messaging = messaging;
+  GA.__firebaseAdmin__.app = app;
+  GA.__firebaseAdmin__.messaging = messaging;
 }
 
-export const firebaseAdminApp: App = global.__firebaseAdmin!.app!;
-export const adminMessaging: Messaging = global.__firebaseAdmin!.messaging!;
+export const firebaseAdminApp: App | undefined = GA.__firebaseAdmin__.app;
+// Provide a no-op Messaging shim when push is disabled or not initialized
+export const adminMessaging: Messaging =
+  (GA.__firebaseAdmin__.messaging as Messaging) ||
+  ({ send: async () => ({}) } as unknown as Messaging);
 
 /**
  * Health check helper: performs a dry-run send to validate credentials.
  * Returns true even if token is invalid, as the purpose is auth validation.
  */
 export async function pingFCMHealth(): Promise<boolean> {
+  if (DISABLE_PUSH) return true;
   try {
     await adminMessaging.send(
       { token: 'test-token', notification: { title: 'noop', body: 'noop' } },

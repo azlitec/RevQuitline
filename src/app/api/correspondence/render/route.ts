@@ -108,7 +108,14 @@ export async function POST(request: NextRequest) {
       // Dynamic import to avoid hard dependency
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const puppeteer = await import('puppeteer').catch(() => null);
+      const puppeteer = await (async () => {
+        try {
+          const req = eval('require');
+          return req ? req('puppeteer') : null;
+        } catch {
+          return null;
+        }
+      })();
       if (!puppeteer) {
         return NextResponse.json(
           {
