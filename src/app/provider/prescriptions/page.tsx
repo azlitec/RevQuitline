@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import PrescriptionForm from '@/components/provider/PrescriptionForm';
 
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
@@ -50,13 +51,19 @@ interface Prescription {
   dosage: string;
   duration: string;
   date: string;
-  status: 'pending' | 'dispensed' | 'completed';
+  status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED';
+  raw?: any;
 }
 
 export default function ProviderPrescriptionsPage() {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewPrescriptionModal, setShowNewPrescriptionModal] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState<any | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [patientSearch, setPatientSearch] = useState<string>('');
 
   useEffect(() => {
     fetchPrescriptions();
@@ -66,11 +73,43 @@ export default function ProviderPrescriptionsPage() {
     try {
       setLoading(true);
 
-      const response = await fetch('/api/provider/prescriptions');
+      const params = new URLSearchParams();
+      params.set('page', '0');
+      params.set('pageSize', '50');
+      if (statusFilter) params.set('status', statusFilter);
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
+
+      const response = await fetch(`/api/provider/prescriptions?${params.toString()}`);
 
       if (response.ok) {
         const data = await response.json();
-        setPrescriptions(data.prescriptions || []);
+        const items = Array.isArray(data?.data?.items)
+          ? data.data.items
+          : (Array.isArray(data?.items) ? data.items : []);
+        const mapped: Prescription[] = items
+          .map((it: any) => {
+            const first = it.patient?.firstName ?? '';
+            const last = it.patient?.lastName ?? '';
+            const patientName = [first, last].filter(Boolean).join(' ').trim() || 'Unknown';
+            const initials = `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase() || 'PT';
+            return {
+              id: it.id,
+              patientName,
+              patientInitials: initials,
+              medication: it.medicationName,
+              dosage: it.dosage,
+              duration: it.duration,
+              date: new Date(it.prescribedDate).toLocaleDateString(),
+              status: it.status,
+              raw: it,
+            };
+          })
+          .filter((p: Prescription) => {
+            const q = patientSearch.trim().toLowerCase();
+            return q ? p.patientName.toLowerCase().includes(q) : true;
+          });
+        setPrescriptions(mapped);
       } else {
         setPrescriptions([]);
       }
@@ -84,9 +123,11 @@ export default function ProviderPrescriptionsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'dispensed': return 'bg-green-100 text-green-700';
-      case 'completed': return 'bg-blue-100 text-blue-700';
+      case 'DRAFT': return 'bg-yellow-100 text-yellow-700';
+      case 'ACTIVE': return 'bg-green-100 text-green-700';
+      case 'COMPLETED': return 'bg-blue-100 text-blue-700';
+      case 'CANCELLED': return 'bg-red-100 text-red-700';
+      case 'EXPIRED': return 'bg-gray-200 text-gray-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -112,13 +153,76 @@ export default function ProviderPrescriptionsPage() {
           <h2 className="text-2xl font-bold text-gray-800">Prescription Management</h2>
           <p className="text-gray-500">Create and manage patient prescriptions</p>
         </div>
-        <button 
-          onClick={() => setShowNewPrescriptionModal(true)}
+        <button
+          onClick={() => { setSelectedDraft(null); setShowNewPrescriptionModal(true); }}
           className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-medium hover:shadow-strong flex items-center space-x-2"
         >
           <IconWithFallback icon="add" emoji="➕" className="text-white" />
           <span>New Prescription</span>
         </button>
+      </div>
+
+      {/* Filters */}
+      <div className="card p-4 mb-6 shadow-soft">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">All</option>
+              <option value="DRAFT">Draft</option>
+              <option value="ACTIVE">Active</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+              <option value="EXPIRED">Expired</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Date From</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Date To</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Patient Search</label>
+            <input
+              type="text"
+              value={patientSearch}
+              onChange={(e) => setPatientSearch(e.target.value)}
+              placeholder="Search patient name"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            onClick={fetchPrescriptions}
+            className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Apply Filters
+          </button>
+          <button
+            onClick={() => { setStatusFilter(''); setDateFrom(''); setDateTo(''); setPatientSearch(''); fetchPrescriptions(); }}
+            className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50"
+          >
+            Clear
+          </button>
+        </div>
       </div>
 
       {/* Prescription Stats */}
@@ -142,8 +246,8 @@ export default function ProviderPrescriptionsPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Pending</p>
-              <p className="text-3xl font-bold text-gray-800">{prescriptions.filter(p => p.status === 'pending').length}</p>
-              <p className="text-sm text-yellow-600">Awaiting approval</p>
+              <p className="text-3xl font-bold text-gray-800">{prescriptions.filter(p => p.status === 'DRAFT').length}</p>
+              <p className="text-sm text-yellow-600">Draft prescriptions</p>
             </div>
           </div>
         </div>
@@ -153,9 +257,9 @@ export default function ProviderPrescriptionsPage() {
               <IconWithFallback icon="check_circle" emoji="✅" className="text-green-600 text-2xl" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Dispensed</p>
-              <p className="text-3xl font-bold text-gray-800">{prescriptions.filter(p => p.status === 'dispensed').length}</p>
-              <p className="text-sm text-green-600">Successfully delivered</p>
+              <p className="text-sm text-gray-500">Active</p>
+              <p className="text-3xl font-bold text-gray-800">{prescriptions.filter(p => p.status === 'ACTIVE').length}</p>
+              <p className="text-sm text-green-600">Currently active</p>
             </div>
           </div>
         </div>
@@ -211,12 +315,72 @@ export default function ProviderPrescriptionsPage() {
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex space-x-2">
-                      <button className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors" title="Print">
+                      <button
+                        className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Print"
+                        onClick={() => window.open(`/api/prescriptions/${encodeURIComponent(prescription.id)}/print`, '_blank')}
+                      >
                         <IconWithFallback icon="print" emoji="🖨️" className="text-sm" />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 rounded-lg transition-colors" title="Edit">
-                        <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
-                      </button>
+                      {prescription.status === 'DRAFT' && (
+                        <button
+                          className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                          title="Edit"
+                          onClick={() => {
+                            const it: any = prescription;
+                            const raw = it.raw ?? {};
+                            setSelectedDraft({
+                              id: raw.id ?? it.id,
+                              patientId: raw.patientId ?? '',
+                              appointmentId: raw.appointmentId ?? undefined,
+                              medicationName: raw.medicationName ?? it.medication,
+                              dosage: raw.dosage ?? it.dosage,
+                              frequency: raw.frequency ?? 'Once daily',
+                              duration: raw.duration ?? it.duration,
+                              quantity: Number(raw.quantity ?? 30),
+                              refills: Number(raw.refills ?? 0),
+                              instructions: raw.instructions ?? '',
+                              prescribedDate: raw.prescribedDate ?? new Date().toISOString(),
+                              startDate: raw.startDate ?? new Date().toISOString(),
+                              endDate: raw.endDate ?? undefined,
+                              pharmacy: raw.pharmacy ?? '',
+                              pharmacyPhone: raw.pharmacyPhone ?? '',
+                              notes: raw.notes ?? '',
+                              status: raw.status ?? 'DRAFT',
+                            });
+                            setShowNewPrescriptionModal(true);
+                          }}
+                        >
+                          <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
+                        </button>
+                      )}
+                      {prescription.status === 'ACTIVE' && (
+                        <button
+                          className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Cancel"
+                          onClick={async () => {
+                            const reason = window.prompt('Enter cancellation reason', 'Cancelled by provider') || '';
+                            if (!reason.trim()) return;
+                            try {
+                              const res = await fetch(`/api/prescriptions/${encodeURIComponent(prescription.id)}`, {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ reason }),
+                              });
+                              if (res.ok) {
+                                fetchPrescriptions();
+                              } else {
+                                const err = await res.json().catch(() => null);
+                                alert(err?.detail || 'Failed to cancel prescription');
+                              }
+                            } catch {
+                              alert('Error cancelling prescription');
+                            }
+                          }}
+                        >
+                          <IconWithFallback icon="cancel" emoji="❌" className="text-sm" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -242,57 +406,16 @@ export default function ProviderPrescriptionsPage() {
               </div>
             </div>
             <div className="p-6">
-              <form className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Patient</label>
-                    <select className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300">
-                      <option>Select Patient</option>
-                      {/* Patient options will be populated from API */}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Medication</label>
-                    <input type="text" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300" placeholder="Medication name" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Dosage</label>
-                    <input type="text" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300" placeholder="e.g., 500mg" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
-                    <select className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300">
-                      <option>Once daily</option>
-                      <option>Twice daily</option>
-                      <option>Three times daily</option>
-                      <option>As needed</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
-                    <input type="text" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300" placeholder="e.g., 7 days" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
-                    <input type="number" className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300" placeholder="30" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Instructions</label>
-                  <textarea rows={3} className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300" placeholder="Special instructions for patient..."></textarea>
-                </div>
-              </form>
-            </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-              <button 
-                onClick={() => setShowNewPrescriptionModal(false)}
-                className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-medium hover:shadow-strong">
-                Create Prescription
-              </button>
+              <PrescriptionForm
+                context="global"
+                initialDraft={selectedDraft ?? undefined}
+                onClose={() => setShowNewPrescriptionModal(false)}
+                onCreated={() => {
+                  setShowNewPrescriptionModal(false);
+                  setSelectedDraft(null);
+                  fetchPrescriptions();
+                }}
+              />
             </div>
           </div>
         </div>

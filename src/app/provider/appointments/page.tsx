@@ -958,8 +958,6 @@ export default function ProviderAppointmentsPage() {
                   <div className="flex flex-wrap items-center gap-2 mt-1 text-sm">
                     {apt.patient.phone && (
                       <>
-                        <a href={`tel:${apt.patient.phone}`} className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100" aria-label="Call patient">Call</a>
-                        <a href={`sms:${apt.patient.phone}`} className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100" aria-label="SMS patient">SMS</a>
                         <a href={`https://wa.me/${apt.patient.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100" aria-label="WhatsApp patient">WhatsApp</a>
                       </>
                     )}
@@ -972,7 +970,6 @@ export default function ProviderAppointmentsPage() {
                       <button onClick={() => acceptAppointment(apt.id)} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium" aria-label="Accept booking">Accept</button>
                       <button onClick={() => { const reason = window.prompt('Decline reason (optional):') || ''; declineAppointment(apt.id, reason); }} className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium" aria-label="Decline booking">Decline</button>
                       <button onClick={() => setRescheduleTarget({ id: apt.id, date: new Date(apt.date).toISOString().slice(0, 16) })} className="px-3 py-2 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium" aria-label="Reschedule booking">Reschedule</button>
-                      <button onClick={() => router.push(`/provider/patients/${apt.patient.id}`)} className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium" aria-label="View profile">View Profile</button>
                       <button onClick={() => router.push(`/provider/patients/${apt.patient.id}/emr?tab=today`)} className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 rounded-lg text-sm font-medium border border-gray-200" aria-label="Open EMR">Open EMR</button>
                     </>
                   )}
@@ -980,7 +977,6 @@ export default function ProviderAppointmentsPage() {
                     <>
                       <button onClick={() => handleAppointmentAction(apt.id, 'start')} className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium" aria-label="Start consult">Start</button>
                       <button onClick={() => setRescheduleTarget({ id: apt.id, date: new Date(apt.date).toISOString().slice(0, 16) })} className="px-3 py-2 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium" aria-label="Reschedule booking">Reschedule</button>
-                      <button onClick={() => router.push(`/provider/patients/${apt.patient.id}`)} className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium" aria-label="View profile">View Profile</button>
                       <button onClick={() => router.push(`/provider/patients/${apt.patient.id}/emr?tab=today`)} className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 rounded-lg text-sm font-medium border border-gray-200" aria-label="Open EMR">Open EMR</button>
                     </>
                   )}

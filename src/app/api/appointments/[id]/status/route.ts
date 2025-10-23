@@ -135,6 +135,7 @@ export async function PATCH(
         hour: '2-digit',
         minute: '2-digit'
       });
+      const providerName = `${updatedAppointment.provider.firstName} ${updatedAppointment.provider.lastName}`;
 
       let notificationTitle = '';
       let notificationMessage = '';
@@ -182,6 +183,24 @@ export async function PATCH(
         priority,
         `/provider/appointments`
       );
+
+      // Notify the patient for key statuses
+      if (newStatus === 'confirmed' || newStatus === 'cancelled') {
+        const patientTitle = newStatus === 'confirmed' ? 'Appointment Confirmed' : 'Appointment Cancelled';
+        const patientMessage =
+          newStatus === 'confirmed'
+            ? `Your appointment with ${providerName} on ${appointmentDate} at ${appointmentTime} has been confirmed`
+            : `Your appointment with ${providerName} on ${appointmentDate} at ${appointmentTime} has been cancelled`;
+
+        await NotificationService.createNotification(
+          updatedAppointment.patientId,
+          notificationType,
+          patientTitle,
+          patientMessage,
+          priority,
+          `/patient/appointments`
+        );
+      }
 
     } catch (notificationError) {
       console.error('Failed to create status change notification:', notificationError);

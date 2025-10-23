@@ -378,8 +378,8 @@ export default function PatientMessagesPage() {
       </div>
 
       {/* Enhanced Messages Interface */}
-      <div className="card shadow-strong hover:shadow-xl transition-all duration-300 overflow-hidden">
-        <div className="flex min-h-[500px] h-[70vh] max-h-[800px]">
+      <div className="card rounded-[32px] bg-white/80 backdrop-blur-xl shadow-xl hover:shadow-lg transition-all duration-300 overflow-hidden">
+        <div className="flex min-h-[calc(100dvh-160px)]">
           {/* Conversations List */}
           <div className={`w-full md:w-1/3 border-r border-gray-200 bg-white ${selectedConversation ? 'hidden md:block' : ''}`}>
             <div className="p-4 border-b border-gray-200">
@@ -395,8 +395,10 @@ export default function PatientMessagesPage() {
                   <div
                     key={conversation.id}
                     onClick={() => setSelectedConversation(conversation.id)}
-                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-all duration-200 ${
-                      selectedConversation === conversation.id ? 'bg-blue-50 border-blue-200' : 'bg-white'
+                    className={`p-4 border-b border-gray-100 cursor-pointer transition-all duration-200 transform ${
+                      selectedConversation === conversation.id
+                        ? 'bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 scale-[1.02] shadow-lg'
+                        : 'bg-white hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -414,7 +416,7 @@ export default function PatientMessagesPage() {
                             Dr. {conversation.doctor.firstName} {conversation.doctor.lastName}
                           </h4>
                           {conversation.unreadCount > 0 && (
-                            <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs px-3 py-1 rounded-full shadow-medium font-semibold">
+                            <span className="bg-blue-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-lg font-semibold">
                               {conversation.unreadCount}
                             </span>
                           )}
@@ -452,7 +454,7 @@ export default function PatientMessagesPage() {
             {selectedConversation && currentConversation ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b border-gray-200 bg-white">
+                <div className="p-3 md:p-4 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <button
@@ -462,7 +464,7 @@ export default function PatientMessagesPage() {
                         <IconWithFallback icon="arrow_back" emoji="←" className="text-gray-600" />
                       </button>
                       <div className="relative">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-semibold">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
                           {currentConversation.doctor.firstName?.charAt(0)}{currentConversation.doctor.lastName?.charAt(0)}
                         </div>
                         {currentConversation.doctor.isOnline && (
@@ -479,12 +481,9 @@ export default function PatientMessagesPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <IconWithFallback icon="videocam" emoji="📹" className="text-gray-600" />
-                      </button>
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <IconWithFallback icon="phone" emoji="📞" className="text-gray-600" />
+                    <div className="flex items-center">
+                      <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                        <IconWithFallback icon="more_vert" emoji="⋮" className="text-gray-600" />
                       </button>
                     </div>
                   </div>
@@ -492,17 +491,41 @@ export default function PatientMessagesPage() {
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  <div className="flex justify-center my-2">
+                    <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">Today</span>
+                  </div>
                   {currentConversation.messages.map((message) => (
                     <div
                       key={message.id}
                       className={`flex ${message.senderType === 'patient' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-xs md:max-w-lg px-4 py-3 rounded-xl shadow-sm ${
+                      <div className={`max-w-[70%] md:max-w-lg px-4 py-3 rounded-3xl mb-4 ${
                         message.senderType === 'patient'
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
-                          : 'bg-white text-gray-800 border border-gray-200'
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg rounded-br-sm'
+                          : 'bg-white text-gray-800 border border-gray-100 shadow-md rounded-tl-sm'
                       }`}>
-                        <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                        {/* Text or Voice Message */}
+                        {/\[voice:\d{2}:\d{2}\]/i.test(message.content) ? (
+                          <div className="flex items-center gap-3">
+                            <button className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
+                              message.senderType === 'patient' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'
+                            }`}>
+                              <IconWithFallback icon="play_arrow" emoji="▶️" className={message.senderType === 'patient' ? 'text-white' : 'text-blue-600'} />
+                            </button>
+                            <div className="flex items-end gap-1 h-6">
+                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/80' : 'bg-blue-300'}`} style={{ height: '14px' }}></span>
+                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/70' : 'bg-blue-400'}`} style={{ height: '10px', animationDelay: '0.1s' }}></span>
+                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/80' : 'bg-blue-300'}`} style={{ height: '16px', animationDelay: '0.2s' }}></span>
+                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/70' : 'bg-blue-400'}`} style={{ height: '12px', animationDelay: '0.3s' }}></span>
+                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/80' : 'bg-blue-300'}`} style={{ height: '18px', animationDelay: '0.4s' }}></span>
+                            </div>
+                            <span className={`text-xs font-medium ${message.senderType === 'patient' ? 'text-white/90' : 'text-gray-600'}`}>
+                              {(/\[voice:(\d{2}:\d{2})\]/i.exec(message.content)?.[1]) || '00:30'}
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                        )}
                         <p className={`text-xs mt-2 ${
                           message.senderType === 'patient' ? 'text-blue-100' : 'text-gray-500'
                         }`}>
@@ -515,32 +538,37 @@ export default function PatientMessagesPage() {
                 </div>
 
                 {/* Enhanced Message Input */}
-                <div className="p-4 border-t border-gray-200 bg-white">
-                  <div className="flex items-center space-x-3">
-                    <button className="p-3 hover:bg-gray-100 rounded-lg transition-all duration-300">
-                      <IconWithFallback icon="attach_file" emoji="📎" className="text-gray-600" />
+                <div className="p-4 border-t border-gray-200 bg-white/80 backdrop-blur-xl">
+                  <div className="flex items-center gap-3">
+                    {/* Plus button */}
+                    <button className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg active:scale-95">
+                      <IconWithFallback icon="add" emoji="+" className="text-white" />
                     </button>
-                    <div className="flex-1 relative">
+
+                    {/* Gray rounded input with emoji */}
+                    <div className="flex-1 flex items-center bg-gray-50 rounded-full px-4 py-2 border border-gray-200">
                       <input
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => {
+                        onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             sendMessage(selectedConversation);
                           }
                         }}
                         placeholder="Type your message..."
-                        className="w-full p-4 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white"
+                        className="flex-1 bg-transparent outline-none text-sm"
                       />
-                      <button className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-lg transition-all duration-300">
-                        <IconWithFallback icon="emoji_emotions" emoji="😊" className="text-gray-500" />
+                      <button className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center ml-2">
+                        <IconWithFallback icon="emoji_emotions" emoji="😊" />
                       </button>
                     </div>
+
+                    {/* Send button */}
                     <button
                       onClick={() => sendMessage(selectedConversation)}
                       disabled={!newMessage.trim()}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-medium hover:shadow-strong transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <IconWithFallback icon="send" emoji="➤" className="text-white" />
                     </button>

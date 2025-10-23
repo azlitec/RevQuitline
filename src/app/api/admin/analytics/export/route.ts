@@ -2,23 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
+import { z } from 'zod';
+import { validateQuery } from '@/lib/api/validate';
+import { errorResponse } from '@/lib/api/response';
+
+// SECURITY: Validate analytics export query (range/type and ISO8601 dates)
+const AnalyticsExportQuerySchema = z.object({
+  range: z.enum(['today','yesterday','last7days','last30days','thisMonth','lastMonth','thisYear','custom']).default('last30days'),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  type: z.enum(['users','appointments','patients','all']).default('all'),
+});
 
 export async function GET(request: NextRequest) {
   try {
     // Check admin authorization
     const session = await getServerSession(authOptions);
-    if (!session || !session.user.isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || !session.user?.isAdmin) {
+      return errorResponse('Unauthorized', 401);
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const range = searchParams.get('range') || 'last30days';
-    const startDateParam = searchParams.get('startDate');
-    const endDateParam = searchParams.get('endDate');
-    const reportType = searchParams.get('type') || 'all'; // Can be 'users', 'appointments', 'patients', 'all'
-    
-    // Calculate date range
-    const { startDate, endDate } = calculateDateRange(range, startDateParam, endDateParam);
+    const validation = validateQuery(request, AnalyticsExportQuerySchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+    const { range, startDate: startDateParam, endDate: endDateParam, type: reportType } = validation.data;
+
+    // Calculate date range with validated inputs
+    const { startDate, endDate } = calculateDateRange(range, startDateParam ?? null, endDateParam ?? null);
+    // SECURITY: reject inverted or invalid date ranges before raw SQL execution
+    if (!(startDate instanceof Date) || !(endDate instanceof Date) || isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+      return errorResponse('Invalid date range', 400);
+    }
     
     // Generate CSV data based on report type
     let csvData = '';
@@ -87,11 +102,7 @@ export async function GET(request: NextRequest) {
     
     return new Response(csvData, { headers });
   } catch (error) {
-    console.error('Error generating analytics report:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate analytics report' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to generate analytics report', 500);
   }
 }
 

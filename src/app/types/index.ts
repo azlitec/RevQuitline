@@ -57,3 +57,73 @@ export interface DashboardStats {
   completedAppointments: number;
   revenue?: number;
 }
+// ===== Prescription domain types =====
+
+export enum PrescriptionStatus {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+}
+
+export interface PrescriptionCreateDTO {
+  patientId: string;
+  appointmentId?: string;
+  medicationName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  quantity: number;
+  refills?: number;
+  instructions: string;
+  status?: PrescriptionStatus;
+  prescribedDate?: string; // ISO datetime
+  startDate: string;       // ISO datetime
+  endDate?: string;        // ISO datetime
+  pharmacy?: string;
+  pharmacyPhone?: string;
+  notes?: string;
+}
+
+export interface PrescriptionUpdateDTO {
+  id: string;
+  appointmentId?: string;
+  medicationName?: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  quantity?: number;
+  refills?: number;
+  instructions?: string;
+  status?: PrescriptionStatus;
+  startDate?: string; // ISO datetime
+  endDate?: string;   // ISO datetime
+  pharmacy?: string;
+  pharmacyPhone?: string;
+  notes?: string;
+}
+
+export interface PrescriptionResponseDTO {
+  id: string;
+  patientId: string;
+  providerId: string;
+  appointmentId?: string | null;
+  medicationName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  quantity: number;
+  refills: number;
+  instructions: string;
+  status: PrescriptionStatus;
+  prescribedDate: string; // ISO datetime
+  startDate: string;      // ISO datetime
+  endDate?: string | null;
+  pharmacy?: string | null;
+  pharmacyPhone?: string | null;
+  notes?: string | null;
+  patient?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+  provider?: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+  appointment?: Pick<Appointment, 'id' | 'date' | 'title'> | null;
+}

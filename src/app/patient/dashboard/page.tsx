@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import PushNotificationPrompt from '@/components/ui/PushNotificationPrompt';
 
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: {
@@ -60,10 +61,12 @@ export default function PatientDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showQuitlineBanner, setShowQuitlineBanner] = useState(true);
+  const [activeRxCount, setActiveRxCount] = useState<number>(0);
 
   useEffect(() => {
     if (session?.user && !session.user.isProvider) {
       fetchDashboardData();
+      fetchActiveRxCount();
     }
   }, [session]);
 
@@ -85,6 +88,24 @@ export default function PatientDashboardPage() {
       console.error('Error fetching dashboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchActiveRxCount = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set('page', '0');
+      params.set('pageSize', '1');
+      params.set('status', 'ACTIVE');
+      const response = await fetch(`/api/patient/prescriptions?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch prescriptions');
+      }
+      const json = await response.json();
+      const total = json?.data?.total ?? 0;
+      setActiveRxCount(typeof total === 'number' ? total : 0);
+    } catch {
+      setActiveRxCount(0);
     }
   };
 
@@ -121,6 +142,7 @@ export default function PatientDashboardPage() {
 
   return (
     <>
+      <PushNotificationPrompt role="patient" />
       {/* Enhanced Welcome Section */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
         <div>
@@ -192,7 +214,7 @@ export default function PatientDashboardPage() {
       )}
 
       {/* Enhanced Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6 mb-6 md:mb-8">
         <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex justify-between items-start">
             <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-2 md:p-3 rounded-lg md:rounded-xl">
@@ -258,6 +280,24 @@ export default function PatientDashboardPage() {
           <p className="text-gray-500 mt-4 text-sm font-medium">Outstanding Balance</p>
           <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">RM {dashboardData?.outstandingBalance || 0}</p>
           <p className="text-xs text-gray-400 mt-1">Payment status</p>
+        </div>
+
+        {/* Active Prescriptions Widget */}
+        <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
+          <div className="flex justify-between items-start">
+            <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-2 md:p-3 rounded-lg md:rounded-xl">
+              <IconWithFallback icon="medication" emoji="💊" className="text-purple-600 text-sm md:text-base" />
+            </div>
+            <Link
+              href="/patient/prescriptions"
+              className="text-purple-600 text-xs font-bold px-3 py-1 rounded-full hover:underline"
+            >
+              View
+            </Link>
+          </div>
+          <p className="text-gray-500 mt-4 text-sm font-medium">Active Prescriptions</p>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800 mt-2">{activeRxCount || 0}</p>
+          <p className="text-xs text-gray-400 mt-1">Currently active</p>
         </div>
       </div>
 
@@ -400,6 +440,13 @@ export default function PatientDashboardPage() {
               >
                 <IconWithFallback icon="event" emoji="📅" className="text-green-600" />
                 <span className="font-medium text-sm">Schedule Appointment</span>
+              </Link>
+              <Link
+                href="/patient/prescriptions"
+                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all duration-300 touch-friendly hover:scale-105 hover:shadow-medium"
+              >
+                <IconWithFallback icon="medication" emoji="💊" className="text-purple-600" />
+                <span className="font-medium text-sm">View Prescriptions</span>
               </Link>
             </div>
           </div>

@@ -61,6 +61,12 @@ model User {
   lastSeen               DateTime?
   providerApprovalStatus ProviderApprovalStatus?
 
+  // Google account linkage for Meet/Calendar
+  googleEmail               String?
+  googleOAuthAccessToken    String?
+  googleOAuthRefreshToken   String?
+  googleOAuthExpiry         DateTime?
+
   // Relations
   appointmentsAsProvider  Appointment[]             @relation("ProviderAppointments")
   appointmentsAsPatient   Appointment[]             @relation("PatientAppointments")
@@ -94,6 +100,12 @@ model User {
   correspondencesDispatched     Correspondence[]      @relation("CorrespondenceSentBy")
   auditLogs                     AuditLog[]            @relation("AuditLogUser")
   integrationErrorsForPatient   IntegrationError[]    @relation("IntegrationErrorPatient")
+  prescriptionsAsPatient        Prescription[]        @relation("PrescriptionPatient")
+  prescriptionsAsProvider       Prescription[]        @relation("PrescriptionProvider")
+
+  // Push notifications & preferences
+  pushSubscriptions             PushSubscription[]
+  notificationPreference        NotificationPreference?
 }
 
 // Service types enum
@@ -122,6 +134,14 @@ model Appointment {
   serviceName String? // Human readable service name
   price       Float? // Service price in RM
   meetingLink String?
+  // Meeting/telehealth metadata
+  meetingProvider         String?   // 'google_meet' or others
+  calendarEventId         String?   // Google Calendar event id
+  meetingId               String?   // Google Meet conferenceId
+  meetingStartAt          DateTime?
+  meetingEndAt            DateTime?
+  meetingDurationSeconds  Int?
+  meetingMeta             Json?
   notes       String?     @db.Text
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -133,6 +153,7 @@ model Appointment {
   patient    User        @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade, map: "Appointment_patientId_fkey")
   invoice    Invoice?    @relation("AppointmentInvoice")
   encounters Encounter[] @relation("AppointmentEncounters")
+  prescriptions Prescription[] @relation("AppointmentPrescriptions")
 }
 
 // EHR Models for comprehensive patient data management
@@ -216,6 +237,48 @@ model Medication {
   @@index([patientId])
   @@index([prescribedById])
   @@index([status])
+}
+// ===== Prescriptions (Smoking Cessation) =====
+
+enum PrescriptionStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+model Prescription {
+  id             String             @id @default(cuid())
+  patientId      String
+  patient        User               @relation("PrescriptionPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  providerId     String
+  provider       User               @relation("PrescriptionProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  appointmentId  String?
+  appointment    Appointment?       @relation("AppointmentPrescriptions", fields: [appointmentId], references: [id])
+
+  medicationName String
+  dosage         String
+  frequency      String
+  duration       String
+  quantity       Int
+  refills        Int                @default(0)
+  instructions   String             @db.Text
+  status         PrescriptionStatus @default(DRAFT)
+  prescribedDate DateTime           @default(now())
+  startDate      DateTime
+  endDate        DateTime?
+  pharmacy       String?
+  pharmacyPhone  String?
+  notes          String?            @db.Text
+
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([status])
+  @@index([prescribedDate])
 }
 
 model Notification {
@@ -651,4 +714,43 @@ model IntegrationError {
   @@index([orderId])
   @@index([status])
   @@index([nextRetryAt])
+}
+
+// ===== Push Notifications & Preferences =====
+
+model PushSubscription {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token       String   @unique // FCM device token
+  deviceType  String   // web, ios, android
+  deviceName  String?  // user-friendly name
+  browser     String?  // for web push
+
+  enabled     Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model NotificationPreference {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  appointments   Boolean  @default(true)
+  messages       Boolean  @default(true)
+  prescriptions  Boolean  @default(true)
+  investigations Boolean  @default(true)
+  marketing      Boolean  @default(false)
+
+  emailEnabled   Boolean  @default(true)
+  pushEnabled    Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

@@ -1,98 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { requirePermission, toProblemJson } from '@/lib/api/guard';
+import { jsonEntity } from '@/lib/api/response';
+import { errorResponse } from '@/lib/api/response';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { randomUUID } from 'crypto';
+import { validateFileUpload, generateSafeFilename, extFromMime } from '@/lib/security/fileValidation';
 
 export const runtime = 'nodejs';
 
-const MAX_BYTES = 1_000_000; // 1MB
-const ALLOWED_MIME = new Set([
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-  'image/png',
-  'image/jpeg',
-  'image/jpg',
-  'image/gif',
-]);
-
-const ALLOWED_EXT = new Set([
-  'pdf',
-  'docx',
-  'png',
-  'jpg',
-  'jpeg',
-  'gif',
-]);
-
-function inferExtFromMime(mime: string): string | null {
-  switch (mime) {
-    case 'application/pdf':
-      return 'pdf';
-    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      return 'docx';
-    case 'image/png':
-      return 'png';
-    case 'image/jpeg':
-    case 'image/jpg':
-      return 'jpg';
-    case 'image/gif':
-      return 'gif';
-    default:
-      return null;
-  }
-}
-
-function extFromFilename(name: string): string | null {
-  const idx = name.lastIndexOf('.');
-  if (idx === -1) return null;
-  const ext = name.slice(idx + 1).toLowerCase();
-  return ext || null;
-}
-
-function isAllowed(mime: string, filename: string): boolean {
-  const byMime = ALLOWED_MIME.has(mime);
-  const byExt = (() => {
-    const ext = extFromFilename(filename);
-    return ext ? ALLOWED_EXT.has(ext) : false;
-  })();
-  return byMime || byExt;
-}
-
-function decideExt(mime: string, filename: string): string {
-  const fromMime = inferExtFromMime(mime);
-  if (fromMime) return fromMime;
-  const fromName = extFromFilename(filename);
-  if (fromName && ALLOWED_EXT.has(fromName)) return fromName;
-  // Fallback to 'bin' though code path should be unreachable due to validation
-  return 'bin';
-}
-
+/**
+ * Secure file upload handler
+ * - Validates MIME/type/size using centralized validators
+ * - Verifies magic bytes and scans for malicious patterns
+ * - Generates random server-side filename (never trust client name)
+ * - Stores outside webroot (uploads/ not public/)
+ * - Logs all attempts with minimal, non-sensitive metadata
+ *
+ * Allowed types: application/pdf, image/jpeg, image/png
+ * Max size: 10MB
+ */
 export async function POST(request: NextRequest) {
   let session: any | null = null;
+
   try {
     session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id) {
+      return errorResponse('Unauthorized', 401);
     }
 
-    // Ensure uploader can create correspondence (aligns with inbound document ingestion use case)
+    // Ensure uploader has permission (correspondence.create aligned with inbound document ingestion)
     try {
       requirePermission(session, 'correspondence.create');
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      const status = err?.status ?? 403;
+      return errorResponse('Permission error', status);
     }
 
     const form = await request.formData();
     const entries = form.getAll('file');
 
     if (!entries || entries.length === 0) {
-      return NextResponse.json({ error: 'No file uploaded (field name "file" required)' }, { status: 400 });
+      return errorResponse('No file uploaded (field name "file" required)', 400);
     }
 
     const results: Array<{
@@ -101,56 +52,69 @@ export async function POST(request: NextRequest) {
       filename: string;
       mimeType: string;
       size: number;
-      path: string;
+      // Store path relative to storage root; not directly web-accessible
+      storagePath: string;
     }> = [];
+
+    const uploadRoot = path.join(process.cwd(), 'uploads'); // outside webroot
+    await fs.mkdir(uploadRoot, { recursive: true });
 
     for (const entry of entries) {
       if (!(entry instanceof File)) {
-        return NextResponse.json({ error: 'Invalid form entry for "file"' }, { status: 400 });
+        return errorResponse('Invalid form entry for "file"', 400);
       }
       const file = entry as File;
-      const name = (file as any).name || 'upload';
+
+      // Client-provided metadata (do not trust for security decisions)
+      const clientName = (file as any).name || 'upload';
+      const declaredMime = (file.type || 'application/octet-stream').toLowerCase();
       const size = file.size;
-      const mime = file.type || 'application/octet-stream';
 
-      if (size > MAX_BYTES) {
-        return NextResponse.json({ error: 'File too large. Maximum allowed size is 1MB' }, { status: 413 });
-      }
-      if (!isAllowed(mime, name)) {
-        return NextResponse.json({ error: 'Unsupported file type. Allowed: pdf, docx, png, jpg, jpeg, gif' }, { status: 415 });
+      // Validate file using centralized utilities
+      const validation = await validateFileUpload(file);
+      // Log attempt (minimal metadata, no PHI)
+      console.info('[Upload Attempt]', {
+        userId: session.user.id,
+        declaredMime,
+        size,
+        safe: validation.safe,
+        reason: validation.reason ?? undefined,
+        detectedMime: validation.detectedMime ?? undefined,
+      });
+
+      if (!validation.safe) {
+        return errorResponse('File validation failed', 400, {
+          reason: validation.reason,
+        });
       }
 
+      // Derive safe extension from detected/declared type
+      const ext = validation.recommendedExt ?? extFromMime(validation.detectedMime ?? declaredMime) ?? 'bin';
+      const safeServerFilename = generateSafeFilename(ext);
+
+      const fsPath = path.join(uploadRoot, safeServerFilename);
       const arrayBuf = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuf);
 
-      const ext = decideExt(mime, name);
-      const id = randomUUID();
-      const filename = `${id}.${ext}`;
-
-      const uploadDir = path.join(process.cwd(), 'uploads');
-      await fs.mkdir(uploadDir, { recursive: true });
-
-      const fsPath = path.join(uploadDir, filename);
+      // Write to storage
       await fs.writeFile(fsPath, buffer);
 
       results.push({
-        id,
-        originalName: name,
-        filename,
-        mimeType: mime,
+        id: safeServerFilename.split('.')[0],
+        originalName: clientName,
+        filename: safeServerFilename,
+        mimeType: validation.detectedMime ?? declaredMime,
         size,
-        path: `/uploads/${filename}`,
+        storagePath: `uploads/${safeServerFilename}`,
       });
     }
 
-    // Return list for flexibility (supports multiple files). Client can attach to correspondence.create
-    return NextResponse.json({ files: results }, { status: 201 });
+    // Return uniform entity envelope with privacy headers and requestId
+    return jsonEntity(request, { files: results }, 201);
   } catch (err: any) {
-    console.error('[Uploads POST] Error', err);
+    // Avoid leaking details; shape error via Problem+JSON for diagnostics (without PHI)
+    console.error('[Uploads POST] Error', { message: err?.message, code: err?.code });
     const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
-    return NextResponse.json(
-      toProblemJson(err, { title: 'Upload failed', status }),
-      { status }
-    );
+    return NextResponse.json(toProblemJson(err, { title: 'Upload failed', status }), { status });
   }
 }

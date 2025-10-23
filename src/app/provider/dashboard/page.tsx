@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
+import PushNotificationPrompt from '@/components/ui/PushNotificationPrompt';
 
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
@@ -239,6 +240,7 @@ export default function ProviderDashboardPage() {
 
   return (
     <>
+      <PushNotificationPrompt role="provider" />
       {/* Status Banner for Pending/Reviewing Providers */}
       {isPending && (
         <div className="mb-6 p-4 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded-xl shadow-soft">

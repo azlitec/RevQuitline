@@ -1,9 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
-import { requirePermission, toProblemJson, ensureProviderPatientLink } from '@/lib/api/guard';
+import { requirePermission, ensureProviderPatientLink } from '@/lib/api/guard';
 import { EmrSummaryQuerySchema } from '@/lib/validators/emr';
 import { EmrController } from '@/lib/controllers/emr.controller';
+import { jsonEntity, jsonError } from '@/lib/api/response';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * Provider EMR Summary Route
@@ -47,35 +51,26 @@ export async function GET(
   try {
     session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
     }
 
     // RBAC: encounter.read required
     try {
       requirePermission(session, 'encounter.read');
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
     }
 
     const patientId = params.patientId;
     if (!patientId) {
-      return NextResponse.json(
-        { error: 'Patient ID is required' },
-        { status: 400 }
-      );
+      return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
     }
 
     // Ensure approved provider↔patient link
     try {
       await ensureProviderPatientLink(session, patientId);
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Access denied', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return jsonError(request, err, { title: 'Access denied', status: err?.status ?? 403 });
     }
 
     const { include } = parseQuery(request);
@@ -90,14 +85,11 @@ export async function GET(
       include || undefined
     );
 
-    return NextResponse.json(summary, { status: 200 });
+    return jsonEntity(request, summary, 200);
   } catch (err: any) {
     console.error('[EMR Summary GET] Error', err);
     const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
     const issues = err?.issues;
-    return NextResponse.json(
-      { ...toProblemJson(err, { title: 'Failed to get EMR summary', status }), issues },
-      { status }
-    );
+    return jsonError(request, err, { title: 'Failed to get EMR summary', status });
   }
 }

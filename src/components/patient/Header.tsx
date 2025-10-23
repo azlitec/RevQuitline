@@ -51,13 +51,21 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [mounted, setMounted] = useState(false);
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [patientName, setPatientName] = useState('Patient');
 
+  // Avoid SSR/client hydration mismatch by rendering time only after mount
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [mounted]);
 
   useEffect(() => {
     if (session?.user) {
@@ -77,7 +85,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | null) => {
+    if (!date) return '--:--';
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -85,7 +94,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     });
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null) => {
+    if (!date) return '';
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -108,9 +118,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
           
           <div className="hidden md:block">
             <h1 className="text-xl font-bold text-gray-800">
-              Good {currentTime.getHours() < 12 ? 'Morning' : currentTime.getHours() < 18 ? 'Afternoon' : 'Evening'}, {patientName}
+              {currentTime ? `Good ${currentTime.getHours() < 12 ? 'Morning' : currentTime.getHours() < 18 ? 'Afternoon' : 'Evening'}` : 'Welcome'}, {patientName}
             </h1>
-            <p className="text-sm text-gray-500">{formatDate(currentTime)}</p>
+            <p className="text-sm text-gray-500" suppressHydrationWarning>{formatDate(currentTime)}</p>
           </div>
           
           <div className="md:hidden">
@@ -123,7 +133,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {/* Current time */}
           <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-500">
             <IconWithFallback icon="schedule" emoji="🕒" className="text-gray-400" />
-            <span>{formatTime(currentTime)}</span>
+            <span suppressHydrationWarning>{formatTime(currentTime)}</span>
           </div>
 
           {/* Search input */}

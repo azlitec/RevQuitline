@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { sanitizeHtml } from '@/lib/security/sanitize';
 
 type MergeField = { key: string; label: string };
 
@@ -35,14 +36,14 @@ export default function RichTextEditor(props: Props) {
     statusClassName = '',
   } = props;
 
-  const [html, setHtml] = useState<string>(value || '');
+  const [html, setHtml] = useState<string>(sanitizeHtml(value || ''));
   const [saving, setSaving] = useState<boolean>(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setHtml(value || '');
+    setHtml(sanitizeHtml(value || ''));
   }, [value]);
 
   useEffect(() => {
@@ -51,8 +52,10 @@ export default function RichTextEditor(props: Props) {
         if (!value) {
           const raw = localStorage.getItem(persistKey);
           if (raw) {
-            setHtml(raw);
-            onChange(raw);
+            // SECURITY: sanitize any persisted content before rendering to prevent stored XSS
+            const safe = sanitizeHtml(raw);
+            setHtml(safe);
+            onChange(safe);
           }
         }
       } catch {}
@@ -64,7 +67,8 @@ export default function RichTextEditor(props: Props) {
   }, []);
 
   const onInput = useCallback(() => {
-    const newHtml = editorRef.current?.innerHTML || '';
+    const newHtmlRaw = editorRef.current?.innerHTML || '';
+    const newHtml = sanitizeHtml(newHtmlRaw); // sanitize to prevent XSS; allows only basic formatting
     setHtml(newHtml);
     onChange(newHtml);
     if (persistKey) {
@@ -132,6 +136,19 @@ export default function RichTextEditor(props: Props) {
     }
   }, [exec, onAutosave, html]);
 
+  // SECURITY: sanitize clipboard HTML on paste to avoid injecting unsafe markup
+  const onPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const htmlData = e.clipboardData.getData('text/html');
+    const textData = e.clipboardData.getData('text/plain');
+    const incoming = htmlData || textData || '';
+    const sanitized = sanitizeHtml(incoming);
+    // Insert sanitized HTML into editor
+    exec('insertHTML', sanitized);
+    // Trigger input handling to persist/sanitize state
+    onInput();
+  }, [exec, onInput]);
+
   useEffect(() => () => {
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
   }, []);
@@ -173,6 +190,7 @@ export default function RichTextEditor(props: Props) {
         tabIndex={0}
         onInput={onInput}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
         className={editorClassName ? editorClassName : 'min-h-[240px] p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500'}
         dangerouslySetInnerHTML={{ __html: html || `<p class="text-gray-400">${placeholder}</p>` }}
       />

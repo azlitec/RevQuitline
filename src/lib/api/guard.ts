@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 /**
  * RBAC and Validation helpers for EMR endpoints.
@@ -34,7 +35,10 @@ export type Permission =
   | 'correspondence.read'
   | 'correspondence.create'
   | 'correspondence.update'
-  | 'correspondence.send';
+  | 'correspondence.send'
+  | 'medication.read'
+  | 'medication.create'
+  | 'medication.update';
 
 const ALL_PROGRESS_NOTE: Permission[] = [
   'progress_note.read',
@@ -58,6 +62,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Set<Permission>> = {
     'correspondence.create',
     'correspondence.update',
     'correspondence.send',
+    'medication.read',
+    'medication.create',
+    'medication.update',
   ]),
   CLERK: new Set<Permission>([
     // Clerks can generally read but not author/finalize clinical content
@@ -65,6 +72,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Set<Permission>> = {
     'encounter.read',
     'investigation.read',
     'correspondence.read',
+    'medication.read',
   ]),
   PROVIDER: new Set<Permission>([
     ...ALL_PROGRESS_NOTE,
@@ -79,6 +87,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Set<Permission>> = {
     'correspondence.create',
     'correspondence.update',
     'correspondence.send',
+    'medication.read',
+    'medication.create',
+    'medication.update',
   ]),
   PROVIDER_PENDING: new Set<Permission>([
     // Pending providers can only read their own data; cannot finalize/amend
@@ -86,6 +97,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Set<Permission>> = {
     'encounter.read',
     'investigation.read',
     'correspondence.read',
+    'medication.read',
   ]),
   PROVIDER_REVIEWING: new Set<Permission>([
     // Reviewing providers similar to pending
@@ -93,6 +105,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Set<Permission>> = {
     'encounter.read',
     'investigation.read',
     'correspondence.read',
+    'medication.read',
   ]),
   USER: new Set<Permission>([
     // Patients (USER) typically no access to provider-only endpoints
@@ -285,7 +298,7 @@ export function toProblemJson(
     base.title = 'Bad Request';
     base.status = 400;
     base.detail = err.message;
-    if (err.issues) base.issues = err.issues;
+    if ((err as any).issues) base.issues = (err as any).issues;
   } else if (err instanceof UnauthorizedError) {
     base.title = 'Unauthorized';
     base.status = 401;
@@ -294,6 +307,33 @@ export function toProblemJson(
     base.title = 'Forbidden';
     base.status = 403;
     base.detail = err.message;
+  } else if (err && typeof err === 'object' && (err as any).code && (err as any).clientVersion) {
+    // Prisma Known Request Errors mapping
+    const perr = err as Prisma.PrismaClientKnownRequestError;
+    base.title = 'Database Error';
+    base.detail = perr.message;
+    switch (perr.code) {
+      case 'P2002':
+        // Unique constraint violation -> Conflict
+        base.title = 'Conflict';
+        base.status = 409;
+        break;
+      case 'P2025':
+        // Record not found -> Not Found
+        base.title = 'Not Found';
+        base.status = 404;
+        break;
+      case 'P2003':
+        // Foreign key violation -> Conflict
+        base.title = 'Conflict';
+        base.status = 409;
+        break;
+      default:
+        base.status = defaults?.status ?? 500;
+        break;
+    }
+    // Attach minimal error code without leaking PHI
+    (base as any).code = perr.code;
   } else if (err instanceof Error) {
     base.detail = err.message || base.detail;
   }

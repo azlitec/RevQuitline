@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+// SECURITY: sanitize all user-provided text to prevent XSS on display and persistence
+import { stripHtml } from '@/lib/security/sanitize';
 
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: {
@@ -103,6 +105,26 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
   const [isCompleted, setIsCompleted] = useState(false);
   const [showRetakeOption, setShowRetakeOption] = useState(false);
 
+  // SECURITY: sanitize any user-entered strings or arrays of strings
+  const sanitizeValue = (value: any) => {
+    if (typeof value === 'string') {
+      return stripHtml(value).trim();
+    }
+    if (Array.isArray(value)) {
+      return value.map(v => (typeof v === 'string' ? stripHtml(v).trim() : v));
+    }
+    return value;
+  };
+
+  const sanitizeFormData = (data: Partial<IntakeFormData>) => {
+    const copy: Partial<IntakeFormData> = { ...data };
+    for (const key of Object.keys(copy)) {
+      const v = (copy as any)[key];
+      (copy as any)[key] = sanitizeValue(v);
+    }
+    return copy;
+  };
+
   // Load saved progress on mount
   useEffect(() => {
     if (appointmentId) {
@@ -116,7 +138,8 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
       if (response.ok) {
         const data = await response.json();
         if (data.formData) {
-          setFormData(data.formData);
+          // SECURITY: sanitize any persisted form data before displaying
+          setFormData(sanitizeFormData(data.formData));
           setCurrentStep(data.currentStep || 1);
           setIsCompleted(data.completed || false);
           setShowRetakeOption(data.completed || false);
@@ -154,7 +177,8 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
   };
 
   const updateFormData = (field: keyof IntakeFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // SECURITY: sanitize on every update to prevent storing unsafe HTML
+    setFormData(prev => ({ ...prev, [field]: sanitizeValue(value) }));
   };
 
   const nextStep = async () => {

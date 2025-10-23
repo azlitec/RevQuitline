@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
+import NotificationBell from '@/components/ui/NotificationBell';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -225,9 +226,7 @@ export default function Header({
         {/* Mobile Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <button className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors">
-              <IconWithFallback icon="notifications_none" emoji="🔔" />
-            </button>
+            <NotificationBell />
             <button 
               onClick={fetchUserData}
               className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
@@ -301,27 +300,7 @@ export default function Header({
           />
         </div>
         
-        {/* Enhanced Notifications */}
-        <button className="text-gray-600 relative p-3 hover:bg-gray-100 rounded-lg transition-all duration-300 hover:shadow-medium group">
-          <IconWithFallback 
-            icon="notifications_none" 
-            emoji="🔔" 
-            className="group-hover:text-blue-500"
-          />
-          <div className="notification-dot absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center font-bold shadow-medium">
-            5
-          </div>
-          
-          {/* Notification tooltip */}
-          <div className="absolute top-full mt-2 right-0 w-64 bg-white rounded-lg shadow-strong border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50 p-4">
-            <h4 className="font-semibold text-gray-800 mb-2">Recent Notifications</h4>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>• New appointment request</p>
-              <p>• Prescription ready</p>
-              <p>• Lab results available</p>
-            </div>
-          </div>
-        </button>
+        <NotificationBell />
         
         {/* Enhanced Refresh Button */}
         <button 

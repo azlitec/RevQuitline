@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Notification } from '@/lib/notifications/notificationService';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function NotificationBell() {
   const { data: session } = useSession();
@@ -11,6 +12,7 @@ export default function NotificationBell() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const { isSupported, isGranted } = usePushNotifications();
 
   useEffect(() => {
     if (userId) {
@@ -18,13 +20,30 @@ export default function NotificationBell() {
     }
   }, [userId]);
 
+  // Poll for updates every 60s while user is present
+  useEffect(() => {
+    if (!userId) return;
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [userId]);
+
   const fetchNotifications = async () => {
     try {
       const response = await fetch('/api/notifications?unreadOnly=true');
       if (response.ok) {
-        const data = await response.json();
-        setNotifications(data);
-        setUnreadCount(data.filter((n: Notification) => !n.read).length);
+        const json = await response.json();
+        // Handle both envelope and raw array responses
+        const items: Notification[] = Array.isArray(json)
+          ? json
+          : Array.isArray(json?.data)
+            ? json.data
+            : Array.isArray(json?.data?.items)
+              ? json.data.items
+              : [];
+        setNotifications(items);
+        setUnreadCount(items.filter((n: Notification) => !n.read).length);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -65,15 +84,31 @@ export default function NotificationBell() {
         return '🟡';
       case 'success':
         return '🟢';
-      default:
+      case 'info':
         return '🔵';
+      case 'appointment':
+        return '📅';
+      case 'message':
+        return '💬';
+      case 'connection':
+        return '🤝';
+      default:
+        return '🔔';
     }
   };
 
   return (
     <div className="relative">
       <button
-        onClick={() => setShowNotifications(!showNotifications)}
+        aria-label="Notifications"
+        aria-expanded={showNotifications}
+        onClick={() => {
+          const next = !showNotifications;
+          setShowNotifications(next);
+          if (next) {
+            fetchNotifications();
+          }
+        }}
         className="p-2 rounded-md hover:bg-gray-100 relative"
       >
         <svg
@@ -94,6 +129,12 @@ export default function NotificationBell() {
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
             {unreadCount}
           </span>
+        )}
+        {isSupported && (
+          <span
+            className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-white ${isGranted ? 'bg-green-500' : 'bg-gray-400'}`}
+            title={isGranted ? 'Push enabled' : 'Push not enabled'}
+          />
         )}
       </button>
 
@@ -135,7 +176,15 @@ export default function NotificationBell() {
                         <a
                           href={notification.actionUrl}
                           className="text-blue-600 text-xs hover:underline mt-1 block"
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            markAsRead(notification.id).finally(() => {
+                              if (notification.actionUrl) {
+                                window.location.href = notification.actionUrl;
+                              }
+                            });
+                          }}
                         >
                           View details
                         </a>

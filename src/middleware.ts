@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { verifyCsrfToken, isStateChanging } from '@/lib/security/csrf';
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -16,6 +17,11 @@ export async function middleware(request: NextRequest) {
   // Allow other API routes (but they should have their own auth checks)
   // EXCEPT for signout route which needs proper session handling
   if (path.startsWith('/api/') && path !== '/api/auth/signout') {
+    // CSRF enforcement for state-changing methods on non-NextAuth API routes
+    // NextAuth has its own CSRF, so we only enforce for other API routes here.
+    if (isStateChanging(request) && !verifyCsrfToken(request)) {
+      return NextResponse.json({ message: 'CSRF validation failed' }, { status: 403 });
+    }
     return NextResponse.next();
   }
 

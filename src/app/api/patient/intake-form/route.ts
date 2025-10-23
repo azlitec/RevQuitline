@@ -2,21 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db/index';
+// SECURITY: add centralized validation + error response utilities
+import { z } from 'zod';
+import { validateQuery, validateBody } from '@/lib/api/validate';
+import { errorResponse } from '@/lib/api/response';
+import { stripHtml } from '@/lib/security/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id || !session.user.isProvider === false) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id || session.user.isProvider) {
+      // SECURITY: standardized error format without leaking details
+      return errorResponse('Unauthorized', 401);
     }
 
-    const { searchParams } = new URL(request.url);
-    const appointmentId = searchParams.get('appointmentId');
-
-    if (!appointmentId) {
-      return NextResponse.json({ error: 'Appointment ID required' }, { status: 400 });
-    }
+    // SECURITY: validate query parameters
+    const GetQuerySchema = z.object({
+      appointmentId: z.string().min(1, 'appointmentId is required'),
+    });
+    const parsed = validateQuery(request, GetQuerySchema);
+    if ('error' in parsed) return parsed.error;
+    const { appointmentId } = parsed.data;
 
     // Check if the appointment belongs to the current user
     const appointment = await prisma.appointment.findFirst({
@@ -27,7 +34,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!appointment) {
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+      return errorResponse('Appointment not found', 404);
     }
 
     // Get the intake form data
@@ -49,8 +56,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching intake form:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', 500);
   }
 }
 
@@ -58,16 +64,21 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id || !session.user.isProvider === false) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id || session.user.isProvider) {
+      return errorResponse('Unauthorized', 401);
     }
 
-    const body = await request.json();
-    const { appointmentId, formData, currentStep, completed } = body;
-
-    if (!appointmentId) {
-      return NextResponse.json({ error: 'Appointment ID required' }, { status: 400 });
-    }
+    // SECURITY: validate body with Zod
+    const BodySchema = z.object({
+      appointmentId: z.string().min(1, 'appointmentId is required'),
+      // Accept arbitrary intake form fields but sanitize strings server-side
+      formData: z.record(z.any()).default({}),
+      currentStep: z.number().int().min(1).max(5),
+      completed: z.boolean().optional(),
+    });
+    const parsedBody = await validateBody(request, BodySchema);
+    if ('error' in parsedBody) return parsedBody.error;
+    const { appointmentId, formData, currentStep, completed } = parsedBody.data;
 
     // Check if the appointment belongs to the current user and is a quitline session
     const appointment = await prisma.appointment.findFirst({
@@ -79,7 +90,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!appointment) {
-      return NextResponse.json({ error: 'Appointment not found or not eligible for intake form' }, { status: 404 });
+      return errorResponse('Appointment not found or not eligible for intake form', 404);
     }
 
     // Check if intake form already exists
@@ -89,12 +100,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Use the completed field from request body, or calculate it if not provided
-    const isCompleted = completed !== undefined ? completed : (currentStep >= 5 && formData);
+    // Use the completed field from request body, or infer completion when final step reached
+    const isCompleted = completed !== undefined ? completed : currentStep >= 5;
 
-    console.log('API Debug - Received data:', { appointmentId, currentStep, isCompleted });
-    console.log('API Debug - Form data keys:', Object.keys(formData || {}));
-
+    // SECURITY: sanitize all text fields to prevent stored XSS
+    const sanitizeValue = (v: any): any => {
+      if (typeof v === 'string') return stripHtml(v).trim();
+      if (Array.isArray(v)) return v.map(sanitizeValue);
+      if (v && typeof v === 'object') {
+        return Object.fromEntries(Object.entries(v).map(([k, val]) => [k, sanitizeValue(val)]));
+      }
+      return v;
+    };
+    const safeFormData = sanitizeValue(formData);
     if (existingForm) {
       // Update existing form
       const updatedForm = await prisma.intakeForm.update({
@@ -102,7 +120,8 @@ export async function POST(request: NextRequest) {
           id: existingForm.id,
         },
         data: {
-          formData: formData,
+          // SECURITY: persist sanitized form data
+          formData: safeFormData,
           currentStep: currentStep,
           completed: isCompleted,
           completedAt: isCompleted ? new Date() : null,
@@ -121,14 +140,14 @@ export async function POST(request: NextRequest) {
         data: {
           appointmentId: appointmentId,
           patientId: session.user.id,
-          formData: formData,
+          // SECURITY: persist sanitized form data
+          formData: safeFormData,
           currentStep: currentStep,
           completed: isCompleted,
           completedAt: isCompleted ? new Date() : null,
         },
       });
 
-      console.log('API Debug - Created new form:', newForm.id);
 
       return NextResponse.json({
         success: true,
@@ -138,8 +157,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error saving intake form:', error);
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', 500);
   }
 }

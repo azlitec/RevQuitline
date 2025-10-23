@@ -1,10 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { auditSend, buildProvenanceMetadata } from '@/lib/audit/audit';
-import { requirePermission, toProblemJson } from '@/lib/api/guard';
+import { requirePermission } from '@/lib/api/guard';
+import { validateBody } from '@/lib/api/validate';
+import { errorResponse, jsonEntity } from '@/lib/api/response';
+import { sanitizeHtml, stripHtml } from '@/lib/security/sanitize';
+import { EmailSchema } from '@/lib/validators/common';
+import { sendEmail } from '@/lib/email/emailService';
 
 /**
  * Send/Record Correspondence
@@ -40,32 +45,23 @@ export async function POST(request: NextRequest) {
   try {
     session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
 
     // RBAC
     try {
       requirePermission(session, 'correspondence.send');
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return errorResponse('Permission error', err?.status ?? 403);
     }
 
     const id = getIdFromUrl(request);
     if (!id) {
-      return NextResponse.json({ error: 'Invalid URL. Missing id.' }, { status: 400 });
+      return errorResponse('Invalid URL. Missing id.', 400);
     }
 
-    const json = await request.json().catch(() => null);
-    const parsed = SendSchema.safeParse(json);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Validation failed', issues: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
+    const parsed = await validateBody(request, SendSchema);
+    if ('error' in parsed) return parsed.error;
     const body = parsed.data;
 
     // Load correspondence
@@ -85,21 +81,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (!existing) {
-      return NextResponse.json({ error: 'Correspondence not found' }, { status: 404 });
+      return errorResponse('Correspondence not found', 404);
     }
 
     if (existing.direction !== 'outbound') {
-      return NextResponse.json(
-        { error: 'Only outbound correspondence can be sent' },
-        { status: 409 }
-      );
+      return errorResponse('Only outbound correspondence can be sent', 409);
     }
 
     if (existing.sentAt) {
-      return NextResponse.json(
-        { error: 'Correspondence already sent; cannot send again' },
-        { status: 409 }
-      );
+      return errorResponse('Correspondence already sent; cannot send again', 409);
     }
 
     const sentAtDate = body.sentAt ? new Date(body.sentAt) : new Date();
@@ -131,6 +121,40 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // If channel is email, validate recipients, sanitize body, and prevent header injection before sending
+    if (body.transmissionChannel === 'email') {
+      const recipientsRaw = Array.isArray(updated.recipients) ? (updated.recipients as any as string[]) : [];
+      const recipients = recipientsRaw.filter(Boolean).map(r => r.trim());
+
+      // Validate each recipient as a proper email and disallow header injection characters
+      const EmailArraySchema = z.array(EmailSchema).nonempty();
+      const emailArrayParse = EmailArraySchema.safeParse(recipients);
+      if (!emailArrayParse.success) {
+        return errorResponse('Invalid recipient email(s)', 400, { errors: emailArrayParse.error.flatten() });
+      }
+      for (const r of recipients) {
+        if (/[\r\n:]/.test(r)) {
+          return errorResponse('Invalid recipient email (header injection detected)', 400);
+        }
+      }
+
+      // Sanitize subject/body; prevent header injection via CRLF
+      const subjectClean = stripHtml(updated.subject || '').trim();
+      if (/[\r\n]/.test(subjectClean)) {
+        return errorResponse('Invalid subject (header injection detected)', 400);
+      }
+      const sanitizedHtml = sanitizeHtml(updated.body || '');
+
+      // Best-effort send per recipient (non-blocking errors logged, do not leak PHI)
+      for (const to of recipients) {
+        try {
+          await sendEmail(to, subjectClean, sanitizedHtml);
+        } catch (sendErr) {
+          console.error('[Correspondence SEND] Email delivery failure', { id: updated.id, to, message: (sendErr as any)?.message });
+        }
+      }
+    }
+
     await auditSend(
       request as any,
       session,
@@ -146,28 +170,21 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    return NextResponse.json(
-      {
-        correspondence: {
-          ...updated,
-          encounterId: updated.encounterId ?? null,
-          senderId: updated.senderId ?? null,
-          transmissionChannel: updated.transmissionChannel ?? null,
-          sentById: updated.sentById ?? null,
-          sentAt: updated.sentAt ? updated.sentAt.toISOString() : null,
-          createdAt: updated.createdAt.toISOString(),
-          updatedAt: updated.updatedAt.toISOString(),
-        },
+    return jsonEntity(request, {
+      correspondence: {
+        ...updated,
+        encounterId: updated.encounterId ?? null,
+        senderId: updated.senderId ?? null,
+        transmissionChannel: updated.transmissionChannel ?? null,
+        sentById: updated.sentById ?? null,
+        sentAt: updated.sentAt ? updated.sentAt.toISOString() : null,
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
       },
-      { status: 200 }
-    );
+    }, 200);
   } catch (err: any) {
-    console.error('[Correspondence SEND POST] Error', err);
+    console.error('[Correspondence SEND POST] Error', { message: err?.message });
     const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
-    const issues = err?.issues;
-    return NextResponse.json(
-      { ...toProblemJson(err, { title: 'Failed to send correspondence', status }), issues },
-      { status }
-    );
+    return errorResponse('Failed to send correspondence', status);
   }
 }

@@ -1,7 +1,17 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email/emailService';
 import { ClinicalRecommendation } from '@/lib/clinical/decisionSupport';
+import { adminMessaging } from '@/lib/firebase/admin';
 
+/**
+ * Push notification input payload for FCM.
+ */
+export interface PushNotificationInput {
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+  imageUrl?: string;
+}
 export interface Notification {
   id: string;
   userId: string;
@@ -58,9 +68,13 @@ export class NotificationService {
       await this.sendEmailNotification(userId, title, message, actionUrl);
     }
 
-    // TODO: Implement push notifications if enabled
+    // Push notifications if enabled
     if (userPreferences.pushNotifications) {
-      await this.sendPushNotification(userId, title, message);
+      await this.sendPushNotification(userId, {
+        title,
+        body: message,
+        data: actionUrl ? { url: actionUrl } : undefined,
+      });
     }
 
     return {
@@ -98,11 +112,19 @@ export class NotificationService {
     }));
   }
 
-  static async markAsRead(notificationId: string): Promise<void> {
-    await prisma.notification.update({
-      where: { id: notificationId },
-      data: { read: true }
+  static async markAsRead(
+    notificationId: string,
+    userId: string,
+    read: boolean = true
+  ): Promise<void> {
+    const result = await prisma.notification.updateMany({
+      where: { id: notificationId, userId },
+      data: { read }
     });
+    if (result.count === 0) {
+      // Prevent cross-user tampering; allow API to translate to 404
+      throw new Error('Notification not found for user');
+    }
   }
 
   static async markAllAsRead(userId: string): Promise<void> {
@@ -113,16 +135,31 @@ export class NotificationService {
   }
 
   static async getUserNotificationPreferences(userId: string): Promise<NotificationPreferences> {
-    console.log(`[DEBUG] Getting notification preferences for user ${userId} - USING HARDCODED DEFAULTS`);
-    // For now, return default preferences
-    // In a real implementation, this would fetch from user settings
+    // Map persisted NotificationPreference to legacy NotificationPreferences interface used by this service
+    const pref = await prisma.notificationPreference.findUnique({
+      where: { userId },
+    });
+
+    if (!pref) {
+      // Default preferences if not yet created
+      return {
+        emailAlerts: true,
+        pushNotifications: true,
+        inAppNotifications: true,
+        highPriority: true,
+        mediumPriority: true,
+        lowPriority: false,
+      };
+    }
+
+    // Legacy interface mapping
     return {
-      emailAlerts: true,
-      pushNotifications: true,
-      inAppNotifications: true,
-      highPriority: true,
-      mediumPriority: true,
-      lowPriority: false
+      emailAlerts: pref.emailEnabled,
+      pushNotifications: pref.pushEnabled,
+      inAppNotifications: true, // keep in-app on for now
+      highPriority: true,       // treat high priority as always enabled
+      mediumPriority: pref.messages || pref.appointments || pref.prescriptions || pref.investigations,
+      lowPriority: pref.marketing,
     };
   }
 
@@ -168,13 +205,100 @@ export class NotificationService {
 
   private static async sendPushNotification(
     userId: string,
-    title: string,
-    message: string
+    notification: PushNotificationInput
   ): Promise<void> {
-    console.log(`[DEBUG] PUSH NOTIFICATION NOT IMPLEMENTED - Would send to user ${userId}: ${title}`);
-    // TODO: Implement push notification service integration
-    // This would integrate with Firebase Cloud Messaging, OneSignal, or similar
-    console.log('Push notification:', { userId, title, message });
+    try {
+      // Fetch active push subscriptions for user
+      const subs = await prisma.pushSubscription.findMany({
+        where: { userId, enabled: true },
+        select: { id: true, token: true },
+      });
+
+      if (!subs.length) {
+        return;
+      }
+
+      // Build base payload which we will attach token to per subscription
+      const base = {
+        notification: {
+          title: notification.title,
+          body: notification.body,
+          image: notification.imageUrl,
+        },
+        data: notification.data ?? {},
+      } as const;
+
+      // Exponential backoff helper
+      const sendWithRetry = async (token: string) => {
+        let delay = 500; // ms
+        const maxAttempts = 3;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            await adminMessaging.send({ ...base, token });
+            return { success: true };
+          } catch (err: any) {
+            const code: string | undefined = err?.errorInfo?.code ?? err?.code;
+            // Handle invalid/expired tokens: clean up and abort retries
+            if (
+              code === 'messaging/invalid-registration-token' ||
+              code === 'messaging/registration-token-not-registered'
+            ) {
+              await prisma.pushSubscription.deleteMany({ where: { token } });
+              return { success: false, invalid: true, error: String(code) };
+            }
+            // If last attempt, bubble error
+            if (attempt === maxAttempts) {
+              return { success: false, error: String(code ?? err?.message ?? 'unknown') };
+            }
+            // Backoff and retry
+            await new Promise((r) => setTimeout(r, delay));
+            delay *= 2;
+          }
+        }
+        return { success: false, error: 'unknown' };
+      };
+
+      for (const sub of subs) {
+        const result = await sendWithRetry(sub.token);
+
+        // Update lastUsedAt regardless of success to reflect attempted activity
+        await prisma.pushSubscription.update({
+          where: { id: sub.id },
+          data: { lastUsedAt: new Date() },
+        });
+
+        // Audit delivery attempt (source=system)
+        try {
+          await prisma.auditLog.create({
+            data: {
+              userId,
+              action: 'send',
+              entityType: 'user',
+              entityId: userId,
+              source: 'system',
+              timestamp: new Date(),
+              metadata: {
+                channel: 'push',
+                tokenId: sub.id,
+                success: result.success,
+                invalid: !!(result as any).invalid,
+                error: (result as any).error ?? null,
+                title: notification.title,
+              } as any,
+            },
+          });
+        } catch (e) {
+          // Non-blocking
+          console.error('[Push][Audit] Failed to write audit log', e);
+        }
+      }
+    } catch (error) {
+      console.error('[Push] Failed to send notification', {
+        userId,
+        notification,
+        error,
+      });
+    }
   }
 
   static async cleanupOldNotifications(daysToKeep: number = 30): Promise<void> {
@@ -239,5 +363,201 @@ export class NotificationService {
       // Add some delay to create notifications at different times
       await new Promise(resolve => setTimeout(resolve, 100));
     }
+  }
+  /**
+   * Register or reactivate a push subscription token for a user.
+   */
+  static async registerPushToken(
+    userId: string,
+    token: string,
+    deviceType: string,
+    deviceInfo?: { deviceName?: string; browser?: string }
+  ) {
+    const now = new Date();
+    const existing = await prisma.pushSubscription.findUnique({
+      where: { token },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return prisma.pushSubscription.update({
+        where: { token },
+        data: {
+          userId,
+          enabled: true,
+          lastUsedAt: now,
+          deviceType,
+          deviceName: deviceInfo?.deviceName,
+          browser: deviceInfo?.browser,
+        },
+      });
+    }
+
+    return prisma.pushSubscription.create({
+      data: {
+        userId,
+        token,
+        deviceType,
+        deviceName: deviceInfo?.deviceName,
+        browser: deviceInfo?.browser,
+        enabled: true,
+        lastUsedAt: now,
+      },
+    });
+  }
+
+  /**
+   * Unregister a push subscription token. Optionally constrain by userId.
+   */
+  static async unregisterPushToken(token: string, userId?: string): Promise<number> {
+    const res = await prisma.pushSubscription.deleteMany({
+      where: { token, ...(userId ? { userId } : {}) },
+    });
+    return res.count;
+  }
+
+  /**
+   * Send push notification to multiple users (dedupes tokens).
+   * Returns a summary for observability and alerting.
+   */
+  static async sendPushToMultiple(
+    userIds: string[],
+    notification: PushNotificationInput
+  ): Promise<{ targeted: number; sent: number; invalid: number; failed: number }> {
+    if (!userIds.length) return { targeted: 0, sent: 0, invalid: 0, failed: 0 };
+
+    const subs = await prisma.pushSubscription.findMany({
+      where: { userId: { in: userIds }, enabled: true },
+      select: { id: true, token: true, userId: true },
+    });
+    const uniqueTokens = Array.from(new Set(subs.map((s) => s.token)));
+    const base = {
+      notification: {
+        title: notification.title,
+        body: notification.body,
+        image: notification.imageUrl,
+      },
+      data: notification.data ?? {},
+    } as const;
+
+    let sent = 0;
+    let invalid = 0;
+    let failed = 0;
+
+    const sendWithRetry = async (token: string) => {
+      let delay = 500;
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          await adminMessaging.send({ ...base, token });
+          sent++;
+          return;
+        } catch (err: any) {
+          const code: string | undefined = err?.errorInfo?.code ?? err?.code;
+          if (
+            code === 'messaging/invalid-registration-token' ||
+            code === 'messaging/registration-token-not-registered'
+          ) {
+            await prisma.pushSubscription.deleteMany({ where: { token } });
+            invalid++;
+            return;
+          }
+          if (attempt === maxAttempts) {
+            failed++;
+            return;
+          }
+          await new Promise((r) => setTimeout(r, delay));
+          delay *= 2;
+        }
+      }
+    };
+
+    // Fire sequentially to keep rate low; can be optimized with concurrency control if needed
+    for (const token of uniqueTokens) {
+      await sendWithRetry(token);
+    }
+
+    return { targeted: uniqueTokens.length, sent, invalid, failed };
+  }
+
+  /**
+   * Send a topic broadcast (e.g., "all_providers"). Caller is responsible for topic membership.
+   */
+  static async sendTopicNotification(topic: string, notification: PushNotificationInput): Promise<boolean> {
+    const base = {
+      notification: {
+        title: notification.title,
+        body: notification.body,
+        image: notification.imageUrl,
+      },
+      data: notification.data ?? {},
+      topic,
+    } as const;
+
+    let delay = 500;
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await adminMessaging.send(base);
+        return true;
+      } catch (_err) {
+        if (attempt === maxAttempts) return false;
+        await new Promise((r) => setTimeout(r, delay));
+        delay *= 2;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return raw NotificationPreference row with sensible defaults when absent.
+   */
+  static async getUserPreferences(userId: string) {
+    const pref = await prisma.notificationPreference.findUnique({ where: { userId } });
+    if (pref) return pref;
+    return {
+      id: 'default',
+      userId,
+      appointments: true,
+      messages: true,
+      prescriptions: true,
+      investigations: true,
+      marketing: false,
+      emailEnabled: true,
+      pushEnabled: true,
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+    };
+  }
+
+  /**
+   * Update or create NotificationPreference for a user.
+   */
+  static async updateUserPreferences(
+    userId: string,
+    preferences: Partial<{
+      appointments: boolean;
+      messages: boolean;
+      prescriptions: boolean;
+      investigations: boolean;
+      marketing: boolean;
+      emailEnabled: boolean;
+      pushEnabled: boolean;
+    }>
+  ) {
+    const defaults = {
+      appointments: true,
+      messages: true,
+      prescriptions: true,
+      investigations: true,
+      marketing: false,
+      emailEnabled: true,
+      pushEnabled: true,
+    };
+    return prisma.notificationPreference.upsert({
+      where: { userId },
+      create: { userId, ...defaults, ...preferences },
+      update: { ...preferences },
+    });
   }
 }

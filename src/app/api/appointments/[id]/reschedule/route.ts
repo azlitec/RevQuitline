@@ -57,6 +57,61 @@ export async function PATCH(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
+    // Validate provider availability and basic timing rules
+    const duration = existingAppointment.duration || 30;
+    const newEnd = new Date(newDate.getTime() + duration * 60000);
+
+    // Minimum advance time (30 minutes)
+    const now = new Date();
+    const minimumBookingTime = new Date(now.getTime() + 30 * 60 * 1000);
+    if (newDate < minimumBookingTime) {
+      return NextResponse.json(
+        {
+          error: 'Appointments must be scheduled at least 30 minutes in advance',
+          minimumTime: minimumBookingTime.toISOString(),
+        },
+        { status: 400 }
+      );
+    }
+
+    // Prevent rescheduling into the past
+    if (newEnd < now) {
+      return NextResponse.json({ error: 'Cannot reschedule to a past time' }, { status: 400 });
+    }
+
+    // Check for overlapping appointments for the same provider
+    const overlappingForProvider = await prisma.appointment.findFirst({
+      where: {
+        providerId: existingAppointment.providerId,
+        id: { not: appointmentId },
+        status: { in: ['scheduled', 'confirmed', 'in-progress'] },
+        OR: [
+          // Existing starts before or at new start and ends after new start (approx using new duration)
+          {
+            AND: [
+              { date: { lte: newDate } },
+              { date: { gte: new Date(newDate.getTime() - duration * 60000) } },
+            ],
+          },
+          // Existing starts inside the new slot window
+          {
+            AND: [{ date: { gte: newDate } }, { date: { lt: newEnd } }],
+          },
+        ],
+      },
+      select: { id: true, date: true, duration: true },
+    });
+
+    if (overlappingForProvider) {
+      return NextResponse.json(
+        {
+          error: 'Provider is not available at the selected time',
+          conflict: overlappingForProvider,
+        },
+        { status: 409 }
+      );
+    }
+
     // Update date (keep current status)
     const updated = await prisma.appointment.update({
       where: { id: appointmentId },

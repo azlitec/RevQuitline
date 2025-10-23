@@ -2,22 +2,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
+// SECURITY: Standardize query validation and error responses
+import { z } from 'zod';
+import { validateQuery } from '@/lib/api/validate';
+import { errorResponse } from '@/lib/api/response';
+
+// SECURITY: Validate analytics query to prevent injection via untrusted parameters
+const AnalyticsQuerySchema = z.object({
+  range: z.enum(['today','yesterday','last7days','last30days','thisMonth','lastMonth','thisYear','custom']).default('last30days'),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
     // Check admin authorization
     const session = await getServerSession(authOptions);
-    if (!session || !session.user.isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || !session.user?.isAdmin) {
+      // SECURITY: Use standardized error format without leaking details
+      return errorResponse('Unauthorized', 401);
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const range = searchParams.get('range') || 'last30days';
-    const startDateParam = searchParams.get('startDate');
-    const endDateParam = searchParams.get('endDate');
-    
-    // Calculate date range
-    const { startDate, endDate } = calculateDateRange(range, startDateParam, endDateParam);
+    // SECURITY: Validate and parse query params centrally (prevents unsafe use with raw SQL)
+    const validation = validateQuery(request, AnalyticsQuerySchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+    const { range, startDate: startDateParam, endDate: endDateParam } = validation.data;
+
+    // Calculate date range after validation
+    const { startDate, endDate } = calculateDateRange(range, (startDateParam ?? null) as string | null, (endDateParam ?? null) as string | null);
+    // SECURITY: reject inverted or invalid date ranges before raw SQL execution
+    if (!(startDate instanceof Date) || !(endDate instanceof Date) || isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+      return errorResponse('Invalid date range', 400);
+    }
     
     // Get user metrics
     const userMetrics = await getUserMetrics(startDate, endDate);
@@ -39,11 +57,8 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching analytics data:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch analytics data' },
-      { status: 500 }
-    );
+    // SECURITY: Return standardized error without sensitive details
+    return errorResponse('Failed to fetch analytics data', 500);
   }
 }
 

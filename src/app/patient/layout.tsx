@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import PatientSidebar from '@/components/patient/Sidebar';
 import PatientHeader from '@/components/patient/Header';
+import BottomNav from '@/components/patient/BottomNav';
 
 export default function PatientLayout({
   children,
@@ -36,9 +37,10 @@ export default function PatientLayout({
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-20">
         <PatientHeader onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 pb-24 lg:pb-6">
           {children}
         </main>
+        <BottomNav />
       </div>
     </div>
   );

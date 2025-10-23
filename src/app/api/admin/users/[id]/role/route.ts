@@ -1,7 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
+import { z } from 'zod';
+import { validateBody } from '@/lib/api/validate';
+import { errorResponse, jsonEntity } from '@/lib/api/response';
+import { auditUpdate } from '@/lib/audit/audit';
 
 interface Params {
   params: {
@@ -18,19 +22,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const session = await getServerSession(authOptions);
     
     if (!session) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
     
     // Ensure user is an admin
     if (!session.user.isAdmin) {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+      return errorResponse('Forbidden', 403);
     }
     
     // Prevent admin from modifying their own admin role to avoid lockout
     if (id === session.user.id) {
-      return NextResponse.json({ 
-        message: 'Cannot modify your own admin status' 
-      }, { status: 403 });
+      return errorResponse('Cannot modify your own admin status', 403);
     }
     
     // Get the user
@@ -39,21 +41,23 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
     
     if (!user) {
-      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+      return errorResponse('User not found', 404);
     }
     
-    // Parse request body
-    const body = await request.json();
-    const { role, value } = body;
+    // Validate request body with Zod
+    const RolePatchSchema = z.object({
+      role: z.enum(['isAdmin','isClerk','isProvider']),
+      value: z.boolean(),
+      confirmPassword: z.string().min(8).optional(),
+    });
+    const parsed = await validateBody(request, RolePatchSchema);
+    if ('error' in parsed) return parsed.error;
+    const { role, value, confirmPassword } = parsed.data;
     
-    // Validate required fields
-    if (!role || (typeof value !== 'boolean')) {
-      return NextResponse.json({ message: 'Role name and boolean value are required' }, { status: 400 });
-    }
-    
-    // Check if role is valid
-    if (!['isAdmin', 'isClerk', 'isProvider'].includes(role)) {
-      return NextResponse.json({ message: 'Invalid role' }, { status: 400 });
+    // Role validity enforced by Zod schema above
+    if (role === 'isAdmin' && value === true && !confirmPassword) {
+      // Additional auth safeguard: require password confirmation when granting admin
+      return errorResponse('Confirm password required to grant admin privileges', 400);
     }
     
     // Update user role
@@ -91,15 +95,24 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = updatedUser;
     
-    return NextResponse.json({
+    // Audit role change (non-blocking, minimal metadata)
+    try {
+      await auditUpdate(request, session, 'user', id, {
+        changedRoleFlag: role,
+        newValue: value,
+        previousValue: (user as any)[role],
+        updatedRole: updateData.role ?? null,
+      });
+    } catch (auditErr) {
+      console.error('Audit role change failed', { message: (auditErr as any)?.message });
+    }
+    
+    return jsonEntity(request, {
       message: 'User role updated successfully',
       user: userWithoutPassword
-    });
+    }, 200);
   } catch (error) {
-    console.error('Error updating user role:', error);
-    return NextResponse.json(
-      { message: 'An error occurred while updating user role' },
-      { status: 500 }
-    );
+    console.error('Error updating user role:', { message: (error as any)?.message });
+    return errorResponse('An error occurred while updating user role', 500);
   }
 }

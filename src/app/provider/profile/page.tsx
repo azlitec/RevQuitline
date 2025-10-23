@@ -183,13 +183,16 @@ export default function ProviderProfilePage() {
         body: JSON.stringify(profile),
       });
 
-      if (response.ok) {
-        setSavedMessage('Profile updated successfully!');
-      } else {
-        setSavedMessage('Profile updated successfully!');
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => null);
+        const errMsg = (errJson && (errJson.error || errJson.message)) || 'Failed to update profile';
+        setSavedMessage(`Error: ${errMsg}`);
+        return;
       }
-    } catch (err) {
+
       setSavedMessage('Profile updated successfully!');
+    } catch (err) {
+      setSavedMessage('Error: Failed to update profile');
     } finally {
       setLoading(false);
       setTimeout(() => setSavedMessage(''), 3000);

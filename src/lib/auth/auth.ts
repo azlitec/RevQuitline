@@ -2,18 +2,45 @@
 import { NextAuthOptions } from "next-auth";
 import { DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import * as bcryptModule from "bcrypt";
-
-// Workaround for bcrypt in case it's not available
+/**
+ * Workaround for bcrypt/bcryptjs availability:
+ * - Use lazy dynamic import to avoid import-time failures when the package is absent.
+ * - Prefer bcryptjs (lighter) and fallback to bcrypt.
+ * - As last resort, use insecure equality for development-only scenarios.
+ */
 const compare = async (data: string, hash: string) => {
   try {
-    if (bcryptModule && typeof bcryptModule.compare === 'function') {
-      return await bcryptModule.compare(data, hash);
-    } else {
-      // Simple fallback for development (NOT SECURE)
-      console.warn("Bcrypt not available, using insecure fallback");
-      return data === hash;
+    let cmp: ((d: string, h: string) => Promise<boolean>) | null = null;
+
+    // Prefer bcryptjs
+    try {
+      const mod = await import('bcryptjs');
+      if (mod && typeof (mod as any).compare === 'function') {
+        cmp = (mod as any).compare;
+      }
+    } catch (_e) {
+      // ignore
     }
+
+    // Fallback to bcrypt
+    if (!cmp) {
+      try {
+        const mod2 = await import('bcrypt');
+        if (mod2 && typeof (mod2 as any).compare === 'function') {
+          cmp = (mod2 as any).compare;
+        }
+      } catch (_e2) {
+        // ignore
+      }
+    }
+
+    if (cmp) {
+      return await cmp(data, hash);
+    }
+
+    // Simple fallback for development (NOT SECURE)
+    console.warn("No bcrypt library available, using insecure equality fallback");
+    return data === hash;
   } catch (error) {
     console.error("Error comparing passwords:", error);
     return false;

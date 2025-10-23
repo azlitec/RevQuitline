@@ -70,14 +70,19 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { notificationId, read } = body;
 
-    if (!notificationId || read === undefined) {
+    if (!notificationId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing notificationId' },
         { status: 400 }
       );
     }
 
-    await NotificationService.markAsRead(notificationId);
+    try {
+      await NotificationService.markAsRead(notificationId, session.user.id, read ?? true);
+    } catch (err) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating notification:', error);

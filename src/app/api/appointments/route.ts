@@ -1,181 +1,133 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
-import { NotificationService } from '@/lib/notifications/notificationService';
+import { z } from 'zod';
+import { validateQuery, validateBody } from '@/lib/api/validate';
+import { createAppointmentSchema, AppointmentStatusEnum } from '@/lib/validators/appointment';
+import { PaginationSchema } from '@/lib/validators/common';
+import { jsonList, jsonEntity } from '@/lib/api/response';
+import { errorResponse } from '@/lib/api/response';
+import type { ServiceType } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
 
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const skip = (page - 1) * limit;
+    // Validate query params with Zod
+    const GetQuerySchema = z.object({ status: z.string().optional() }).merge(PaginationSchema);
+    const parsed = validateQuery(request, GetQuerySchema);
+    if ('error' in parsed) return parsed.error;
+    const { status, page = 0, limit = 20 } = parsed.data as z.infer<typeof GetQuerySchema>;
+    const skip = page * limit;
 
-    let whereClause: any = {};
+    const whereClause: any = {};
 
-    // Filter by patient or provider based on user role
+    // Scope by role
     if (session.user.isProvider) {
       whereClause.providerId = session.user.id;
     } else {
       whereClause.patientId = session.user.id;
     }
 
-    // Filter by status if provided - support multiple statuses separated by commas
+    // Status filter: allow CSV and validate against enum options
     if (status && status !== 'all') {
-      const statuses = status.split(',');
+      const allowed = new Set(AppointmentStatusEnum.options);
+      const statuses = status.split(',').map(s => s.trim()).filter(s => allowed.has(s as any));
       if (statuses.length > 1) {
         whereClause.status = { in: statuses };
-      } else {
-        whereClause.status = status;
+      } else if (statuses.length === 1) {
+        whereClause.status = statuses[0];
       }
     }
 
+    // Supabase pgbouncer is configured with a low connection_limit (e.g., 1).
+    // Avoid concurrent queries to prevent pool exhaustion and 500 errors.
     const appointments = await prisma.appointment.findMany({
       where: whereClause,
       include: {
-        provider: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            specialty: true
-          }
-        },
-        patient: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
+        provider: { select: { id: true, firstName: true, lastName: true, email: true, specialty: true } },
+        patient: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
-      orderBy: {
-        date: 'desc'
-      },
+      orderBy: { date: 'desc' },
       skip,
-      take: limit
+      take: limit,
     });
-
     const total = await prisma.appointment.count({ where: whereClause });
 
-    return NextResponse.json({
-      appointments,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
-
-  } catch (error) {
-    console.error('Appointments API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    // Standardized list envelope
+    return jsonList(request, { items: appointments, total, page, pageSize: limit }, 200);
+  } catch (error: any) {
+    console.error('Appointments API error:', { message: error?.message });
+    return errorResponse('Internal server error', 500);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
 
-    const body = await request.json();
-    const {
-      title,
-      description,
-      date,
-      duration,
-      type,
-      serviceName,
-      price,
-      providerId,
-      patientId: requestedPatientId,
-      meetingLink
-    } = body;
+    // Validate body with Zod
+    const parsed = await validateBody(request, createAppointmentSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
 
-    // Determine the actual patient ID based on user role
+    // Determine patientId based on role
     let patientId: string;
     if (session.user.isProvider || session.user.isAdmin) {
-      // Provider/Admin creating appointment - use provided patientId
-      patientId = requestedPatientId;
+      // Provider/Admin must supply patientId explicitly
+      if (!body.patientId) return errorResponse('patientId is required for provider/admin', 400);
+      patientId = body.patientId;
     } else {
-      // Patient booking appointment - use their own ID as patientId
+      // Patient booking: override patientId to session user
       patientId = session.user.id;
     }
 
-    // Validate required fields
-    if (!title || !date || !providerId || !patientId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Set default service name and price based on type
-    let finalServiceName = serviceName;
-    let finalPrice = price;
-
-    if (type === 'quitline_smoking_cessation') {
+    // Default service name/price based on type (business logic)
+    let finalServiceName = body.serviceName;
+    let finalPrice = body.price;
+    if (body.type === 'quitline_smoking_cessation') {
       finalServiceName = finalServiceName || 'Quitline Free-Smoking Session (INRT)';
       finalPrice = finalPrice || 150;
     }
 
-    const appointment = await prisma.appointment.create({
+    // Create appointment
+    const appointment = (await prisma.appointment.create({
       data: {
-        title,
-        description,
-        date: new Date(date),
-        duration: duration || 30,
-        type: type || 'consultation',
+        title: body.title,
+        description: body.description,
+        date: new Date(body.date),
+        duration: body.duration ?? 30,
+        type: ((body.type ?? 'consultation') as ServiceType),
         serviceName: finalServiceName,
         price: finalPrice,
         status: 'scheduled',
-        meetingLink,
-        providerId,
-        patientId
+        meetingLink: body.meetingLink,
+        providerId: body.providerId,
+        patientId,
       },
       include: {
-        provider: {
-          select: {
-            firstName: true,
-            lastName: true,
-            specialty: true
-          }
-        },
-        patient: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        }
-      }
-    });
+        provider: { select: { firstName: true, lastName: true, specialty: true } },
+        patient: { select: { firstName: true, lastName: true } },
+      },
+    // Security note: casting to any is used here solely to access included relations for composing notification messages.
+    // Data returned remains sanitized and we do not log PHI in errors. Consider defining a typed payload if stricter typing is desired.
+    })) as any;
 
-    console.log(`[DEBUG] Appointment created: ${appointment.id}`);
-    
-    // Ensure doctor-patient connection exists and is approved for this appointment
+    // Ensure doctor-patient connection exists and is approved
     try {
-      const connectionTreatmentType = type || 'consultation';
+      const connectionTreatmentType = appointment.type || 'consultation';
       await prisma.doctorPatientConnection.upsert({
         where: {
           providerId_patientId_treatmentType: {
-            providerId,
-            patientId,
+            providerId: appointment.providerId,
+            patientId: appointment.patientId,
             treatmentType: connectionTreatmentType,
           },
         },
@@ -185,22 +137,20 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date(),
         },
         create: {
-          providerId,
-          patientId,
+          providerId: appointment.providerId,
+          patientId: appointment.patientId,
           treatmentType: connectionTreatmentType,
           status: 'approved',
           approvedAt: new Date(),
         },
       });
-      console.log(`[DEBUG] Connection ensured/approved for provider=${providerId} patient=${patientId} treatment=${connectionTreatmentType}`);
     } catch (connErr) {
-      console.error('Failed to ensure doctor-patient connection:', connErr);
-      // Non-blocking
+      console.error('Failed to ensure doctor-patient connection:', { message: (connErr as any)?.message });
     }
-    
-    // Create notifications for both patient and provider
+
+    // Notifications (non-blocking, lazy import to avoid import-time initialization issues)
     try {
-      // Notification for patient
+      const { NotificationService } = await import('@/lib/notifications/notificationService');
       await NotificationService.createNotification(
         appointment.patientId,
         'appointment',
@@ -209,8 +159,6 @@ export async function POST(request: NextRequest) {
         'medium',
         appointment.meetingLink || undefined
       );
-
-      // Notification for provider
       await NotificationService.createNotification(
         appointment.providerId,
         'appointment',
@@ -219,118 +167,62 @@ export async function POST(request: NextRequest) {
         'medium',
         appointment.meetingLink || undefined
       );
-
-      console.log(`[DEBUG] Notifications created for appointment ${appointment.id}`);
     } catch (notificationError) {
-      console.error('Failed to create appointment notifications:', notificationError);
-      // Continue with the appointment creation even if notifications fail
+      console.error('Failed to create appointment notifications:', { message: (notificationError as any)?.message });
     }
 
-    return NextResponse.json(appointment, { status: 201 });
-
-  } catch (error) {
-    console.error('Create appointment error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    // Standardized entity envelope
+    return jsonEntity(request, appointment, 201);
+  } catch (error: any) {
+    console.error('Create appointment error:', { message: error?.message });
+    return errorResponse('Internal server error', 500);
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
 
     const url = new URL(request.url);
     const appointmentId = url.pathname.split('/').pop();
-    
     if (!appointmentId) {
-      return NextResponse.json(
-        { error: 'Appointment ID is required' },
-        { status: 400 }
-      );
+      return errorResponse('Appointment ID is required', 400);
     }
 
-    const body = await request.json();
-    const { status: newStatus } = body;
-
-    if (!newStatus) {
-      return NextResponse.json(
-        { error: 'Status is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate status values
-    const validStatuses = ['scheduled', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'];
-    if (!validStatuses.includes(newStatus)) {
-      return NextResponse.json(
-        { error: 'Invalid status value' },
-        { status: 400 }
-      );
-    }
-
-    // Check if user has permission to update appointment
-    // Providers can only update their own appointments
+    // Validate body (status only)
+    const PatchSchema = z.object({ status: AppointmentStatusEnum });
+    const parsed = await validateBody(request, PatchSchema);
+    if ('error' in parsed) return parsed.error;
+    const { status: newStatus } = (parsed as { data: z.infer<typeof PatchSchema> }).data;
+    
+    // Permission: providers can only update their own appointments
     const existingAppointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
-      include: {
-        provider: true,
-        patient: true
-      }
+      include: { provider: true, patient: true },
     });
-
     if (!existingAppointment) {
-      return NextResponse.json(
-        { error: 'Appointment not found' },
-        { status: 404 }
-      );
+      return errorResponse('Appointment not found', 404);
     }
-
     if (session.user.isProvider && existingAppointment.providerId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
-      );
+      return errorResponse('Insufficient permissions', 403);
     }
 
-    // Update the appointment status
     const updatedAppointment = await prisma.appointment.update({
       where: { id: appointmentId },
-      data: {
-        status: newStatus,
-        updatedAt: new Date()
-      },
+      data: { status: newStatus, updatedAt: new Date() },
       include: {
-        provider: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-            specialty: true
-          }
-        },
-        patient: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
-      }
+        provider: { select: { firstName: true, lastName: true, email: true, specialty: true } },
+        patient: { select: { firstName: true, lastName: true, email: true } },
+      },
     });
 
-    console.log(`[DEBUG] Appointment status updated: ${appointmentId} -> ${newStatus}`);
-    
-    // Create notification for status change
+    // Notification (non-blocking, lazy import to avoid import-time initialization issues)
     try {
       const notificationRecipientId = session.user.isProvider ? existingAppointment.patientId : existingAppointment.providerId;
-      const recipientName = session.user.isProvider ? existingAppointment.patient.firstName : existingAppointment.provider.firstName;
-      
+      const { NotificationService } = await import('@/lib/notifications/notificationService');
       await NotificationService.createNotification(
         notificationRecipientId,
         'appointment',
@@ -339,20 +231,13 @@ export async function PATCH(request: NextRequest) {
         'medium',
         existingAppointment.meetingLink || undefined
       );
-
-      console.log(`[DEBUG] Status change notification created for appointment ${appointmentId}`);
     } catch (notificationError) {
-      console.error('Failed to create status change notification:', notificationError);
-      // Continue with the status update even if notification fails
+      console.error('Failed to create status change notification:', { message: (notificationError as any)?.message });
     }
 
-    return NextResponse.json(updatedAppointment);
-
-  } catch (error) {
-    console.error('Update appointment status error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return jsonEntity(request, updatedAppointment, 200);
+  } catch (error: any) {
+    console.error('Update appointment status error:', { message: error?.message });
+    return errorResponse('Internal server error', 500);
   }
 }

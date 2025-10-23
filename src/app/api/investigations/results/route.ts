@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { NotificationService } from '@/lib/notifications/notificationService';
 import {
   auditView,
   auditCreate,
@@ -364,6 +365,37 @@ export async function POST(request: NextRequest) {
         interpretation: created.interpretation,
       })
     );
+
+    // Push notify patient and provider that lab results are available
+    try {
+      const patientId = order.patientId;
+      const providerId = order.providerId;
+      const testName = order.name ?? 'investigation';
+
+      if (patientId) {
+        await NotificationService.createNotification(
+          patientId,
+          'investigation',
+          'Lab results available',
+          `Your ${testName} results are ready to view.`,
+          'high',
+          '/patient/dashboard'
+        );
+      }
+      if (providerId) {
+        await NotificationService.createNotification(
+          providerId,
+          'investigation',
+          'Lab results available',
+          `New ${testName} results are available for your patient.`,
+          'medium',
+          '/provider/investigations'
+        );
+      }
+    } catch (notifyErr) {
+      // Non-blocking
+      console.error('[Investigations] Failed to push notify for new result', notifyErr);
+    }
 
     return NextResponse.json(
       {

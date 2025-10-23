@@ -1,76 +1,114 @@
-import { NextResponse } from "next/server";
-import { hash } from "bcryptjs";
-import { prisma } from "@/lib/db";
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/db';
+import { hash } from 'bcryptjs';
+import { registerSchema } from '@/lib/validators/auth';
+import { stripHtml, sanitizeText } from '@/lib/security/sanitize';
+import { errorResponse, jsonEntity } from '@/lib/api/response';
+// SECURITY: IP+email rate limiting to prevent abuse (Part 4)
+import { rateLimitConsume } from '@/lib/security/rateLimit';
 
-export async function POST(request: Request) {
+/**
+ * Secure Registration Endpoint
+ * - Validates input using centralized Zod schemas [registerSchema](src/lib/validators/auth.ts)
+ * - Sanitizes name (strip HTML, trim control chars) [sanitizeText](src/lib/security/sanitize.ts)
+ * - Enforces provider registration to start as pending (admin approval required)
+ * - Uses standardized error responses [errorResponse](src/lib/api/response.ts)
+ *
+ * Notes:
+ * - Rate limiting should be implemented (Part 4) to prevent abuse
+ * - Never leak sensitive details in responses or logs
+ */
+
+export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, email, phone, password, userType, licenseNumber } = await request.json();
+    const raw = await request.json();
 
-    // Validation
-    if (!firstName || !email || !password) {
-      return NextResponse.json(
-        { message: "Nama pertama, email, dan kata laluan diperlukan" },
-        { status: 400 }
-      );
-    }
+    // Backward compatibility: original payload uses firstName, lastName, email, phone, password, userType, licenseNumber
+    const role = raw?.userType === 'doctor' ? 'PROVIDER_PENDING' : 'USER';
 
-    // Validate medical registration number for doctors
-    if (userType === 'doctor' && !licenseNumber) {
-      return NextResponse.json(
-        { message: "Nombor pendaftaran perubatan diperlukan untuk doktor" },
-        { status: 400 }
-      );
-    }
+    // Sanitize and normalize name: join first+last, strip HTML, trim, remove control chars
+    const fullNameRaw = `${raw?.firstName ?? ''} ${raw?.lastName ?? ''}`.trim();
+    const fullName = sanitizeText(stripHtml(fullNameRaw));
 
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    // SECURITY: rate limiting per IP+email to prevent abuse (Part 4)
+    const normalizedEmail = String(raw?.email ?? '').toLowerCase().trim();
+    const limit = rateLimitConsume(request, [normalizedEmail], {
+      windowMs: 15 * 60_000, // 15 minutes window
+      max: 10,               // allow up to 10 attempts per window
+      keyPrefix: 'register',
     });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { message: "Email telah digunakan" },
-        { status: 400 }
-      );
+    if (!limit.allowed) {
+      // Standardized 429 error without leaking sensitive context
+      return errorResponse('Too many registration attempts. Please try again later.', 429, {
+        retryAfterMs: limit.resetMs,
+      });
     }
 
-    // Hash password
-    const hashedPassword = await hash(password, 10);
-
-    // Create user with appropriate role based on userType
-    // Doctor accounts now require admin approval: start as non-provider with pending status
-    const createData: any = {
-      firstName,
-      lastName: lastName || "",
-      email,
-      phone: phone || "",
-      password: hashedPassword,
-      isProvider: false,
-      role: userType === 'doctor' ? 'PROVIDER_PENDING' : 'USER',
-      licenseNumber: userType === 'doctor' ? (licenseNumber || "") : null,
+    // Build payload for validation using centralized schema
+    const payload = {
+      email: raw?.email,
+      password: raw?.password,
+      name: fullName,
+      role,
+      phone: raw?.phone,
+      licenseNumber: raw?.licenseNumber,
     };
 
+    // Validate input; return uniform validation errors without echoing raw data
+    const data = registerSchema.parse(payload);
+
+    // Check for existing email
+    const existing = await prisma.user.findUnique({
+      where: { email: data.email },
+      select: { id: true },
+    });
+    if (existing) {
+      return errorResponse('Email already in use', 400);
+    }
+
+    // Hash password with bcryptjs; do not log the hash or plaintext
+    const hashedPassword = await hash(data.password, 10);
+
+    // Derive first/last from sanitized full name
+    const parts = data.name.split(' ').filter(Boolean);
+    const firstName = parts[0] ?? '';
+    const lastName = parts.slice(1).join(' ') || '';
+
+    // Construct create payload; providers start pending and require admin approval
+    const createData: any = {
+      firstName,
+      lastName,
+      email: data.email,
+      phone: raw?.phone || '',
+      password: hashedPassword,
+      isProvider: false,
+      role: data.role, // 'USER' | 'PROVIDER_PENDING'
+      licenseNumber: data.role === 'PROVIDER_PENDING' ? (data.licenseNumber || '') : null,
+    };
 
     const user = await prisma.user.create({
       data: createData,
-    });
-
-    return NextResponse.json({
-      message: "Akaun telah berjaya didaftarkan",
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        isProvider: user.isProvider,
-        role: user.role,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        isProvider: true,
+        role: true,
       },
     });
-  } catch (error) {
-    console.error("Registration error:", error);
-    return NextResponse.json(
-      { message: "Terdapat ralat semasa pendaftaran" },
-      { status: 500 }
-    );
+
+    // Return standardized success envelope (privacy headers + requestId)
+    return jsonEntity(request, {
+      message: 'Account registered successfully',
+      user,
+    }, 201);
+  } catch (error: any) {
+    // Zod validation errors surfaced with uniform errorResponse
+    if (error?.name === 'ZodError') {
+      return errorResponse('Validation failed', 400, { errors: error.errors });
+    }
+    // Generic fallback without leaking details
+    return errorResponse('Registration failed', 500);
   }
 }

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import RichTextEditor from '@/components/editor/RichTextEditor';
+import PrescriptionForm from '@/components/provider/PrescriptionForm';
 
 /**
  * Patient-scoped EMR Dashboard (Provider view)
@@ -22,7 +23,7 @@ import RichTextEditor from '@/components/editor/RichTextEditor';
  * Accessibility: ARIA roles/labels on tabs/panels and controls.
  */
 
-type TabKey = 'notes' | 'past' | 'investigations' | 'correspondence';
+type TabKey = 'notes' | 'past' | 'investigations' | 'prescriptions' | 'correspondence';
 
 type EncounterItem = {
   id: string;
@@ -137,6 +138,11 @@ export default function PatientEmrPage() {
   const [inbound, setInbound] = useState<CorrespondenceItem[]>([]);
   const [outbound, setOutbound] = useState<CorrespondenceItem[]>([]);
   const [corrLoading, setCorrLoading] = useState(false);
+
+  // Prescriptions (patient-scoped)
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [rxLoading, setRxLoading] = useState(false);
+  const [showRxModal, setShowRxModal] = useState(false);
 
   // Inbound uploads (client-side only view; persisted via /api/uploads)
   const [recentUploads, setRecentUploads] = useState<Array<{
@@ -626,7 +632,7 @@ const uploadFiles = useCallback(async (files: FileList | File[]) => {
      try {
        const key = `patient_emr_tab_${patientId}`;
        const saved = localStorage.getItem(key);
-       if (saved && (saved === 'notes' || saved === 'past' || saved === 'investigations' || saved === 'correspondence')) {
+       if (saved && (saved === 'notes' || saved === 'past' || saved === 'investigations' || saved === 'prescriptions' || saved === 'correspondence')) {
          setTab(saved as TabKey);
        }
      } catch {}
@@ -679,17 +685,35 @@ const uploadFiles = useCallback(async (files: FileList | File[]) => {
     if (tab === 'past') fetchTimeline();
     if (tab === 'investigations') fetchInvestigations();
     if (tab === 'correspondence') fetchCorrespondence();
-  }, [tab, fetchEncounters, fetchTimeline, fetchInvestigations, fetchCorrespondence]);
+    if (tab === 'prescriptions') {
+      if (!providerId || !patientId) return;
+      setRxLoading(true);
+      const params = new URLSearchParams();
+      params.set('page', '0');
+      params.set('pageSize', '50');
+      fetch(`/api/provider/patients/${encodeURIComponent(patientId)}/emr/prescriptions?${params.toString()}`)
+        .then((res) => res.json().catch(() => ({})))
+        .then((json) => {
+          const items = json?.data?.items ?? json?.items ?? [];
+          setPrescriptions(Array.isArray(items) ? items : []);
+        })
+        .catch(() => setPrescriptions([]))
+        .finally(() => setRxLoading(false));
+    }
+  }, [tab, fetchEncounters, fetchTimeline, fetchInvestigations, fetchCorrespondence, providerId, patientId]);
+
+  const activeRxCount = useMemo(() => prescriptions.filter((p: any) => p.status === 'ACTIVE').length, [prescriptions]);
 
   const totalLabel = useMemo(() => {
     switch (tab) {
       case 'notes': return notesDraftCount;
       case 'past': return pastVisitsCount;
       case 'investigations': return investigationsCriticalCount;
+      case 'prescriptions': return activeRxCount;
       case 'correspondence': return correspondenceInboundCount;
       default: return 0;
     }
-  }, [tab, notesDraftCount, pastVisitsCount, investigationsCriticalCount, correspondenceInboundCount]);
+  }, [tab, notesDraftCount, pastVisitsCount, investigationsCriticalCount, correspondenceInboundCount, activeRxCount]);
 
   // Actions
   const markResultReviewed = useCallback(async (resultId: string) => {
@@ -707,6 +731,37 @@ const uploadFiles = useCallback(async (files: FileList | File[]) => {
       alert('Error marking reviewed');
     }
   }, [fetchInvestigations]);
+
+  const handleCancelRx = useCallback(async (rxId: string) => {
+    try {
+      const reason = window.prompt('Enter cancellation reason', 'Cancelled by provider') || '';
+      if (!reason.trim()) return;
+      const res = await fetch(`/api/prescriptions/${encodeURIComponent(rxId)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      if (res.ok) {
+        // Refresh list
+        if (tab === 'prescriptions') {
+          setRxLoading(true);
+          const params = new URLSearchParams();
+          params.set('page', '0');
+          params.set('pageSize', '50');
+          const r = await fetch(`/api/provider/patients/${encodeURIComponent(patientId)}/emr/prescriptions?${params.toString()}`);
+          const j = await r.json().catch(() => ({}));
+          const items = j?.data?.items ?? j?.items ?? [];
+          setPrescriptions(Array.isArray(items) ? items : []);
+          setRxLoading(false);
+        }
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.detail || 'Failed to cancel prescription');
+      }
+    } catch {
+      alert('Error cancelling prescription');
+    }
+  }, [patientId, tab]);
 
   return (
     <div className="space-y-6">
@@ -729,6 +784,7 @@ const uploadFiles = useCallback(async (files: FileList | File[]) => {
           { key: 'notes', label: "Today's Notes" },
           { key: 'past', label: 'Past Visits' },
           { key: 'investigations', label: 'Investigations' },
+          { key: 'prescriptions', label: 'Prescriptions' },
           { key: 'correspondence', label: 'Correspondence' },
         ] as Array<{ key: TabKey; label: string }>).map((t) => (
           <button
@@ -1213,6 +1269,177 @@ const uploadFiles = useCallback(async (files: FileList | File[]) => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {tab === 'prescriptions' && (
+        <div id="prescriptions-panel" role="tabpanel" aria-labelledby="prescriptions" className="bg-white border border-gray-200 rounded-lg">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-gray-800 font-semibold">Prescriptions</h3>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!providerId || !patientId) return;
+                  setRxLoading(true);
+                  const params = new URLSearchParams();
+                  params.set('page', '0');
+                  params.set('pageSize', '50');
+                  try {
+                    const res = await fetch(`/api/provider/patients/${encodeURIComponent(patientId)}/emr/prescriptions?${params.toString()}`);
+                    const json = await res.json().catch(() => ({}));
+                    const items = json?.data?.items ?? json?.items ?? [];
+                    setPrescriptions(Array.isArray(items) ? items : []);
+                  } finally {
+                    setRxLoading(false);
+                  }
+                }}
+                className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50"
+                aria-label="Refresh"
+              >
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRxModal(true)}
+                className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                aria-label="New Prescription"
+              >
+                New Prescription
+              </button>
+            </div>
+          </div>
+
+          {/* Active medications */}
+          <div className="p-4 border-b border-gray-100">
+            <h4 className="text-gray-800 font-semibold mb-2">Active Medications</h4>
+            {rxLoading ? (
+              <div className="text-sm text-gray-600">Loading…</div>
+            ) : (
+              <>
+                {prescriptions.filter((p: any) => p.status === 'ACTIVE').length === 0 ? (
+                  <div className="text-sm text-gray-600">No active prescriptions</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {prescriptions.filter((p: any) => p.status === 'ACTIVE').map((p: any) => (
+                      <span key={p.id} className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                        {p.medicationName} • {p.dosage}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* All prescriptions table */}
+          {rxLoading ? (
+            <div className="p-4">Loading prescriptions…</div>
+          ) : prescriptions.length === 0 ? (
+            <div className="p-4 text-gray-600">No prescriptions for this patient</div>
+          ) : (
+            <div className="p-4 overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-2 px-3 text-gray-700">Medication</th>
+                    <th className="text-left py-2 px-3 text-gray-700">Dosage</th>
+                    <th className="text-left py-2 px-3 text-gray-700">Duration</th>
+                    <th className="text-left py-2 px-3 text-gray-700">Prescribed</th>
+                    <th className="text-left py-2 px-3 text-gray-700">Status</th>
+                    <th className="text-left py-2 px-3 text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prescriptions.map((p: any) => (
+                    <tr key={p.id} className="border-b border-gray-100">
+                      <td className="py-3 px-3 font-medium text-gray-800">{p.medicationName}</td>
+                      <td className="py-3 px-3 text-gray-700">{p.dosage}</td>
+                      <td className="py-3 px-3 text-gray-700">{p.duration}</td>
+                      <td className="py-3 px-3 text-gray-700">{p.prescribedDate ? new Date(p.prescribedDate).toLocaleDateString() : '-'}</td>
+                      <td className="py-3 px-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${
+                          p.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-700'
+                          : p.status === 'ACTIVE' ? 'bg-green-100 text-green-700'
+                          : p.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700'
+                          : p.status === 'CANCELLED' ? 'bg-red-100 text-red-700'
+                          : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {p.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          {p.status === 'DRAFT' && (
+                            <button
+                              type="button"
+                              className="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50"
+                              title="Edit draft in modal"
+                              onClick={() => setShowRxModal(true)}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {p.status === 'ACTIVE' && (
+                            <button
+                              type="button"
+                              className="px-2 py-1 text-xs rounded border border-red-300 text-red-700 hover:bg-red-50"
+                              title="Cancel prescription"
+                              onClick={() => handleCancelRx(p.id)}
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* New Prescription Modal */}
+          {showRxModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-strong w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                  <h4 className="text-gray-800 font-semibold">New Prescription</h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowRxModal(false)}
+                    className="px-2 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="p-4">
+                  <PrescriptionForm
+                    context="emr"
+                    patientId={patientId}
+                    onClose={() => setShowRxModal(false)}
+                    onCreated={async () => {
+                      setShowRxModal(false);
+                      // Refresh after creation
+                      if (!providerId || !patientId) return;
+                      setRxLoading(true);
+                      const params = new URLSearchParams();
+                      params.set('page', '0');
+                      params.set('pageSize', '50');
+                      try {
+                        const res = await fetch(`/api/provider/patients/${encodeURIComponent(patientId)}/emr/prescriptions?${params.toString()}`);
+                        const json = await res.json().catch(() => ({}));
+                        const items = json?.data?.items ?? json?.items ?? [];
+                        setPrescriptions(Array.isArray(items) ? items : []);
+                      } finally {
+                        setRxLoading(false);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

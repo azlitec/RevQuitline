@@ -116,26 +116,28 @@ function PatientAppointmentsContent() {
       setError(null);
 
       const status = selectedTab === 'upcoming' ? 'scheduled,confirmed,in-progress' : 'completed,cancelled,no-show';
-      const response = await fetch(`/api/appointments?status=${status}`);
+      // Pass pagination explicitly; API supports page & limit via PaginationSchema
+      const response = await fetch(`/api/appointments?status=${encodeURIComponent(status)}&page=0&limit=50`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch appointments');
+        const detail = `HTTP ${response.status}`;
+        throw new Error(`Failed to fetch appointments (${detail})`);
       }
 
-      const data = await response.json();
-      setAppointments(data.appointments || []);
+      const envelope = await response.json();
+      const items = envelope.items ?? envelope.appointments ?? [];
+      setAppointments(items);
 
       // Check intake form status for quitline appointments
-      const quitlineAppointments = data.appointments?.filter((apt: any) =>
-        apt.type === 'quitline_smoking_cessation'
-      ) || [];
+      const quitlineAppointments = items.filter((apt: any) => apt.type === 'quitline_smoking_cessation');
 
       // Check intake form status for each quitline appointment
       for (const appointment of quitlineAppointments) {
         await checkIntakeFormStatus(appointment.id);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const msg = err instanceof Error ? err.message : 'An error occurred';
+      setError(msg);
       console.error('Error fetching appointments:', err);
     } finally {
       setLoading(false);

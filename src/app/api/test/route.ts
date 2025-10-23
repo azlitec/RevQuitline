@@ -5,44 +5,30 @@ import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Test API called');
-
     const session = await getServerSession(authOptions);
-    console.log('Session:', session);
 
     if (!session || !session.user) {
-      console.log('No session or user');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!session.user.isAdmin) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
 
-    console.log('User ID:', session.user.id);
-    console.log('Is Provider:', session.user.isProvider);
-
-    // Test database connection
+    // Test database connection without exposing PII
     const userCount = await prisma.user.count();
-    console.log('User count:', userCount);
-
-    // Test doctor-patient connections
     const connectionCount = await prisma.doctorPatientConnection.count();
-    console.log('Connection count:', connectionCount);
 
     return NextResponse.json({
       message: 'Test successful',
-      session: {
-        userId: session.user.id,
-        isProvider: session.user.isProvider,
-        email: session.user.email
-      },
       database: {
         userCount,
         connectionCount
       }
     });
-
   } catch (error) {
-    console.error('Test API error:', error);
+    console.error('Test API error:', error instanceof Error ? error.message : error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

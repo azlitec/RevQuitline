@@ -104,13 +104,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize service type to Prisma enum ServiceType (consultation, follow_up, emergency, quitline_smoking_cessation)
+    const allowedTypes = ['consultation','follow_up','emergency','quitline_smoking_cessation'] as const;
+    const rawType = (type ?? 'consultation');
+    let normalizedType = typeof rawType === 'string'
+      ? rawType.trim().toLowerCase().replace(/-/g, '_')
+      : 'consultation';
+    if (!(allowedTypes as readonly string[]).includes(normalizedType)) {
+      normalizedType = 'consultation';
+    }
+
+    // Load patient name to construct a sensible required title
+    const patientForTitle = await prisma.user.findUnique({
+      where: { id: patientId },
+      select: { firstName: true, lastName: true }
+    });
+    const patientName = patientForTitle
+      ? `${patientForTitle.firstName ?? ''} ${patientForTitle.lastName ?? ''}`.trim()
+      : 'patient';
+    const humanizedType = normalizedType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const computedTitle = `${humanizedType} with ${patientName || 'patient'}`;
+
     // Create appointment - using only fields that exist in schema
     const appointmentData: any = {
+      title: computedTitle,
       patientId,
       providerId: session.user.id,
       date: new Date(date),
       duration: duration || 30,
-      type: type || 'consultation',
+      type: normalizedType,
       status: 'scheduled'
     };
 

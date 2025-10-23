@@ -1,13 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
-import { requirePermission, ensureProviderPatientLink, toProblemJson, parseJson } from '@/lib/api/guard';
+import { requirePermission, ensureProviderPatientLink, parseJson } from '@/lib/api/guard';
 import {
   EmrConsultationListQuerySchema,
   EmrConsultationCreateSchema,
   EmrConsultationUpdateSchema,
 } from '@/lib/validators/emr';
 import { ConsultationController } from '@/lib/controllers/consultation.controller';
+import { jsonList, jsonEntity, jsonError } from '@/lib/api/response';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * Provider EMR Consultations Route
@@ -55,32 +59,26 @@ export async function GET(
   try {
     session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
     }
 
     // RBAC
     try {
       requirePermission(session, 'encounter.read');
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
     }
 
     const patientId = params.patientId;
     if (!patientId) {
-      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
+      return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
     }
 
     // Link guard
     try {
       await ensureProviderPatientLink(session, patientId);
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Access denied', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return jsonError(request, err, { title: 'Access denied', status: err?.status ?? 403 });
     }
 
     const query = parseListQuery(request);
@@ -94,15 +92,12 @@ export async function GET(
       query
     );
 
-    return NextResponse.json(result, { status: 200 });
+    return jsonList(request, result, 200);
   } catch (err: any) {
     console.error('[EMR Consultations GET] Error', err);
     const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
     const issues = err?.issues;
-    return NextResponse.json(
-      { ...toProblemJson(err, { title: 'Failed to list consultations', status }), issues },
-      { status }
-    );
+    return jsonError(request, err, { title: 'Failed to list consultations', status });
   }
 }
 
@@ -118,32 +113,26 @@ export async function POST(
   try {
     session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
     }
 
     // RBAC
     try {
       requirePermission(session, 'encounter.create');
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
     }
 
     const patientId = params.patientId;
     if (!patientId) {
-      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
+      return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
     }
 
     // Link guard
     try {
       await ensureProviderPatientLink(session, patientId);
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Access denied', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return jsonError(request, err, { title: 'Access denied', status: err?.status ?? 403 });
     }
 
     const body = await parseJson(request as any, EmrConsultationCreateSchema);
@@ -157,15 +146,12 @@ export async function POST(
       body
     );
 
-    return NextResponse.json(created, { status: 201 });
+    return jsonEntity(request, created, 201);
   } catch (err: any) {
     console.error('[EMR Consultations POST] Error', err);
     const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
     const issues = err?.issues;
-    return NextResponse.json(
-      { ...toProblemJson(err, { title: 'Failed to create consultation', status }), issues },
-      { status }
-    );
+    return jsonError(request, err, { title: 'Failed to create consultation', status });
   }
 }
 
@@ -181,32 +167,26 @@ export async function PUT(
   try {
     session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
     }
 
     // RBAC
     try {
       requirePermission(session, 'encounter.update');
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Permission error', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
     }
 
     const patientId = params.patientId;
     if (!patientId) {
-      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
+      return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
     }
 
     // Link guard
     try {
       await ensureProviderPatientLink(session, patientId);
     } catch (err: any) {
-      return NextResponse.json(
-        toProblemJson(err, { title: 'Access denied', status: err?.status ?? 403 }),
-        { status: err?.status ?? 403 }
-      );
+      return jsonError(request, err, { title: 'Access denied', status: err?.status ?? 403 });
     }
 
     const body = await parseJson(request as any, EmrConsultationUpdateSchema);
@@ -220,14 +200,11 @@ export async function PUT(
       body
     );
 
-    return NextResponse.json(updated, { status: 200 });
+    return jsonEntity(request, updated, 200);
   } catch (err: any) {
     console.error('[EMR Consultations PUT] Error', err);
     const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
     const issues = err?.issues;
-    return NextResponse.json(
-      { ...toProblemJson(err, { title: 'Failed to update consultation', status }), issues },
-      { status }
-    );
+    return jsonError(request, err, { title: 'Failed to update consultation', status });
   }
 }
