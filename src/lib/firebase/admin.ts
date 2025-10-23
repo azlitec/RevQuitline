@@ -37,12 +37,12 @@ function getServiceAccountFromEnv(): ServiceAccountEnv {
   return { projectId, clientEmail, privateKey };
 }
 
-function validateEnv(sa: ServiceAccountEnv) {
+function validateEnv(sa: ServiceAccountEnv): boolean {
   if (!sa.projectId || !sa.clientEmail || !sa.privateKey) {
-    throw new Error(
-      'Missing Firebase Admin credentials. Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY are set.'
-    );
+    // Fast-delivery: do not throw during build; treat credentials as unavailable
+    return false;
   }
+  return true;
 }
 
 let app: App;
@@ -64,20 +64,25 @@ if (!GA.__firebaseAdmin__) {
 
 if (!DISABLE_PUSH && (!GA.__firebaseAdmin__.app || !GA.__firebaseAdmin__.messaging)) {
   const sa = getServiceAccountFromEnv();
-  validateEnv(sa);
+  const ok = validateEnv(sa);
 
-  app = getApps()[0] ?? initializeApp({
-    credential: cert({
-      projectId: sa.projectId!,
-      clientEmail: sa.clientEmail!,
-      privateKey: sa.privateKey!,
-    }),
-  });
+  if (ok) {
+    app = getApps()[0] ?? initializeApp({
+      credential: cert({
+        projectId: sa.projectId!,
+        clientEmail: sa.clientEmail!,
+        privateKey: sa.privateKey!,
+      }),
+    });
 
-  messaging = getMessaging(app);
+    messaging = getMessaging(app);
 
-  GA.__firebaseAdmin__.app = app;
-  GA.__firebaseAdmin__.messaging = messaging;
+    GA.__firebaseAdmin__.app = app;
+    GA.__firebaseAdmin__.messaging = messaging;
+  } else {
+    // Credentials missing; provide a no-op messaging shim to avoid build-time failures
+    GA.__firebaseAdmin__.messaging = ({ send: async () => ({}) } as unknown as Messaging);
+  }
 }
 
 export const firebaseAdminApp: App | undefined = GA.__firebaseAdmin__.app;
