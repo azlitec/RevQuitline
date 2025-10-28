@@ -5,23 +5,14 @@ import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Provider patients API called');
-
     const session = await getServerSession(authOptions);
-    console.log('Session retrieved:', !!session);
-    console.log('Session user:', session?.user);
 
     if (!session || !session.user) {
-      console.log('No session or user found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('User ID:', session.user.id);
-    console.log('Is Provider:', session.user.isProvider);
-
     // Check if user is a provider
     if (!session.user.isProvider) {
-      console.log('User is not a provider');
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -35,398 +26,210 @@ export async function GET(request: NextRequest) {
     const maxVisits = searchParams.get('maxVisits');
     const lastVisitDays = searchParams.get('lastVisitDays');
     const treatmentType = searchParams.get('treatmentType');
-    const inactiveThresholdDaysParam = searchParams.get('inactiveThresholdDays');
+    const inactiveThresholdDays = parseInt(searchParams.get('inactiveThresholdDays') || '180');
 
-    // Build derived patient filters
-    const patientAndFilters: any[] = [];
+    // Build optimized patient filters
+    const patientFilters: any = {};
     
-    // Case-insensitive search on patient fields (server-side)
+    // Search filter
     if (search) {
-      patientAndFilters.push({
-        OR: [
-          { firstName: { contains: search, mode: 'insensitive' } },
-          { lastName:  { contains: search, mode: 'insensitive' } },
-          { email:     { contains: search, mode: 'insensitive' } },
-          { phone:     { contains: search, mode: 'insensitive' } },
-        ],
-      });
+      patientFilters.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
     }
     
-    // Smoking status filter (server-side)
+    // Smoking status filter
     if (smokingStatus && smokingStatus !== 'all') {
-      patientAndFilters.push({ smokingStatus });
+      patientFilters.smokingStatus = smokingStatus;
     }
     
-    // Age filter -> DOB window (server-side)
+    // Age filter using DOB
     if (minAge || maxAge) {
       const now = new Date();
-      let startDOB: Date | undefined; // oldest acceptable DOB (younger people -> later DOB)
-      let endDOB: Date | undefined;   // newest acceptable DOB (older people -> earlier DOB)
-      if (maxAge) {
-        const years = parseInt(maxAge);
-        const d = new Date(now);
-        d.setFullYear(d.getFullYear() - years - 1);
-        d.setDate(d.getDate() + 1); // inclusive of boundary
-        startDOB = d;
-      }
-      if (minAge) {
-        const years = parseInt(minAge);
-        const d = new Date(now);
-        d.setFullYear(d.getFullYear() - years);
-        endDOB = d;
-      }
       const dobRange: any = {};
-      if (startDOB) dobRange.gte = startDOB;
-      if (endDOB) dobRange.lte = endDOB;
-      patientAndFilters.push({ dateOfBirth: dobRange });
+      
+      if (maxAge) {
+        const maxDate = new Date(now);
+        maxDate.setFullYear(maxDate.getFullYear() - parseInt(maxAge));
+        dobRange.gte = maxDate;
+      }
+      
+      if (minAge) {
+        const minDate = new Date(now);
+        minDate.setFullYear(minDate.getFullYear() - parseInt(minAge));
+        dobRange.lte = minDate;
+      }
+      
+      patientFilters.dateOfBirth = dobRange;
     }
-    
-    // lastVisitDays filter via appointments existence (server-side)
-    if (lastVisitDays) {
-      const days = parseInt(lastVisitDays);
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - days);
-      patientAndFilters.push({
-        appointmentsAsPatient: {
-          some: {
-            providerId: session.user.id,
-            status: 'completed',
-            date: { gte: cutoffDate },
-          },
-        },
-      });
-    }
-    
-    // Build where clause for filtering connections
+
+    // Build connection where clause
     const connectionWhere: any = {
       providerId: session.user.id,
-      status: {
-        in: ['approved'] // Only show approved connections
-      }
+      status: 'approved'
     };
-    
-    // Filter by treatmentType if provided (do not overload 'status' for this)
+
     if (treatmentType && treatmentType !== 'all') {
       connectionWhere.treatmentType = {
         contains: treatmentType,
         mode: 'insensitive'
       };
     }
-    
-    // Attach patient filters if any
-    if (patientAndFilters.length > 0) {
-      connectionWhere.patient = { AND: patientAndFilters };
-    }
-    
-    console.log('Querying connections with where clause:', connectionWhere);
 
-    // Get all connected patients for this provider
-    const connections = await prisma.doctorPatientConnection.findMany({
-      where: connectionWhere,
-      include: {
-        patient: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            dateOfBirth: true,
-            smokingStatus: true,
-            quitDate: true,
-            medicalHistory: true,
-            currentMedications: true,
-            allergies: true,
-            createdAt: true,
-            // Get last visit from appointments
-            appointmentsAsPatient: {
-              where: {
-                providerId: session.user.id,
-                status: 'completed'
+    if (Object.keys(patientFilters).length > 0) {
+      connectionWhere.patient = patientFilters;
+    }
+
+    // Single optimized query to get all patient data
+    const [connections, upcomingAppointments, emrCounts] = await Promise.all([
+      // Get connected patients with basic info and last visit
+      prisma.doctorPatientConnection.findMany({
+        where: connectionWhere,
+        select: {
+          treatmentType: true,
+          patient: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+              dateOfBirth: true,
+              smokingStatus: true,
+              quitDate: true,
+              createdAt: true,
+              appointmentsAsPatient: {
+                where: {
+                  providerId: session.user.id,
+                  status: 'completed'
+                },
+                orderBy: { date: 'desc' },
+                take: 1,
+                select: { date: true }
               },
-              orderBy: {
-                date: 'desc'
-              },
-              take: 1,
-              select: {
-                date: true
-              }
-            },
-            // Count total visits
-            _count: {
-              select: {
-                appointmentsAsPatient: {
-                  where: {
-                    providerId: session.user.id,
-                    status: 'completed'
+              _count: {
+                select: {
+                  appointmentsAsPatient: {
+                    where: {
+                      providerId: session.user.id,
+                      status: 'completed'
+                    }
                   }
                 }
               }
             }
           }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
 
-    console.log('Found connections:', connections.length);
+      // Get upcoming appointments for all patients in one query
+      prisma.appointment.groupBy({
+        by: ['patientId'],
+        where: {
+          providerId: session.user.id,
+          status: { in: ['scheduled', 'confirmed', 'in-progress'] }
+        },
+        _count: { id: true }
+      }),
 
-    // Initialize filtered connections (server-side filters already applied)
-    let filteredConnections = connections;
-    
-    // Apply visit count filters in-memory (requires aggregated visit count)
-    if (minVisits || maxVisits) {
-      filteredConnections = filteredConnections.filter(connection => {
+      // Get EMR counts for all patients in batch queries
+      Promise.all([
+        prisma.progressNote.groupBy({
+          by: ['patientId'],
+          where: {
+            status: 'draft',
+            encounter: { providerId: session.user.id }
+          },
+          _count: { id: true }
+        }),
+        prisma.investigationResult.groupBy({
+          by: ['patientId'],
+          where: {
+            interpretation: { in: ['abnormal', 'critical'] },
+            order: { providerId: session.user.id }
+          },
+          _count: { id: true }
+        }),
+        prisma.correspondence.groupBy({
+          by: ['patientId'],
+          where: {
+            sentAt: null,
+            encounter: { providerId: session.user.id }
+          },
+          _count: { id: true }
+        })
+      ])
+    ]);
+
+    // Create lookup maps for efficient data access
+    const upcomingApptMap = new Map(upcomingAppointments.map(a => [a.patientId, a._count.id]));
+    const [draftNotesMap, abnormalResultsMap, unsentCorrespondenceMap] = emrCounts.map(
+      counts => new Map(counts.map(c => [c.patientId, c._count.id]))
+    );
+
+    // Process patients efficiently
+    let patients = connections
+      .filter(connection => {
+        // Apply visit count filters
         const visitCount = connection.patient._count.appointmentsAsPatient;
         if (minVisits && visitCount < parseInt(minVisits)) return false;
         if (maxVisits && visitCount > parseInt(maxVisits)) return false;
         return true;
-      });
-    }
+      })
+      .map(connection => {
+        const patient = connection.patient;
+        const lastAppointment = patient.appointmentsAsPatient[0];
+        const lastVisitDate = lastAppointment?.date;
+        const upcomingCount = upcomingApptMap.get(patient.id) || 0;
 
-    // Format patients for frontend with consistent status mapping and EMR counters
-    const inactivityDays = inactiveThresholdDaysParam ? parseInt(inactiveThresholdDaysParam) : 180;
-    
-    let patients = await Promise.all(filteredConnections.map(async (connection) => {
-      const patient = connection.patient;
-      const lastAppointment = patient.appointmentsAsPatient[0];
-      const lastVisitISO = lastAppointment?.date?.toISOString();
-      const lastVisitDate = lastAppointment ? new Date(lastAppointment.date) : undefined;
-
-      // Upcoming appointments count (scheduled/confirmed/in-progress) to treat booked patients as active
-      const upcomingApptsCount = await prisma.appointment.count({
-        where: {
-          providerId: session.user.id,
-          patientId: patient.id,
-          status: { in: ['scheduled', 'confirmed', 'in-progress'] },
-        },
-      });
-    
-      // Status mapping:
-      // - vip -> 'vip'
-      // - if upcoming appointments exist -> 'active'
-      // - else inactive if no visit > inactivityDays, otherwise 'active'
-      let mappedStatus = 'active';
-      if ((connection.treatmentType || '').toLowerCase() === 'vip') {
-        mappedStatus = 'vip';
-      } else if (upcomingApptsCount > 0) {
-        mappedStatus = 'active';
-      } else {
-        const daysSinceLastVisit = lastVisitDate ? Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24)) : Infinity;
-        if (daysSinceLastVisit > inactivityDays) {
-          mappedStatus = 'inactive';
-        } else {
+        // Efficient status mapping
+        let mappedStatus = 'active';
+        if (connection.treatmentType?.toLowerCase() === 'vip') {
+          mappedStatus = 'vip';
+        } else if (upcomingCount > 0) {
           mappedStatus = 'active';
-        }
-      }
-    
-      // Lightweight EMR counters
-      const [notesDraftCount, abnormalResultsCount, unsentCorrespondenceCount] = await Promise.all([
-        prisma.progressNote.count({
-          where: {
-            patientId: patient.id,
-            status: 'draft',
-            encounter: { providerId: session.user.id }
-          }
-        }),
-        prisma.investigationResult.count({
-          where: {
-            interpretation: { in: ['abnormal', 'critical'] },
-            order: {
-              patientId: patient.id,
-              providerId: session.user.id
-            }
-          }
-        }),
-        prisma.correspondence.count({
-          where: {
-            patientId: patient.id,
-            sentAt: null,
-            encounter: { providerId: session.user.id }
-          }
-        })
-      ]);
-    
-      return {
-        id: patient.id,
-        firstName: patient.firstName || '',
-        lastName: patient.lastName || '',
-        email: patient.email,
-        phone: patient.phone,
-        dateOfBirth: patient.dateOfBirth?.toISOString(),
-        smokingStatus: patient.smokingStatus,
-        quitDate: patient.quitDate?.toISOString(),
-        lastVisit: lastVisitISO,
-        totalVisits: patient._count.appointmentsAsPatient,
-        status: mappedStatus,
-        createdAt: patient.createdAt.toISOString(),
-        notesDraftCount,
-        abnormalResultsCount,
-        unsentCorrespondenceCount
-      };
-    }));
-// Fallback: include patients who have appointments with this provider even if no approved connection exists
-try {
-  const existingIds = new Set(patients.map((p: any) => p.id));
-
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      providerId: session.user.id,
-      status: { in: ['scheduled', 'confirmed', 'in-progress', 'completed'] },
-    },
-    include: {
-      patient: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phone: true,
-          dateOfBirth: true,
-          smokingStatus: true,
-          quitDate: true,
-          medicalHistory: true,
-          currentMedications: true,
-          allergies: true,
-          createdAt: true,
-          // Last visit for this provider
-          appointmentsAsPatient: {
-            where: {
-              providerId: session.user.id,
-              status: 'completed',
-            },
-            orderBy: {
-              date: 'desc',
-            },
-            take: 1,
-            select: {
-              date: true,
-            },
-          },
-          // Count total visits with this provider
-          _count: {
-            select: {
-              appointmentsAsPatient: {
-                where: {
-                  providerId: session.user.id,
-                  status: 'completed',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      date: 'desc',
-    },
-  });
-
-  const apptPatientsMap = new Map<string, (typeof appointments)[number]['patient']>();
-  for (const a of appointments) {
-    const p = a.patient;
-    if (!p) continue;
-    if (existingIds.has(p.id)) continue; // skip those already from approved connections
-    if (!apptPatientsMap.has(p.id)) apptPatientsMap.set(p.id, p);
-  }
-
-  const appointmentsOnlyPatients = await Promise.all(
-    Array.from(apptPatientsMap.values()).map(async (patient) => {
-      const lastAppointment = patient.appointmentsAsPatient[0];
-      const lastVisitISO = lastAppointment?.date?.toISOString();
-      const lastVisitDate = lastAppointment ? new Date(lastAppointment.date) : undefined;
-
-      // Upcoming appointments count (scheduled/confirmed/in-progress) to treat booked patients as active
-      const upcomingApptsCount = await prisma.appointment.count({
-        where: {
-          providerId: session.user.id,
-          patientId: patient.id,
-          status: { in: ['scheduled', 'confirmed', 'in-progress'] },
-        },
-      });
-    
-      // Status mapping for appointments-only patients (no VIP detection without connection):
-      // - if upcoming appointments exist -> 'active'
-      // - else inactive if no visit > inactivityDays, otherwise 'active'
-      let mappedStatus = 'active';
-      if (upcomingApptsCount > 0) {
-        mappedStatus = 'active';
-      } else {
-        const daysSinceLastVisit = lastVisitDate
-          ? Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24))
-          : Infinity;
-        if (daysSinceLastVisit > inactivityDays) {
-          mappedStatus = 'inactive';
+        } else if (lastVisitDate) {
+          const daysSinceLastVisit = Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24));
+          mappedStatus = daysSinceLastVisit > inactiveThresholdDays ? 'inactive' : 'active';
         } else {
-          mappedStatus = 'active';
+          mappedStatus = 'inactive';
         }
-      }
-    
-      // Lightweight EMR counters scoped to provider
-      const [notesDraftCount, abnormalResultsCount, unsentCorrespondenceCount] = await Promise.all([
-        prisma.progressNote.count({
-          where: {
-            patientId: patient.id,
-            status: 'draft',
-            encounter: { providerId: session.user.id },
-          },
-        }),
-        prisma.investigationResult.count({
-          where: {
-            interpretation: { in: ['abnormal', 'critical'] },
-            order: {
-              patientId: patient.id,
-              providerId: session.user.id,
-            },
-          },
-        }),
-        prisma.correspondence.count({
-          where: {
-            patientId: patient.id,
-            sentAt: null,
-            encounter: { providerId: session.user.id },
-          },
-        }),
-      ]);
-    
-      return {
-        id: patient.id,
-        firstName: patient.firstName || '',
-        lastName: patient.lastName || '',
-        email: patient.email,
-        phone: patient.phone,
-        dateOfBirth: patient.dateOfBirth?.toISOString(),
-        smokingStatus: patient.smokingStatus,
-        quitDate: patient.quitDate?.toISOString(),
-        lastVisit: lastVisitISO,
-        totalVisits: patient._count.appointmentsAsPatient,
-        status: mappedStatus,
-        createdAt: patient.createdAt.toISOString(),
-        notesDraftCount,
-        abnormalResultsCount,
-        unsentCorrespondenceCount,
-      };
-    })
-  );
 
-  // Merge and dedupe
-  patients = [...patients, ...appointmentsOnlyPatients];
-} catch (fallbackErr) {
-  console.warn('Fallback appointment patients inclusion failed:', fallbackErr);
-}
-    
-    // Apply status filter after mapping if provided (active/inactive/vip)
+        return {
+          id: patient.id,
+          firstName: patient.firstName || '',
+          lastName: patient.lastName || '',
+          email: patient.email,
+          phone: patient.phone,
+          dateOfBirth: patient.dateOfBirth?.toISOString(),
+          smokingStatus: patient.smokingStatus,
+          quitDate: patient.quitDate?.toISOString(),
+          lastVisit: lastVisitDate?.toISOString(),
+          totalVisits: patient._count.appointmentsAsPatient,
+          status: mappedStatus,
+          createdAt: patient.createdAt.toISOString(),
+          notesDraftCount: draftNotesMap.get(patient.id) || 0,
+          abnormalResultsCount: abnormalResultsMap.get(patient.id) || 0,
+          unsentCorrespondenceCount: unsentCorrespondenceMap.get(patient.id) || 0
+        };
+      });
+    // Apply status filter if provided
     if (status && status !== 'all') {
       patients = patients.filter(p => p.status === status);
     }
-    
-    console.log('Returning patients:', patients.length);
-    
+
+    // Add cache headers for better performance
     return NextResponse.json({
       patients,
       total: patients.length
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30', // Cache for 30 seconds
+      }
     });
 
   } catch (error) {
