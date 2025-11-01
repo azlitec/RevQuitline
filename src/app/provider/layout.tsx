@@ -52,7 +52,7 @@ export default function ProviderLayout({
           <div className="hidden lg:block" ref={sidebarRef}>
             <ProviderSidebar />
           </div>
-          <div className="flex-1 flex flex-col overflow-hidden" ref={contentRef}>
+          <div className="flex-1 flex flex-col overflow-hidden ml-16" ref={contentRef}>
             <div className="px-6 pt-6">
               <ProviderHeader />
             </div>

@@ -162,7 +162,7 @@ export default function ProviderInboxPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
+    <div className="flex flex-col h-full bg-gradient-to-br from-blue-50 via-white to-gray-50">
       {/* Compact Header */}
       <div className={`bg-white border-b border-gray-200 px-4 md:px-6 py-3 flex-shrink-0 ${selectedConversation ? 'hidden md:block' : ''}`}>
         <div className="flex items-center justify-between">

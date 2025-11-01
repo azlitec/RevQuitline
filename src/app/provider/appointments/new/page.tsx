@@ -118,7 +118,7 @@ export default function NewAppointmentPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-6 lg:p-8 bg-gray-50">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

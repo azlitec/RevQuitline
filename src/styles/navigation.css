@@ -84,15 +84,38 @@
   margin-left: 4rem; /* Match sidebar width */
 }
 
+/* Ensure no overlap with fixed sidebar */
+.provider-content {
+  margin-left: 4rem; /* 64px sidebar width */
+  min-height: calc(100vh - 4rem); /* Account for any header */
+}
+
+.patient-content {
+  margin-left: 4rem; /* 64px sidebar width */
+  min-height: calc(100vh - 4rem); /* Account for any header */
+}
+
 /* Mobile responsive */
 @media (max-width: 1023px) {
   .sidebar-fixed {
     display: none;
   }
   
-  .content-with-sidebar {
+  .content-with-sidebar,
+  .provider-content,
+  .patient-content {
     margin-left: 0;
   }
+}
+
+/* Fix any z-index issues */
+.sidebar-fixed {
+  z-index: 40;
+}
+
+.main-content {
+  z-index: 10;
+  position: relative;
 }
 
 /* Fix any layout shifts */
