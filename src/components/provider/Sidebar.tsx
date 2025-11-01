@@ -97,49 +97,65 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
     );
   }
 
-  // Desktop sidebar (original design) with status chips
+  // Desktop sidebar - Clean & Modern
   return (
     <aside
-      className="w-20 flex flex-col items-center py-6 space-y-6 relative z-10"
-      style={{ backgroundColor: '#FFFFFF' }}
+      className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-gray-100 shadow-sm z-40 flex flex-col"
       aria-label="Provider sidebar"
     >
       {/* Logo */}
-      <div className="text-blue-500 font-bold text-2xl mb-4" aria-label="LumeLife logo">L</div>
+      <div className="flex items-center justify-center h-16 border-b border-gray-100">
+        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+          L
+        </div>
+      </div>
 
       {/* Navigation */}
-      <nav className="flex flex-col items-center space-y-6 flex-grow" aria-label="Provider navigation">
-        {navigationItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`relative nav-item p-3 transition-all duration-300 rounded-xl ${
-                isActive ? 'bg-blue-50 shadow-md' : 'hover:bg-blue-50 hover:shadow-md'
-              }`}
-              title={item.name}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              <span
-                className={`material-icons ${isActive ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'}`}
-                aria-hidden="true"
-              >
-                {item.icon}
-              </span>
-            </Link>
-          );
-        })}
+      <nav className="flex-1 py-4" aria-label="Provider navigation">
+        <ul className="space-y-2 px-2">
+          {navigationItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <li key={item.name}>
+                <Link
+                  href={item.href}
+                  className={`group flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-200 relative mx-auto ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                  }`}
+                  title={item.name}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <span
+                    className={`material-icons text-xl ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-600'}`}
+                    aria-hidden="true"
+                  >
+                    {item.icon}
+                  </span>
+                  
+                  {/* Tooltip */}
+                  <span className="absolute left-full ml-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                    {item.name}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
       {/* Settings */}
-      <div
-        className="text-gray-500 p-3 nav-item hover:bg-blue-50 hover:shadow-md rounded-xl transition-all duration-300 cursor-pointer"
-        title="Settings"
-        role="button"
-        aria-label="Settings"
-      >
-        <span className="material-icons hover:text-blue-500" aria-hidden="true">settings</span>
+      <div className="p-2 border-t border-gray-100">
+        <button
+          className="group flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-200 mx-auto text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+          title="Settings"
+          aria-label="Settings"
+        >
+          <span className="material-icons text-xl group-hover:text-gray-600" aria-hidden="true">
+            settings
+          </span>
+        </button>
       </div>
     </aside>
   );

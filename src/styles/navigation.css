@@ -1,0 +1,116 @@
+/* Navigation Fixes - Clean & Modern Sidebar */
+
+/* Ensure Material Icons load properly */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+/* Fix sidebar positioning and spacing */
+.sidebar-fixed {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 4rem; /* 64px / 16px = 4rem */
+  background: white;
+  border-right: 1px solid #f3f4f6;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Clean navigation items */
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  position: relative;
+  margin: 0 auto;
+}
+
+.nav-item:hover {
+  background-color: #f9fafb;
+}
+
+.nav-item.active {
+  background-color: #2563eb;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Material Icons styling */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tooltip styling */
+.nav-tooltip {
+  position: absolute;
+  left: 100%;
+  margin-left: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #1f2937;
+  color: white;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 50;
+}
+
+.nav-item:hover .nav-tooltip {
+  opacity: 1;
+}
+
+/* Content margin for fixed sidebar */
+.content-with-sidebar {
+  margin-left: 4rem; /* Match sidebar width */
+}
+
+/* Mobile responsive */
+@media (max-width: 1023px) {
+  .sidebar-fixed {
+    display: none;
+  }
+  
+  .content-with-sidebar {
+    margin-left: 0;
+  }
+}
+
+/* Fix any layout shifts */
+.layout-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}

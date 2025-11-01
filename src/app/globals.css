@@ -5,8 +5,9 @@
 /* Import Google Fonts and Material Icons */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
+
+/* Import Navigation Styles */
+@import '../styles/navigation.css';
 
 :root {
   --primary-blue: #3B82F6;
