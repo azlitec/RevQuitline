@@ -443,6 +443,33 @@ button:hover {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
+/* Missing utility classes */
+.hover-effect {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
+.hover\:scale-110:hover {
+  transform: scale(1.1);
+}
+
+.touch-friendly {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 /* Mobile-specific utility classes */
 @media (max-width: 640px) {
   .mobile-hidden {

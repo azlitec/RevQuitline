@@ -124,13 +124,18 @@ function PatientAppointmentsContent() {
       const response = await fetch(`/api/appointments?page=0&limit=50`);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Appointments API error:', response.status, errorText);
         const detail = `HTTP ${response.status}`;
         throw new Error(`Failed to fetch appointments (${detail})`);
       }
 
       const envelope = await response.json();
+      console.log('Appointments API response:', envelope);
+      
       // Fix: API returns { success: true, data: { items, total, page, pageSize } }
       const items = envelope.data?.items ?? envelope.items ?? envelope.appointments ?? [];
+      console.log('Parsed appointments:', items);
       setAppointments(items);
 
       // Check intake form status for quitline appointments
@@ -483,24 +488,32 @@ function PatientAppointmentsContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
-        <span className="ml-2 text-gray-600">Loading appointments...</span>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-green-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading Appointments</h2>
+          <p className="text-gray-600">Please wait while we fetch your appointments...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-8 bg-red-50 text-red-700 rounded-lg max-w-3xl mx-auto mt-8">
-        <h2 className="text-xl font-bold mb-4">Error Loading Appointments</h2>
-        <p>{error}</p>
-        <button
-          onClick={fetchAppointments}
-          className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
-        >
-          Try Again
-        </button>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 text-center max-w-md w-full">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-red-600 text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Error Loading Appointments</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={fetchAppointments}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors w-full"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
