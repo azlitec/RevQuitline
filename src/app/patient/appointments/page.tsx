@@ -441,7 +441,7 @@ function PatientAppointmentsContent() {
   // Format appointments for display
   const formattedAppointments: FormattedAppointment[] = appointments.map(apt => ({
     id: apt.id,
-    providerName: `${apt.provider.firstName} ${apt.provider.lastName}`,
+    providerName: `Dr. ${apt.provider.firstName}`,
     providerSpecialty: apt.provider.specialty || 'Healthcare Provider',
     date: new Date(apt.date),
     time: new Date(apt.date).toLocaleTimeString('en-US', {

@@ -76,11 +76,11 @@ export async function GET(request: NextRequest) {
     const formattedDoctors = doctors.map(doctor => {
       const firstName = doctor.firstName || '';
       const lastName = doctor.lastName || '';
-      const fullName = `${firstName} ${lastName}`.trim() || doctor.email;
+      const displayName = firstName ? `Dr. ${firstName}` : (doctor.email || 'Doctor');
 
       return {
         id: doctor.id,
-        name: fullName,
+        name: displayName,
         firstName,
         lastName,
         specialty: doctor.specialty || 'General Medicine',

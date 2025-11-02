@@ -78,7 +78,7 @@ export async function GET(
     // Format doctor data for frontend
     const firstName = doctor.firstName || '';
     const lastName = doctor.lastName || '';
-    const fullName = `${firstName} ${lastName}`.trim() || doctor.email;
+    const displayName = firstName ? `Dr. ${firstName}` : (doctor.email || 'Doctor');
 
     // Calculate rating (mock for now - in real app, you'd have a reviews system)
     const totalAppointments = (doctor as any).appointmentsAsProvider.length;
@@ -104,7 +104,7 @@ export async function GET(
 
     const formattedDoctor = {
       id: doctor.id,
-      name: fullName,
+      name: displayName,
       firstName,
       lastName,
       email: doctor.email,

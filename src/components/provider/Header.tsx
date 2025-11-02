@@ -102,9 +102,7 @@ export default function Header({
           const lastName = data.lastName?.trim();
 
           let displayName = '';
-          if (firstName && lastName) {
-            displayName = `Dr. ${firstName} ${lastName}`;
-          } else if (firstName) {
+          if (firstName) {
             displayName = `Dr. ${firstName}`;
           } else if (lastName) {
             displayName = `Dr. ${lastName}`;
@@ -137,7 +135,8 @@ export default function Header({
       console.error('[Diag] Error fetching user data:', error);
       // Fallback to session data if API fails
       if (session?.user?.name) {
-        setDoctorName(`Good Morning Dr. ${session.user.name}`);
+        const firstName = session.user.name.split(' ')[0];
+        setDoctorName(`Good Morning Dr. ${firstName}`);
       } else if (session?.user?.email) {
         const emailName = session.user.email.split('@')[0];
         const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
@@ -176,14 +175,13 @@ export default function Header({
   };
 
   const getDisplayName = () => {
-    if (userData?.firstName && userData?.lastName) {
-      return `Dr. ${userData.firstName} ${userData.lastName}`;
-    } else if (userData?.firstName) {
+    if (userData?.firstName) {
       return `Dr. ${userData.firstName}`;
     } else if (userData?.lastName) {
       return `Dr. ${userData.lastName}`;
     } else if (session?.user?.name) {
-      return `Dr. ${session.user.name}`;
+      const firstName = session.user.name.split(' ')[0];
+      return `Dr. ${firstName}`;
     } else if (session?.user?.email) {
       const emailName = session.user.email.split('@')[0];
       return `Dr. ${emailName.charAt(0).toUpperCase() + emailName.slice(1)}`;

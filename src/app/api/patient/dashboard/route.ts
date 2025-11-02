@@ -85,13 +85,13 @@ export async function GET(request: NextRequest) {
     // Format data
     const formattedDoctors = connectedDoctors.map(doctor => ({
       id: doctor.id,
-      name: `Dr. ${doctor.firstName} ${doctor.lastName}`,
+      name: `Dr. ${doctor.firstName}`,
       specialty: doctor.specialty || 'General Medicine',
     }));
 
     const formattedAppointments = recentAppointments.map(appointment => ({
       id: appointment.id,
-      doctorName: `Dr. ${appointment.provider?.firstName} ${appointment.provider?.lastName}`,
+      doctorName: `Dr. ${appointment.provider?.firstName}`,
       date: appointment.date.toLocaleDateString(),
       time: appointment.date.toLocaleTimeString(),
       status: appointment.status,
