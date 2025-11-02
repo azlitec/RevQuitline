@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -13,7 +13,7 @@ interface PaymentStatus {
   transactionId?: string;
 }
 
-export default function PaymentReturnPage() {
+function PaymentReturnContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
@@ -206,5 +206,25 @@ export default function PaymentReturnPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentReturnPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+          <div className="text-center">
+            <div className="flex justify-center mb-6">
+              <Loader2 className="w-16 h-16 animate-spin text-blue-600" />
+            </div>
+            <h1 className="text-xl font-bold mb-2">Loading...</h1>
+            <p className="text-sm text-gray-600">Please wait while we process your payment status...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <PaymentReturnContent />
+    </Suspense>
   );
 }
