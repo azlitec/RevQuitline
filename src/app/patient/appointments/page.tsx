@@ -476,7 +476,7 @@ function PatientAppointmentsContent() {
     { value: 'follow_up', label: 'Follow-up Appointment', price: null },
     { value: 'emergency', label: 'Emergency Consultation', price: null },
     { value: 'quitline_smoking_cessation', label: 'Quitline Free-Smoking Session (INRT)', price: 150 },
-    { value: 'psychiatrist_session', label: 'Psychiatrist Session', price: 200 },
+    { value: 'psychiatrist_session', label: 'Psychiatrist Session', price: 300 },
   ];
 
   const selectedServiceInfo = serviceOptions.find(s => s.value === selectedService);
