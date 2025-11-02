@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 // Clean Icon component
 const IconWithFallback = ({ icon, emoji, className = '' }: {
@@ -31,10 +32,22 @@ const navigationItems = [
 
 export default function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { counts } = useNotifications();
 
   const handleLinkClick = () => {
     if (isMobile && onClose) {
       onClose();
+    }
+  };
+
+  const getNotificationCount = (itemName: string): number => {
+    switch (itemName) {
+      case 'Messages':
+        return counts.unreadMessages;
+      case 'Appointments':
+        return counts.upcomingAppointments;
+      default:
+        return 0;
     }
   };
 
@@ -68,18 +81,25 @@ export default function Sidebar({ isMobile = false, onClose }: SidebarProps) {
                   <Link
                     href={item.href}
                     onClick={handleLinkClick}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    className={`flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 ${
                       isActive
                         ? 'bg-blue-50 text-blue-600 border border-blue-200 shadow-sm'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
                     }`}
                   >
-                    <IconWithFallback
-                      icon={item.icon}
-                      emoji={item.emoji}
-                      className={isActive ? 'text-blue-600' : 'text-gray-500'}
-                    />
-                    <span className="font-medium">{item.name}</span>
+                    <div className="flex items-center space-x-3">
+                      <IconWithFallback
+                        icon={item.icon}
+                        emoji={item.emoji}
+                        className={isActive ? 'text-blue-600' : 'text-gray-500'}
+                      />
+                      <span className="font-medium">{item.name}</span>
+                    </div>
+                    {getNotificationCount(item.name) > 0 && (
+                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] h-5 flex items-center justify-center">
+                        {getNotificationCount(item.name)}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
@@ -121,6 +141,13 @@ export default function Sidebar({ isMobile = false, onClose }: SidebarProps) {
                     emoji={item.emoji}
                     className={`text-xl ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-600'}`}
                   />
+                  
+                  {/* Notification Badge */}
+                  {getNotificationCount(item.name) > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-lg">
+                      {getNotificationCount(item.name)}
+                    </span>
+                  )}
                   
                   {/* Tooltip */}
                   <span className="absolute left-full ml-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">

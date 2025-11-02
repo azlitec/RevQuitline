@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Calendar, Clock, Video, MapPin, Loader2 } from 'lucide-react';
 import IntakeForm from '@/components/patient/IntakeForm';
 import { CalendarPicker } from '@/components/ui/CalendarPicker';
+import PaymentGuide from '@/components/patient/PaymentGuide';
 
 interface Appointment {
   id: string;
@@ -61,6 +62,9 @@ function PatientAppointmentsContent() {
   const [pendingBookingData, setPendingBookingData] = useState<any>(null);
   const [minimumBookingTime, setMinimumBookingTime] = useState<string>('');
   const [completedIntakeForms, setCompletedIntakeForms] = useState<Set<string>>(new Set());
+  const [showPaymentGuide, setShowPaymentGuide] = useState(false);
+  const [selectedPaymentAppointment, setSelectedPaymentAppointment] = useState<any>(null);
+  const [paymentStatuses, setPaymentStatuses] = useState<Record<string, string>>({});
 
   // Simple slot assumptions (can be replaced with real availability later)
   const defaultTimes = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
@@ -115,9 +119,9 @@ function PatientAppointmentsContent() {
       setLoading(true);
       setError(null);
 
-      const status = selectedTab === 'upcoming' ? 'scheduled,confirmed,in-progress' : 'completed,cancelled,no-show';
+      // Fetch all appointments and filter by date on frontend
       // Pass pagination explicitly; API supports page & limit via PaginationSchema
-      const response = await fetch(`/api/appointments?status=${encodeURIComponent(status)}&page=0&limit=50`);
+      const response = await fetch(`/api/appointments?page=0&limit=50`);
 
       if (!response.ok) {
         const detail = `HTTP ${response.status}`;
@@ -125,7 +129,8 @@ function PatientAppointmentsContent() {
       }
 
       const envelope = await response.json();
-      const items = envelope.items ?? envelope.appointments ?? [];
+      // Fix: API returns { success: true, data: { items, total, page, pageSize } }
+      const items = envelope.data?.items ?? envelope.items ?? envelope.appointments ?? [];
       setAppointments(items);
 
       // Check intake form status for quitline appointments
@@ -134,6 +139,12 @@ function PatientAppointmentsContent() {
       // Check intake form status for each quitline appointment
       for (const appointment of quitlineAppointments) {
         await checkIntakeFormStatus(appointment.id);
+      }
+
+      // Check payment status for appointments with price
+      const paidAppointments = items.filter((apt: any) => apt.price && apt.price > 0);
+      for (const appointment of paidAppointments) {
+        await checkPaymentStatus(appointment.id);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -172,6 +183,26 @@ function PatientAppointmentsContent() {
     }
   };
 
+  const checkPaymentStatus = async (appointmentId: string) => {
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}/payment-status`);
+      if (response.ok) {
+        const data = await response.json();
+        setPaymentStatuses(prev => ({
+          ...prev,
+          [appointmentId]: data.status || 'pending'
+        }));
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      // Default to pending if can't check
+      setPaymentStatuses(prev => ({
+        ...prev,
+        [appointmentId]: 'pending'
+      }));
+    }
+  };
+
   const cancelAppointment = async (appointmentId: string) => {
     if (!confirm('Are you sure you want to cancel this appointment?')) {
       return;
@@ -195,6 +226,34 @@ function PatientAppointmentsContent() {
     } catch (err) {
       console.error('Error cancelling appointment:', err);
       alert('Failed to cancel appointment. Please try again.');
+    }
+  };
+
+  const handlePayment = async (appointmentId: string) => {
+    try {
+      setBookingLoading(true);
+      
+      const response = await fetch('/api/payment/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ appointmentId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Redirect to BayarCash payment page
+        window.location.href = data.paymentUrl;
+      } else {
+        alert(data.error || 'Failed to create payment. Please try again.');
+      }
+    } catch (error) {
+      console.error('Payment creation error:', error);
+      alert('An error occurred while creating payment. Please try again.');
+    } finally {
+      setBookingLoading(false);
     }
   };
 
@@ -340,7 +399,36 @@ function PatientAppointmentsContent() {
       // Refresh appointments list
       fetchAppointments();
 
-      alert('Appointment booked successfully!');
+      // If appointment has price, redirect to payment immediately
+      if (newAppointment.price && newAppointment.price > 0) {
+        // Show success message first
+        alert(`Appointment booked successfully! You will now be redirected to payment (RM ${newAppointment.price.toFixed(2)})`);
+        
+        // Redirect to payment
+        try {
+          const paymentResponse = await fetch('/api/payment/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ appointmentId: newAppointment.id }),
+          });
+
+          const paymentData = await paymentResponse.json();
+
+          if (paymentResponse.ok && paymentData.success) {
+            // Redirect to BayarCash payment page
+            window.location.href = paymentData.paymentUrl;
+          } else {
+            alert(`Appointment booked, but payment setup failed: ${paymentData.error}. You can pay later from your appointments page.`);
+          }
+        } catch (paymentError) {
+          console.error('Payment setup error:', paymentError);
+          alert('Appointment booked successfully! You can complete payment from your appointments page.');
+        }
+      } else {
+        alert('Appointment booked successfully!');
+      }
 
     } catch (err) {
       console.error('Error booking appointment:', err);
@@ -367,12 +455,18 @@ function PatientAppointmentsContent() {
     location: apt.meetingLink ? 'Virtual - Google Meet' : 'In-Person'
   }));
 
-  const upcomingAppointments = formattedAppointments.filter(apt =>
-    ['Scheduled', 'Confirmed', 'In-progress'].includes(apt.status)
-  );
-  const pastAppointments = formattedAppointments.filter(apt =>
-    !['Scheduled', 'Confirmed', 'In-progress'].includes(apt.status)
-  );
+  // Filter based on date/time AND status
+  const now = new Date();
+  const upcomingAppointments = formattedAppointments.filter(apt => {
+    const appointmentDate = new Date(apt.date);
+    // Upcoming: appointment date is in the future AND status is not cancelled/completed/no-show
+    return appointmentDate >= now && !['Cancelled', 'Completed', 'No-show'].includes(apt.status);
+  });
+  const pastAppointments = formattedAppointments.filter(apt => {
+    const appointmentDate = new Date(apt.date);
+    // Past: appointment date is in the past OR status is cancelled/completed/no-show
+    return appointmentDate < now || ['Cancelled', 'Completed', 'No-show'].includes(apt.status);
+  });
 
   const displayedAppointments = selectedTab === 'upcoming' ? upcomingAppointments : pastAppointments;
 
@@ -382,6 +476,7 @@ function PatientAppointmentsContent() {
     { value: 'follow_up', label: 'Follow-up Appointment', price: null },
     { value: 'emergency', label: 'Emergency Consultation', price: null },
     { value: 'quitline_smoking_cessation', label: 'Quitline Free-Smoking Session (INRT)', price: 150 },
+    { value: 'psychiatrist_session', label: 'Psychiatrist Session', price: 200 },
   ];
 
   const selectedServiceInfo = serviceOptions.find(s => s.value === selectedService);
@@ -556,6 +651,35 @@ function PatientAppointmentsContent() {
               />
             </div>
 
+            {/* Payment Summary - Show if service has price */}
+            {selectedServiceInfo?.price && (
+              <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-orange-800">Payment Required</h3>
+                  <span className="text-2xl font-bold text-orange-600">RM {selectedServiceInfo.price}</span>
+                </div>
+                <div className="text-sm text-orange-700 space-y-1">
+                  <p>• Payment will be processed after booking confirmation</p>
+                  <p>• Multiple payment methods available (Card, Online Banking, E-Wallet)</p>
+                  <p>• Your appointment will be confirmed after successful payment</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const apt = {
+                      title: `${selectedServiceInfo?.label} with ${doctors.find(d => d.id === selectedDoctor)?.firstName} ${doctors.find(d => d.id === selectedDoctor)?.lastName}`,
+                      price: selectedServiceInfo.price
+                    };
+                    setSelectedPaymentAppointment(apt);
+                    setShowPaymentGuide(true);
+                  }}
+                  className="mt-3 text-sm text-orange-600 hover:text-orange-800 font-medium underline"
+                >
+                  View Payment Guide
+                </button>
+              </div>
+            )}
+
             {/* Error Display */}
             {bookingError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -576,13 +700,19 @@ function PatientAppointmentsContent() {
               <button
                 type="submit"
                 disabled={bookingLoading}
-                className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 shadow-medium hover:shadow-strong transition-all duration-300 font-semibold hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center space-x-2"
+                className={`px-8 py-3 text-white rounded-lg shadow-medium hover:shadow-strong transition-all duration-300 font-semibold hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center space-x-2 ${
+                  selectedServiceInfo?.price 
+                    ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800'
+                    : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800'
+                }`}
               >
                 {bookingLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Booking...</span>
+                    <span>Processing...</span>
                   </>
+                ) : selectedServiceInfo?.price ? (
+                  <span>Book & Pay RM {selectedServiceInfo.price}</span>
                 ) : (
                   <span>Book Appointment</span>
                 )}
@@ -646,6 +776,21 @@ function PatientAppointmentsContent() {
                       </span>
                       <span className="text-sm text-gray-600">• {appointment.duration}</span>
                       <span className="text-sm text-gray-600">• {appointment.location}</span>
+                      
+                      {/* Payment Status Indicator */}
+                      {appointments.find(apt => apt.id === appointment.id)?.price && appointments.find(apt => apt.id === appointment.id)?.price > 0 && (
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          paymentStatuses[appointment.id] === 'paid' 
+                            ? 'bg-green-100 text-green-700' 
+                            : paymentStatuses[appointment.id] === 'failed'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-orange-100 text-orange-700'
+                        }`}>
+                          {paymentStatuses[appointment.id] === 'paid' ? '✓ Paid' : 
+                           paymentStatuses[appointment.id] === 'failed' ? '✗ Payment Failed' : 
+                           '⏳ Payment Pending'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -662,6 +807,42 @@ function PatientAppointmentsContent() {
                   </span>
                   {selectedTab === 'upcoming' && (
                     <div className="flex space-x-2">
+                      {/* Payment Button - Show if appointment has price and not paid */}
+                      {appointments.find(apt => apt.id === appointment.id)?.price && 
+                       appointments.find(apt => apt.id === appointment.id)?.price > 0 && 
+                       paymentStatuses[appointment.id] !== 'paid' && (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              const apt = appointments.find(a => a.id === appointment.id);
+                              setSelectedPaymentAppointment(apt);
+                              setShowPaymentGuide(true);
+                            }}
+                            className="px-4 py-2 border border-orange-600 text-orange-600 rounded-lg text-sm hover:bg-orange-50 transition-all duration-300 font-medium"
+                          >
+                            Payment Guide
+                          </button>
+                          <button
+                            onClick={() => handlePayment(appointment.id)}
+                            className="px-6 py-2 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg text-sm hover:from-orange-700 hover:to-orange-800 shadow-medium hover:shadow-strong transition-all duration-300 font-semibold hover:scale-105"
+                          >
+                            {paymentStatuses[appointment.id] === 'failed' ? 'Retry Payment' : 'Pay Now'} - RM {appointments.find(apt => apt.id === appointment.id)?.price?.toFixed(2)}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Payment Completed Indicator */}
+                      {appointments.find(apt => apt.id === appointment.id)?.price && 
+                       appointments.find(apt => apt.id === appointment.id)?.price > 0 && 
+                       paymentStatuses[appointment.id] === 'paid' && (
+                        <div className="flex items-center space-x-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+                          <span className="text-green-600">✓</span>
+                          <span className="text-sm font-medium text-green-700">
+                            Payment Completed - RM {appointments.find(apt => apt.id === appointment.id)?.price?.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      
                       {/* Intake Form Button for Quitline Appointments */}
                       {appointment.type === 'Quitline_smoking_cessation' && (
                         <button
@@ -872,6 +1053,20 @@ function PatientAppointmentsContent() {
                 </div>
               </div>
 
+              {/* Payment Summary in Confirmation Modal */}
+              {pendingBookingData?.price && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold text-orange-800 mb-2">Payment Required</h4>
+                  <div className="flex justify-between items-center">
+                    <span className="text-orange-700">Total Amount:</span>
+                    <span className="text-xl font-bold text-orange-600">RM {pendingBookingData.price}</span>
+                  </div>
+                  <p className="text-sm text-orange-700 mt-2">
+                    You will be redirected to payment after booking confirmation.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
                 <button
                   onClick={() => {
@@ -885,15 +1080,30 @@ function PatientAppointmentsContent() {
                 </button>
                 <button
                   onClick={() => proceedWithBooking(pendingBookingData)}
-                  className="px-6 md:px-8 py-2 text-sm md:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors shadow-medium hover:shadow-strong touch-friendly font-medium"
+                  className={`px-6 md:px-8 py-2 text-sm md:text-base text-white rounded-lg shadow-medium hover:shadow-strong touch-friendly font-medium transition-colors ${
+                    pendingBookingData?.price 
+                      ? 'bg-orange-600 hover:bg-orange-700 active:bg-orange-800'
+                      : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+                  }`}
                 >
-                  Proceed with Booking
+                  {pendingBookingData?.price ? `Book & Pay RM ${pendingBookingData.price}` : 'Proceed with Booking'}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Payment Guide Modal */}
+      <PaymentGuide
+        isOpen={showPaymentGuide}
+        onClose={() => {
+          setShowPaymentGuide(false);
+          setSelectedPaymentAppointment(null);
+        }}
+        amount={selectedPaymentAppointment?.price}
+        appointmentTitle={selectedPaymentAppointment?.title}
+      />
     </div>
   );
 }

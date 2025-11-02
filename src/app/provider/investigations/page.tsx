@@ -94,6 +94,12 @@ export default function ProviderInvestigationsPage() {
   const [resultsTotal, setResultsTotal] = useState<number>(0);
   const [resultsLoading, setResultsLoading] = useState<boolean>(false);
 
+  // Detail view states
+  const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
+  const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
+  const [showOrderDetail, setShowOrderDetail] = useState(false);
+  const [showResultDetail, setShowResultDetail] = useState(false);
+
   // Persist filters to localStorage and restore
   useEffect(() => {
     try {
@@ -137,6 +143,27 @@ export default function ProviderInvestigationsPage() {
   }, []);
 
   const providerId = session?.user?.id;
+
+  // Detail view handlers
+  const handleViewOrder = (order: OrderItem) => {
+    setSelectedOrder(order);
+    setShowOrderDetail(true);
+  };
+
+  const handleViewResult = (result: ResultItem) => {
+    setSelectedResult(result);
+    setShowResultDetail(true);
+  };
+
+  const closeOrderDetail = () => {
+    setShowOrderDetail(false);
+    setSelectedOrder(null);
+  };
+
+  const closeResultDetail = () => {
+    setShowResultDetail(false);
+    setSelectedResult(null);
+  };
 
   const fetchOrders = useCallback(async () => {
     if (!providerId) return;
@@ -239,7 +266,13 @@ export default function ProviderInvestigationsPage() {
           <h1 className="text-2xl font-bold text-gray-800">Investigations</h1>
           <p className="text-gray-600">Orders and Results with abnormal/critical flags</p>
         </div>
-        <div className="flex items-center gap-2" aria-label="Totals">
+        <div className="flex items-center gap-3" aria-label="Actions and Totals">
+          <button
+            onClick={() => alert('Create New Order functionality to be implemented')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Create New Order
+          </button>
           <span className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
             {totalLabel} {activeTab === 'orders' ? 'Orders' : 'Results'}
           </span>
@@ -372,7 +405,7 @@ export default function ProviderInvestigationsPage() {
                     <button
                       className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50"
                       aria-label="View order details"
-                      onClick={() => alert(`Order ${o.id}`)}
+                      onClick={() => handleViewOrder(o)}
                     >
                       View
                     </button>
@@ -467,7 +500,7 @@ export default function ProviderInvestigationsPage() {
                     <button
                       className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50"
                       aria-label="View result details"
-                      onClick={() => alert(`Result ${r.id}`)}
+                      onClick={() => handleViewResult(r)}
                     >
                       View
                     </button>
@@ -499,6 +532,229 @@ export default function ProviderInvestigationsPage() {
               >
                 Next
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Detail Modal */}
+      {showOrderDetail && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Investigation Order Details</h2>
+                <button
+                  onClick={closeOrderDetail}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close"
+                >
+                  <span className="text-2xl">&times;</span>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Investigation Name</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedOrder.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Code</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedOrder.code || 'N/A'}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    <span className={`mt-1 inline-block px-2 py-1 text-xs rounded-full ${
+                      selectedOrder.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      selectedOrder.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {selectedOrder.status}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Ordered Date</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {new Date(selectedOrder.orderedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Patient ID</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedOrder.patientId}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Encounter ID</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedOrder.encounterId || 'N/A'}</p>
+                  </div>
+                </div>
+                
+                {selectedOrder.notes && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Notes</label>
+                    <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded">
+                      {selectedOrder.notes}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedOrder.lastResult && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Latest Result</label>
+                    <div className="mt-1 bg-gray-50 p-3 rounded">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Value:</span> {selectedOrder.lastResult.value || 'N/A'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Units:</span> {selectedOrder.lastResult.units || 'N/A'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Interpretation:</span> {interpretationChip(selectedOrder.lastResult.interpretation)}
+                        </div>
+                        <div>
+                          <span className="font-medium">Reviewed:</span> {reviewedChip(selectedOrder.lastResult.reviewed)}
+                        </div>
+                      </div>
+                      {selectedOrder.lastResult.observedAt && (
+                        <div className="mt-2 text-sm text-gray-600">
+                          Observed: {new Date(selectedOrder.lastResult.observedAt).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                  <div>
+                    <span className="font-medium">Created:</span> {new Date(selectedOrder.createdAt).toLocaleString()}
+                  </div>
+                  <div>
+                    <span className="font-medium">Updated:</span> {new Date(selectedOrder.updatedAt).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={closeOrderDetail}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result Detail Modal */}
+      {showResultDetail && selectedResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Investigation Result Details</h2>
+                <button
+                  onClick={closeResultDetail}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close"
+                >
+                  <span className="text-2xl">&times;</span>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Test Name</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedResult.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Code</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedResult.code || 'N/A'}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Value</label>
+                    <p className="mt-1 text-sm text-gray-900 font-semibold">
+                      {selectedResult.value || 'N/A'} {selectedResult.units || ''}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Interpretation</label>
+                    <div className="mt-1">{interpretationChip(selectedResult.interpretation)}</div>
+                  </div>
+                </div>
+                
+                {(selectedResult.referenceRangeLow !== null || selectedResult.referenceRangeHigh !== null) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Reference Range</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {selectedResult.referenceRangeLow || 'N/A'} - {selectedResult.referenceRangeHigh || 'N/A'}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Observed Date</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {selectedResult.observedAt ? new Date(selectedResult.observedAt).toLocaleString() : 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Review Status</label>
+                    <div className="mt-1">{reviewedChip(selectedResult.reviewed)}</div>
+                  </div>
+                </div>
+                
+                {selectedResult.reviewed && selectedResult.reviewedAt && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Reviewed Date</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {new Date(selectedResult.reviewedAt).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                  <div>
+                    <span className="font-medium">Order ID:</span> {selectedResult.orderId}
+                  </div>
+                  <div>
+                    <span className="font-medium">Result ID:</span> {selectedResult.id}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end space-x-3">
+                {!selectedResult.reviewed && (
+                  <button
+                    onClick={() => {
+                      // TODO: Implement mark as reviewed functionality
+                      alert('Mark as reviewed functionality to be implemented');
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Mark as Reviewed
+                  </button>
+                )}
+                <button
+                  onClick={closeResultDetail}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

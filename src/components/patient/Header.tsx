@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
+import Link from 'next/link';
 import NotificationBell from '@/components/ui/NotificationBell';
 
 // Enhanced Icon component with fallbacks
@@ -189,14 +190,22 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   </div>
                 </div>
                 <div className="p-2">
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3">
+                  <Link 
+                    href="/patient/profile"
+                    className="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3"
+                    onClick={() => setShowProfileMenu(false)}
+                  >
                     <IconWithFallback icon="person" emoji="👤" className="text-gray-500" />
                     <span>Profile Settings</span>
-                  </button>
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3">
+                  </Link>
+                  <Link 
+                    href="/patient/profile"
+                    className="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3"
+                    onClick={() => setShowProfileMenu(false)}
+                  >
                     <IconWithFallback icon="favorite" emoji="❤️" className="text-gray-500" />
                     <span>Health Preferences</span>
-                  </button>
+                  </Link>
                   <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3">
                     <IconWithFallback icon="help" emoji="❓" className="text-gray-500" />
                     <span>Help & Support</span>

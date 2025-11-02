@@ -1,213 +1,219 @@
-import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
-import {
-  requirePermission,
-  requireProviderForDraftOrUpdate,
-  ensureProviderPatientLink,
-  parseJson,
-} from '@/lib/api/guard';
-import { EmrNotesListQuerySchema } from '@/lib/validators/emr';
-import { NotesController } from '@/lib/controllers/notes.controller';
-import { jsonList, jsonEntity, jsonError } from '@/lib/api/response';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+import { prisma } from '@/lib/db';
 
 /**
- * Provider EMR Notes Route
- * /api/provider/patients/{patientId}/emr/notes
- *
- * - GET: list progress notes (SOAP) for provider↔patient with pagination/filters
- * - POST: create draft progress note tied to Encounter
- * - PUT: update draft progress note (autosave)
- *
- * Guards:
- * - GET: progress_note.read + approved provider↔patient link
- * - POST/PUT: provider with draft/update capabilities + approved provider↔patient link
- * Errors:
- * - RFC7807 Problem+JSON via toProblemJson()
+ * Simplified Provider EMR Notes API
+ * - GET: List progress notes for a specific patient
+ * - POST: Create a new progress note for a patient
  */
 
-function parseListQuery(req: NextRequest) {
-  const sp = new URL(req.url).searchParams;
-  const obj = {
-    page: sp.get('page') ?? undefined,
-    pageSize: sp.get('pageSize') ?? undefined,
-    encounterId: sp.get('encounterId') ?? undefined,
-    status: sp.get('status') ?? undefined,
-    keywords: sp.get('keywords') ?? undefined,
-  };
-  const parsed = EmrNotesListQuerySchema.safeParse(obj);
-  if (!parsed.success) {
-    throw Object.assign(new Error('Validation failed'), {
-      status: 400,
-      issues: parsed.error.flatten(),
-    });
-  }
-  return parsed.data;
-}
-
-/**
- * GET /api/provider/patients/{patientId}/emr/notes
- * List notes for provider↔patient.
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: { patientId: string } }
 ) {
-  let session: any | null = null;
   try {
-    session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
-    }
-
-    // RBAC
-    try {
-      requirePermission(session, 'progress_note.read');
-    } catch (err: any) {
-      return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const patientId = params.patientId;
     if (!patientId) {
-      return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
+      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
 
-    // Approved provider↔patient link
-    try {
-      await ensureProviderPatientLink(session, patientId);
-    } catch (err: any) {
-      return jsonError(request, err, { title: 'Access denied', status: err?.status ?? 403 });
-    }
+    const notes = await prisma.progressNote.findMany({
+      where: {
+        patientId: patientId,
+        authorId: session.user.id
+      },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        encounter: {
+          select: {
+            id: true,
+            type: true,
+            startTime: true,
+            status: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
-    const query = parseListQuery(request);
-    const providerId = session.user.id;
-
-    const result = await NotesController.list(
-      request,
-      session,
-      providerId,
-      patientId,
-      query
+    return NextResponse.json({ notes });
+  } catch (error) {
+    console.error('Error fetching patient notes:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch patient notes' },
+      { status: 500 }
     );
-
-    return jsonList(request, result, 200);
-  } catch (err: any) {
-    console.error('[EMR Notes GET] Error', err);
-    const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
-    const issues = err?.issues;
-    return jsonError(request, err, { title: 'Failed to list notes', status });
   }
 }
 
-/**
- * POST /api/provider/patients/{patientId}/emr/notes
- * Create draft progress note tied to Encounter.
- */
 export async function POST(
   request: NextRequest,
   { params }: { params: { patientId: string } }
 ) {
-  let session: any | null = null;
   try {
-    session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
-    }
-
-    // RBAC provider draft/update capability
-    try {
-      requireProviderForDraftOrUpdate(session);
-    } catch (err: any) {
-      return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const patientId = params.patientId;
     if (!patientId) {
-      return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
+      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
 
-    // Approved provider↔patient link
-    try {
-      await ensureProviderPatientLink(session, patientId);
-    } catch (err: any) {
-      return jsonError(request, err, { title: 'Access denied', status: err?.status ?? 403 });
-    }
+    const body = await request.json();
+    const { subjective, objective, assessment, plan, summary, appointmentId } = body;
 
-    // Validate payload using guard DTO
-    const body = await parseJson(request as any, (await import('@/lib/api/guard')).ProgressNoteDraftCreateSchema);
-    const providerId = session.user.id;
+    // Create a basic encounter automatically
+    const basicEncounter = await prisma.encounter.create({
+      data: {
+        patientId: patientId,
+        providerId: session.user.id,
+        appointmentId: appointmentId || null,
+        type: 'consultation',
+        mode: 'in_person',
+        startTime: new Date(),
+        status: 'in_progress'
+      }
+    });
 
-    const created = await NotesController.createDraft(
-      request,
-      session,
-      providerId,
-      patientId,
-      body
+    // Create the progress note
+    const progressNote = await prisma.progressNote.create({
+      data: {
+        encounterId: basicEncounter.id,
+        patientId: patientId,
+        authorId: session.user.id,
+        status: 'draft',
+        subjective: subjective || null,
+        objective: objective || null,
+        assessment: assessment || null,
+        plan: plan || null,
+        summary: summary || null
+      },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        encounter: {
+          select: {
+            id: true,
+            type: true,
+            startTime: true,
+            status: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({ progressNote }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating patient note:', error);
+    return NextResponse.json(
+      { error: 'Failed to create patient note' },
+      { status: 500 }
     );
-
-    return jsonEntity(request, created, 201);
-  } catch (err: any) {
-    console.error('[EMR Notes POST] Error', err);
-    const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
-    const issues = err?.issues;
-    return jsonError(request, err, { title: 'Failed to create progress note', status });
   }
 }
 
-/**
- * PUT /api/provider/patients/{patientId}/emr/notes
- * Update draft progress note (autosave).
- */
 export async function PUT(
   request: NextRequest,
   { params }: { params: { patientId: string } }
 ) {
-  let session: any | null = null;
   try {
-    session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
-    }
-
-    // RBAC provider draft/update capability
-    try {
-      requireProviderForDraftOrUpdate(session);
-    } catch (err: any) {
-      return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const patientId = params.patientId;
     if (!patientId) {
-      return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
+      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
 
-    // Approved provider↔patient link
-    try {
-      await ensureProviderPatientLink(session, patientId);
-    } catch (err: any) {
-      return jsonError(request, err, { title: 'Access denied', status: err?.status ?? 403 });
+    const body = await request.json();
+    const { id, subjective, objective, assessment, plan, summary, status } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Progress note ID is required' }, { status: 400 });
     }
 
-    // Validate payload using guard DTO
-    const body = await parseJson(request as any, (await import('@/lib/api/guard')).ProgressNoteUpdateSchema);
-    const providerId = session.user.id;
+    // Verify the note belongs to this provider and patient
+    const existingNote = await prisma.progressNote.findFirst({
+      where: {
+        id: id,
+        patientId: patientId,
+        authorId: session.user.id
+      }
+    });
 
-    const updated = await NotesController.updateDraft(
-      request,
-      session,
-      providerId,
-      patientId,
-      body
+    if (!existingNote) {
+      return NextResponse.json(
+        { error: 'Progress note not found or access denied' },
+        { status: 404 }
+      );
+    }
+
+    const updateData: any = {};
+    if (subjective !== undefined) updateData.subjective = subjective;
+    if (objective !== undefined) updateData.objective = objective;
+    if (assessment !== undefined) updateData.assessment = assessment;
+    if (plan !== undefined) updateData.plan = plan;
+    if (summary !== undefined) updateData.summary = summary;
+    if (status !== undefined) updateData.status = status;
+
+    const progressNote = await prisma.progressNote.update({
+      where: { id: id },
+      data: updateData,
+      include: {
+        patient: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        encounter: {
+          select: {
+            id: true,
+            type: true,
+            startTime: true,
+            status: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({ progressNote });
+  } catch (error) {
+    console.error('Error updating patient note:', error);
+    return NextResponse.json(
+      { error: 'Failed to update patient note' },
+      { status: 500 }
     );
-
-    return jsonEntity(request, updated, 200);
-  } catch (err: any) {
-    console.error('[EMR Notes PUT] Error', err);
-    const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
-    const issues = err?.issues;
-    return jsonError(request, err, { title: 'Failed to update progress note', status });
   }
 }

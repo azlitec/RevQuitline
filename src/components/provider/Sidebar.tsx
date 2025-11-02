@@ -22,7 +22,6 @@ const navigationItems: NavItem[] = [
   { name: 'Appointments', href: '/provider/appointments', icon: 'calendar_today' },
   { name: 'Patients', href: '/provider/patients', icon: 'people' },
   { name: 'Inbox', href: '/provider/inbox', icon: 'chat' },
-  { name: 'Profile', href: '/provider/profile', icon: 'person' },
   { name: 'Consultations', href: '/provider/consultations', icon: 'local_hospital' },
   { name: 'Prescriptions', href: '/provider/prescriptions', icon: 'medication' },
   { name: 'Reports', href: '/provider/reports', icon: 'assignment' },

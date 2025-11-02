@@ -32,6 +32,8 @@ export async function GET(request: NextRequest) {
     } else {
       whereClause.patientId = session.user.id;
     }
+    
+
 
     // Status filter: allow CSV and validate against enum options
     if (status && status !== 'all') {
@@ -57,6 +59,8 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
     const total = await prisma.appointment.count({ where: whereClause });
+    
+
 
     // Standardized list envelope
     return jsonList(request, { items: appointments, total, page, pageSize: limit }, 200);

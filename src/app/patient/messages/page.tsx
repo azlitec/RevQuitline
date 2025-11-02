@@ -77,6 +77,7 @@ export default function PatientMessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [showDoctorList, setShowDoctorList] = useState(false);
   const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -90,7 +91,17 @@ export default function PatientMessagesPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [selectedConversation, conversations]);
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    // Scroll to bottom when messages change for the selected conversation
+    if (selectedConversation) {
+      const currentConv = conversations.find(c => c.id === selectedConversation);
+      if (currentConv && currentConv.messages.length > 0) {
+        scrollToBottom();
+      }
+    }
+  }, [conversations, selectedConversation]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -116,6 +127,79 @@ export default function PatientMessagesPage() {
       setConversations([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markConversationAsRead = async (conversationId: string) => {
+    try {
+      // Optimistically update UI
+      setConversations(convs => 
+        convs.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c)
+      );
+
+      const response = await fetch(`/api/patient/messages/${conversationId}/read`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        console.log('Failed to mark messages as read, but UI updated optimistically');
+      }
+    } catch (err) {
+      console.log('Mark as read API call failed, but UI updated optimistically', err);
+    }
+  };
+
+  const fetchConversationMessages = async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/patient/messages/${conversationId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Update the conversation with the loaded messages
+        setConversations(convs =>
+          convs.map(c => c.id === conversationId ? { ...c, messages: data.messages || [] } : c)
+        );
+      } else {
+        // If API fails, keep existing messages or show demo messages
+        const currentConv = conversations.find(c => c.id === conversationId);
+        if (currentConv && currentConv.messages.length === 0) {
+          // Add demo messages if no messages exist
+          const demoMessages = [
+            {
+              id: '1',
+              content: `Hello! I'm Dr. ${currentConv.doctor.firstName} ${currentConv.doctor.lastName}. How can I help you today?`,
+              senderId: conversationId,
+              senderName: `Dr. ${currentConv.doctor.firstName} ${currentConv.doctor.lastName}`,
+              senderType: 'doctor' as const,
+              timestamp: new Date().toISOString(),
+              read: false
+            }
+          ];
+          setConversations(convs =>
+            convs.map(c => c.id === conversationId ? { ...c, messages: demoMessages } : c)
+          );
+        }
+      }
+    } catch (err) {
+      console.log('Fetch conversation messages failed, using fallback', err);
+      // Add demo messages as fallback
+      const currentConv = conversations.find(c => c.id === conversationId);
+      if (currentConv && currentConv.messages.length === 0) {
+        const demoMessages = [
+          {
+            id: '1',
+            content: `Hello! I'm Dr. ${currentConv.doctor.firstName} ${currentConv.doctor.lastName}. How can I help you today?`,
+            senderId: conversationId,
+            senderName: `Dr. ${currentConv.doctor.firstName} ${currentConv.doctor.lastName}`,
+            senderType: 'doctor' as const,
+            timestamp: new Date().toISOString(),
+            read: false
+          }
+        ];
+        setConversations(convs =>
+          convs.map(c => c.id === conversationId ? { ...c, messages: demoMessages } : c)
+        );
+      }
     }
   };
 
@@ -182,7 +266,11 @@ export default function PatientMessagesPage() {
   };
 
   const sendMessage = async (conversationId: string) => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || sendingMessage) return;
+
+    const messageContent = newMessage.trim();
+    setSendingMessage(true);
+    setNewMessage(''); // Clear input immediately for better UX
 
     try {
       const response = await fetch('/api/patient/messages/send', {
@@ -192,46 +280,20 @@ export default function PatientMessagesPage() {
         },
         body: JSON.stringify({
           conversationId,
-          content: newMessage.trim(),
+          content: messageContent,
         }),
       });
 
       if (response.ok) {
         // Refresh conversations to get the new message
         await fetchConversations();
-        setNewMessage('');
+        // Reload messages for current conversation
+        fetchConversationMessages(conversationId);
       } else {
         // Simulate message sent for demo - add to current conversation
-        if (currentConversation) {
-          const newMsg = {
-            id: Date.now().toString(),
-            content: newMessage.trim(),
-            senderId: session?.user?.id || 'patient',
-            senderName: session?.user?.name || 'You',
-            senderType: 'patient' as const,
-            timestamp: new Date().toISOString(),
-            read: true
-          };
-          
-          const updatedConversation = {
-            ...currentConversation,
-            messages: [...currentConversation.messages, newMsg],
-            lastMessage: newMsg
-          };
-          
-          setConversations(convs =>
-            convs.map(c => c.id === conversationId ? updatedConversation : c)
-          );
-        }
-        setNewMessage('');
-      }
-    } catch (err) {
-      console.log('API call failed, using fallback mock message for patient', err);
-      // Simulate message sent for demo - add to current conversation
-      if (currentConversation) {
         const newMsg = {
           id: Date.now().toString(),
-          content: newMessage.trim(),
+          content: messageContent,
           senderId: session?.user?.id || 'patient',
           senderName: session?.user?.name || 'You',
           senderType: 'patient' as const,
@@ -239,17 +301,36 @@ export default function PatientMessagesPage() {
           read: true
         };
         
-        const updatedConversation = {
-          ...currentConversation,
-          messages: [...currentConversation.messages, newMsg],
-          lastMessage: newMsg
-        };
-        
         setConversations(convs =>
-          convs.map(c => c.id === conversationId ? updatedConversation : c)
+          convs.map(c => c.id === conversationId ? {
+            ...c,
+            messages: [...c.messages, newMsg],
+            lastMessage: newMsg
+          } : c)
         );
       }
-      setNewMessage('');
+    } catch (err) {
+      console.log('API call failed, using fallback mock message for patient', err);
+      // Simulate message sent for demo - add to current conversation
+      const newMsg = {
+        id: Date.now().toString(),
+        content: messageContent,
+        senderId: session?.user?.id || 'patient',
+        senderName: session?.user?.name || 'You',
+        senderType: 'patient' as const,
+        timestamp: new Date().toISOString(),
+        read: true
+      };
+      
+      setConversations(convs =>
+        convs.map(c => c.id === conversationId ? {
+          ...c,
+          messages: [...c.messages, newMsg],
+          lastMessage: newMsg
+        } : c)
+      );
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -268,49 +349,13 @@ export default function PatientMessagesPage() {
         setSelectedConversation(data.conversationId);
         setShowDoctorList(false);
         await fetchConversations();
+        // Load messages for the new conversation
+        fetchConversationMessages(data.conversationId);
       } else {
         // Create a demo conversation for the selected doctor
         const selectedDoctor = availableDoctors.find(d => d.id === doctorId);
         if (selectedDoctor) {
-          const demoConversation = {
-            id: doctorId,
-            doctor: selectedDoctor,
-            messages: [
-              {
-                id: '1',
-                content: `Hello! I'm Dr. ${selectedDoctor.firstName} ${selectedDoctor.lastName}. How can I help you today?`,
-                senderId: doctorId,
-                senderName: `Dr. ${selectedDoctor.firstName} ${selectedDoctor.lastName}`,
-                senderType: 'doctor' as const,
-                timestamp: new Date().toISOString(),
-                read: false
-              }
-            ],
-            unreadCount: 1,
-            lastMessage: {
-              id: '1',
-              content: `Hello! I'm Dr. ${selectedDoctor.firstName} ${selectedDoctor.lastName}. How can I help you today?`,
-              senderId: doctorId,
-              senderName: `Dr. ${selectedDoctor.firstName} ${selectedDoctor.lastName}`,
-              senderType: 'doctor' as const,
-              timestamp: new Date().toISOString(),
-              read: false
-            }
-          };
-          setConversations([demoConversation]);
-          setSelectedConversation(doctorId);
-          setShowDoctorList(false);
-        }
-      }
-    } catch (err) {
-      console.log('API call failed, using fallback mock message for doctor', err);
-      // Create a demo conversation for the selected doctor
-      const selectedDoctor = availableDoctors.find(d => d.id === doctorId);
-      if (selectedDoctor) {
-        const demoConversation = {
-          id: doctorId,
-          doctor: selectedDoctor,
-          messages: [
+          const demoMessages = [
             {
               id: '1',
               content: `Hello! I'm Dr. ${selectedDoctor.firstName} ${selectedDoctor.lastName}. How can I help you today?`,
@@ -320,9 +365,28 @@ export default function PatientMessagesPage() {
               timestamp: new Date().toISOString(),
               read: false
             }
-          ],
-          unreadCount: 1,
-          lastMessage: {
+          ];
+          
+          const demoConversation = {
+            id: doctorId,
+            doctor: selectedDoctor,
+            messages: demoMessages,
+            unreadCount: 1,
+            lastMessage: demoMessages[0]
+          };
+          
+          setConversations(prev => [...prev, demoConversation]);
+          setSelectedConversation(doctorId);
+          setShowDoctorList(false);
+        }
+      }
+    } catch (err) {
+      console.log('API call failed, using fallback mock message for doctor', err);
+      // Create a demo conversation for the selected doctor
+      const selectedDoctor = availableDoctors.find(d => d.id === doctorId);
+      if (selectedDoctor) {
+        const demoMessages = [
+          {
             id: '1',
             content: `Hello! I'm Dr. ${selectedDoctor.firstName} ${selectedDoctor.lastName}. How can I help you today?`,
             senderId: doctorId,
@@ -331,8 +395,17 @@ export default function PatientMessagesPage() {
             timestamp: new Date().toISOString(),
             read: false
           }
+        ];
+        
+        const demoConversation = {
+          id: doctorId,
+          doctor: selectedDoctor,
+          messages: demoMessages,
+          unreadCount: 1,
+          lastMessage: demoMessages[0]
         };
-        setConversations([demoConversation]);
+        
+        setConversations(prev => [...prev, demoConversation]);
         setSelectedConversation(doctorId);
         setShowDoctorList(false);
       }
@@ -356,290 +429,343 @@ export default function PatientMessagesPage() {
 
 
   return (
-    <>
-      {/* Enhanced Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold gradient-text">Messages</h2>
-          <p className="text-sm md:text-base text-gray-500 flex items-center">
-            Chat with your doctors
-            <span className="ml-2 text-sm text-gray-400">•</span>
-            <span className="ml-2 text-sm text-blue-600 font-medium">{conversations.length} conversations</span>
-          </p>
+    <div className="flex flex-col h-full bg-gradient-to-br from-blue-50 via-white to-gray-50">
+      {/* Simple Header */}
+      <div className={`bg-white border-b border-gray-200 px-4 md:px-6 py-3 flex-shrink-0 ${selectedConversation ? 'hidden md:block' : ''}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base md:text-lg font-bold text-gray-800 flex items-center space-x-2">
+              <IconWithFallback icon="chat" emoji="💬" className="text-blue-600" />
+              <span>Messages</span>
+            </h2>
+            <p className="text-xs text-gray-500 ml-8">
+              {conversations.length} conversations {conversations.reduce((sum, c) => sum + c.unreadCount, 0) > 0 && `• ${conversations.reduce((sum, c) => sum + c.unreadCount, 0)} unread`}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowDoctorList(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+          >
+            <IconWithFallback icon="add" emoji="➕" className="text-white" />
+            <span className="hidden sm:inline">New Message</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowDoctorList(true)}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
-        >
-          <IconWithFallback icon="add" emoji="➕" className="text-white" />
-          <span className="hidden sm:inline">New Message</span>
-          <span className="sm:hidden">New</span>
-        </button>
       </div>
 
-      {/* Enhanced Messages Interface */}
-      <div className="card rounded-[32px] bg-white/80 backdrop-blur-xl shadow-xl hover:shadow-lg transition-all duration-300 overflow-hidden">
-        <div className="flex min-h-[calc(100dvh-160px)]">
-          {/* Conversations List */}
-          <div className={`w-full md:w-1/3 border-r border-gray-200 bg-white ${selectedConversation ? 'hidden md:block' : ''}`}>
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                <IconWithFallback icon="chat" emoji="💬" className="text-blue-600" />
-                <h3 className="font-semibold text-gray-800">Conversations</h3>
-              </div>
+      {/* Main Chat Interface */}
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Conversations List */}
+        <div className={`
+          w-full md:w-80 lg:w-96 
+          bg-white border-r border-gray-200 
+          flex flex-col
+          ${selectedConversation ? 'hidden md:flex' : 'flex'}
+        `}>
+          {/* Search Bar */}
+          <div className="p-3 border-b border-gray-100 bg-gray-50 flex-shrink-0">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search doctors..."
+                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <IconWithFallback 
+                icon="search" 
+                emoji="🔍" 
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" 
+              />
             </div>
-            
-            <div className="overflow-y-auto h-full bg-white">
-              {conversations.length > 0 ? (
-                conversations.map((conversation) => (
+          </div>
+          
+          {/* Conversations List - Scrollable */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {conversations.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {conversations.map((conversation) => (
                   <div
                     key={conversation.id}
-                    onClick={() => setSelectedConversation(conversation.id)}
-                    className={`p-4 border-b border-gray-100 cursor-pointer transition-all duration-200 transform ${
-                      selectedConversation === conversation.id
-                        ? 'bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 scale-[1.02] shadow-lg'
-                        : 'bg-white hover:bg-gray-50'
-                    }`}
+                    onClick={() => {
+                      setSelectedConversation(conversation.id);
+                      // Mark as read when selected
+                      markConversationAsRead(conversation.id);
+                      // Load messages for this conversation
+                      fetchConversationMessages(conversation.id);
+                    }}
+                    className={`
+                      p-3 cursor-pointer transition-all duration-200
+                      hover:bg-blue-50
+                      ${selectedConversation === conversation.id 
+                        ? 'bg-blue-100 border-l-4 border-blue-600' 
+                        : conversation.unreadCount > 0 
+                          ? 'bg-blue-25' 
+                          : 'bg-white'
+                      }
+                    `}
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="relative">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div className="flex items-start space-x-3">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                           {conversation.doctor.firstName?.charAt(0)}{conversation.doctor.lastName?.charAt(0)}
                         </div>
                         {conversation.doctor.isOnline && (
-                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-gray-800 truncate">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <h4 className={`text-sm truncate ${
+                            conversation.unreadCount > 0 
+                              ? 'font-bold text-gray-900' 
+                              : 'font-medium text-gray-800'
+                          }`}>
                             Dr. {conversation.doctor.firstName} {conversation.doctor.lastName}
                           </h4>
                           {conversation.unreadCount > 0 && (
-                            <span className="bg-blue-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-lg font-semibold">
+                            <span className="flex-shrink-0 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full ml-2 font-semibold">
                               {conversation.unreadCount}
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500">{conversation.doctor.specialty}</p>
+                        <p className="text-xs text-gray-500">{conversation.doctor.specialty}</p>
                         {conversation.lastMessage && (
-                          <p className="text-xs text-gray-400 truncate mt-1">
-                            {conversation.lastMessage.content}
-                          </p>
+                          <>
+                            <p className={`text-xs truncate ${
+                              conversation.unreadCount > 0 
+                                ? 'font-medium text-gray-700' 
+                                : 'text-gray-500'
+                            }`}>
+                              {conversation.lastMessage.senderType === 'doctor' ? '' : 'You: '}
+                              {conversation.lastMessage.content}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {new Date(conversation.lastMessage.timestamp).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </p>
+                          </>
                         )}
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="p-8 text-center">
-                  <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
-                    <IconWithFallback icon="chat_bubble_outline" emoji="💭" className="text-gray-400 text-3xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full p-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <IconWithFallback icon="chat_bubble_outline" emoji="💭" className="text-gray-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-700 mb-3">No conversations yet</h3>
-                  <p className="text-gray-500 text-lg mb-6">Start a conversation with your doctors</p>
+                  <h3 className="text-sm font-medium text-gray-600 mb-1">No conversations yet</h3>
+                  <p className="text-xs text-gray-500 max-w-xs">
+                    Start a conversation with your doctors
+                  </p>
                   <button
                     onClick={() => setShowDoctorList(true)}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105"
+                    className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
                     Start New Conversation
                   </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Chat Area */}
-          <div className={`flex-1 flex flex-col ${!selectedConversation ? 'hidden md:flex' : ''}`}>
-            {selectedConversation && currentConversation ? (
-              <>
-                {/* Chat Header */}
-                <div className="p-3 md:p-4 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => setSelectedConversation(null)}
-                        className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <IconWithFallback icon="arrow_back" emoji="←" className="text-gray-600" />
-                      </button>
-                      <div className="relative">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                          {currentConversation.doctor.firstName?.charAt(0)}{currentConversation.doctor.lastName?.charAt(0)}
-                        </div>
-                        {currentConversation.doctor.isOnline && (
-                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800">
-                          Dr. {currentConversation.doctor.firstName} {currentConversation.doctor.lastName}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {currentConversation.doctor.isOnline ? 'Online' :
-                           currentConversation.doctor.lastSeen ? `Last seen ${new Date(currentConversation.doctor.lastSeen).toLocaleString()}` : 'Offline'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <IconWithFallback icon="more_vert" emoji="⋮" className="text-gray-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  <div className="flex justify-center my-2">
-                    <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">Today</span>
-                  </div>
-                  {currentConversation.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.senderType === 'patient' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`max-w-[70%] md:max-w-lg px-4 py-3 rounded-3xl mb-4 ${
-                        message.senderType === 'patient'
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg rounded-br-sm'
-                          : 'bg-white text-gray-800 border border-gray-100 shadow-md rounded-tl-sm'
-                      }`}>
-                        {/* Text or Voice Message */}
-                        {/\[voice:\d{2}:\d{2}\]/i.test(message.content) ? (
-                          <div className="flex items-center gap-3">
-                            <button className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
-                              message.senderType === 'patient' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'
-                            }`}>
-                              <IconWithFallback icon="play_arrow" emoji="▶️" className={message.senderType === 'patient' ? 'text-white' : 'text-blue-600'} />
-                            </button>
-                            <div className="flex items-end gap-1 h-6">
-                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/80' : 'bg-blue-300'}`} style={{ height: '14px' }}></span>
-                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/70' : 'bg-blue-400'}`} style={{ height: '10px', animationDelay: '0.1s' }}></span>
-                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/80' : 'bg-blue-300'}`} style={{ height: '16px', animationDelay: '0.2s' }}></span>
-                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/70' : 'bg-blue-400'}`} style={{ height: '12px', animationDelay: '0.3s' }}></span>
-                              <span className={`w-1 animate-pulse ${message.senderType === 'patient' ? 'bg-white/80' : 'bg-blue-300'}`} style={{ height: '18px', animationDelay: '0.4s' }}></span>
-                            </div>
-                            <span className={`text-xs font-medium ${message.senderType === 'patient' ? 'text-white/90' : 'text-gray-600'}`}>
-                              {(/\[voice:(\d{2}:\d{2})\]/i.exec(message.content)?.[1]) || '00:30'}
-                            </span>
-                          </div>
-                        ) : (
-                          <p className="text-sm leading-relaxed break-words">{message.content}</p>
-                        )}
-                        <p className={`text-xs mt-2 ${
-                          message.senderType === 'patient' ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                          {new Date(message.timestamp).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} className="h-4" />
-                </div>
-
-                {/* Enhanced Message Input */}
-                <div className="p-4 border-t border-gray-200 bg-white/80 backdrop-blur-xl">
-                  <div className="flex items-center gap-3">
-                    {/* Plus button */}
-                    <button className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg active:scale-95">
-                      <IconWithFallback icon="add" emoji="+" className="text-white" />
-                    </button>
-
-                    {/* Gray rounded input with emoji */}
-                    <div className="flex-1 flex items-center bg-gray-50 rounded-full px-4 py-2 border border-gray-200">
-                      <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            sendMessage(selectedConversation);
-                          }
-                        }}
-                        placeholder="Type your message..."
-                        className="flex-1 bg-transparent outline-none text-sm"
-                      />
-                      <button className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center ml-2">
-                        <IconWithFallback icon="emoji_emotions" emoji="😊" />
-                      </button>
-                    </div>
-
-                    {/* Send button */}
-                    <button
-                      onClick={() => sendMessage(selectedConversation)}
-                      disabled={!newMessage.trim()}
-                      className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <IconWithFallback icon="send" emoji="➤" className="text-white" />
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
-                    <IconWithFallback icon="chat" emoji="💬" className="text-gray-400 text-3xl" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-700 mb-3">Select a conversation</h3>
-                  <p className="text-gray-500 text-lg">Choose a conversation to start messaging</p>
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {/* Chat Area */}
+        <div className={`
+          flex-1 flex flex-col bg-white min-h-0
+          ${!selectedConversation ? 'hidden md:flex' : 'flex'}
+        `}>
+          {selectedConversation && currentConversation ? (
+            <>
+              {/* Chat Header */}
+              <div className="px-4 md:px-6 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setSelectedConversation(null)}
+                    className="md:hidden p-3 -ml-3 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+                    style={{ minWidth: '44px', minHeight: '44px' }}
+                  >
+                    <IconWithFallback icon="arrow_back" emoji="←" className="text-gray-600" />
+                  </button>
+                  <div className="relative flex-shrink-0">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                      {currentConversation.doctor.firstName?.charAt(0)}{currentConversation.doctor.lastName?.charAt(0)}
+                    </div>
+                    {currentConversation.doctor.isOnline && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 text-sm truncate">
+                      Dr. {currentConversation.doctor.firstName} {currentConversation.doctor.lastName}
+                    </h3>
+                    <p className="text-xs text-gray-500 flex items-center space-x-1">
+                      {currentConversation.doctor.isOnline ? (
+                        <>
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                          <span>Online</span>
+                        </>
+                      ) : (
+                        <span>Offline</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Messages Area */}
+              <div 
+                className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 to-white min-h-0"
+                style={{ maxHeight: 'calc(100vh - 200px)' }}
+              >
+                {currentConversation.messages.length > 0 ? (
+                  currentConversation.messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.senderType === 'patient' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`
+                        max-w-[75%] md:max-w-md px-3 py-2 rounded-2xl shadow-sm
+                        ${message.senderType === 'patient'
+                          ? 'bg-blue-600 text-white rounded-br-sm'
+                          : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm'
+                        }
+                      `}>
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className={`text-xs mt-1 ${
+                          message.senderType === 'patient' ? 'text-blue-100' : 'text-gray-400'
+                        }`}>
+                          {new Date(message.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center text-gray-400">
+                      <IconWithFallback icon="chat_bubble_outline" emoji="💭" className="text-3xl mb-2" />
+                      <p className="text-sm">Start the conversation</p>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <div className="px-4 md:px-6 py-3 border-t border-gray-200 bg-white flex-shrink-0">
+                <div className="flex items-center space-x-2">
+                  <button 
+                    className="p-2.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0 touch-manipulation"
+                    title="Attach file"
+                    style={{ minWidth: '44px', minHeight: '44px' }}
+                  >
+                    <IconWithFallback icon="attach_file" emoji="📎" className="text-gray-600" />
+                  </button>
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        sendMessage(selectedConversation);
+                      }
+                    }}
+                    placeholder="Type your message..."
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base md:text-sm touch-manipulation"
+                    style={{ minHeight: '44px' }}
+                  />
+                  <button
+                    onClick={() => sendMessage(selectedConversation)}
+                    disabled={!newMessage.trim() || sendingMessage}
+                    className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-sm hover:shadow-md touch-manipulation"
+                    title="Send message"
+                    style={{ minWidth: '44px', minHeight: '44px' }}
+                  >
+                    {sendingMessage ? (
+                      <div className="animate-spin">
+                        <IconWithFallback icon="refresh" emoji="🔄" className="text-white" />
+                      </div>
+                    ) : (
+                      <IconWithFallback icon="send" emoji="➤" className="text-white" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
+              <div className="text-center max-w-md px-6">
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                  <IconWithFallback icon="chat" emoji="💬" className="text-blue-600 text-3xl" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  Select a conversation
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Choose a doctor to view and send messages
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* New Conversation Modal */}
       {showDoctorList && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl md:rounded-2xl shadow-strong w-full max-w-md max-h-[85vh] overflow-y-auto">
-            <div className="p-4 md:p-6 border-b border-gray-200 bg-white sticky top-0 z-10">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg md:text-xl font-semibold text-gray-800">Start New Conversation</h3>
+                <h3 className="text-lg font-semibold text-gray-800">Start New Conversation</h3>
                 <button
                   onClick={() => setShowDoctorList(false)}
-                  className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-friendly"
+                  className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors"
                 >
                   <IconWithFallback icon="close" emoji="❌" />
                 </button>
               </div>
             </div>
-            <div className="p-4 md:p-6 bg-gray-50">
-              <div className="space-y-3">
+            <div className="p-4">
+              <div className="space-y-2">
                 {availableDoctors.map((doctor) => (
                   <div
                     key={doctor.id}
                     onClick={() => startConversation(doctor.id)}
-                    className="flex items-center space-x-3 p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-md cursor-pointer transition-all duration-200"
+                    className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-all"
                   >
                     <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                         {doctor.firstName?.charAt(0)}{doctor.lastName?.charAt(0)}
                       </div>
                       {doctor.isOnline && (
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                       )}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-800">
+                      <h4 className="font-medium text-gray-800 text-sm">
                         Dr. {doctor.firstName} {doctor.lastName}
                       </h4>
-                      <p className="text-sm text-gray-600">{doctor.specialty}</p>
+                      <p className="text-xs text-gray-600">{doctor.specialty}</p>
                       <p className="text-xs text-gray-500">
-                        {doctor.isOnline ? '🟢 Online' : '🔴 Offline'}
+                        {doctor.isOnline ? 'Online' : 'Offline'}
                       </p>
                     </div>
-                    <IconWithFallback icon="chat" emoji="💬" className="text-blue-600 text-xl" />
+                    <IconWithFallback icon="chat" emoji="💬" className="text-blue-600" />
                   </div>
                 ))}
                 {availableDoctors.length === 0 && (
-                  <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <IconWithFallback icon="people" emoji="👥" className="text-gray-400 text-2xl" />
+                  <div className="text-center py-6 bg-gray-50 rounded-lg">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <IconWithFallback icon="people" emoji="👥" className="text-gray-400" />
                     </div>
-                    <h4 className="font-medium text-gray-600 mb-2">No connected doctors</h4>
-                    <p className="text-sm text-gray-500">Connect with doctors first to start messaging</p>
+                    <h4 className="font-medium text-gray-600 mb-1 text-sm">No connected doctors</h4>
+                    <p className="text-xs text-gray-500">Connect with doctors first to start messaging</p>
                   </div>
                 )}
               </div>
@@ -647,6 +773,6 @@ export default function PatientMessagesPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

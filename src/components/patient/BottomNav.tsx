@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React from 'react';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 /**
  * Local IconWithFallback to match existing Material Icons usage
@@ -64,24 +65,29 @@ function useIsActive(href: string) {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-function NavItem({ item }: { item: ItemDef }) {
+function NavItem({ item, notificationCount }: { item: ItemDef; notificationCount?: number }) {
   const isActive = useIsActive(item.href);
   return (
     <Link
       href={item.href}
       aria-label={item.label}
-      className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 ${
+      className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 relative ${
         isActive
           ? 'text-blue-600 bg-blue-50'
           : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
       }`}
     >
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center relative">
         <IconWithFallback
           icon={item.icon}
           emoji={item.emoji}
           className={isActive ? 'text-blue-600' : 'text-gray-500'}
         />
+        {notificationCount && notificationCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1 py-0.5 rounded-full min-w-[16px] h-4 flex items-center justify-center">
+            {notificationCount}
+          </span>
+        )}
         <span className={`mt-1 h-1.5 w-1.5 rounded-full ${isActive ? 'bg-blue-600' : 'bg-transparent'}`}></span>
       </div>
       <span className="text-[10px] font-medium">{item.label}</span>
@@ -96,6 +102,8 @@ function NavItem({ item }: { item: ItemDef }) {
  * - Center "Book" action prominently
  */
 export default function BottomNav() {
+  const { counts } = useNotifications();
+  
   // Define left and right items; center is the Book action
   const leftItems: ItemDef[] = [
     { href: '/patient/dashboard', label: 'Home', icon: 'dashboard', emoji: '🏠' },
@@ -107,6 +115,15 @@ export default function BottomNav() {
   ];
 
   const isBookActive = useIsActive('/patient/appointments');
+  
+  const getNotificationCount = (label: string): number => {
+    switch (label) {
+      case 'Messages':
+        return counts.unreadMessages;
+      default:
+        return 0;
+    }
+  };
 
   return (
     <nav
@@ -122,14 +139,14 @@ export default function BottomNav() {
           {/* Left group */}
           <div className="flex items-center gap-3">
             {leftItems.map((item) => (
-              <NavItem key={item.href} item={item} />
+              <NavItem key={item.href} item={item} notificationCount={getNotificationCount(item.label)} />
             ))}
           </div>
 
           {/* Right group */}
           <div className="flex items-center gap-3">
             {rightItems.map((item) => (
-              <NavItem key={item.href} item={item} />
+              <NavItem key={item.href} item={item} notificationCount={getNotificationCount(item.label)} />
             ))}
           </div>
         </div>
@@ -140,21 +157,28 @@ export default function BottomNav() {
           aria-label="Book Appointment"
           className="absolute left-1/2 -translate-x-1/2 -top-6"
         >
-          <div
-            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-medium ring-4 ${
-              isBookActive ? 'ring-blue-300' : 'ring-blue-200'
-            } transition-all duration-200 active:scale-95`}
-            style={{
-              background:
-                'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
-            }}
-          >
-            {/* Book icon centered and emphasized */}
-            <IconWithFallback
-              icon="calendar_today"
-              emoji="📅"
-              className="text-white"
-            />
+          <div className="relative">
+            <div
+              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-medium ring-4 ${
+                isBookActive ? 'ring-blue-300' : 'ring-blue-200'
+              } transition-all duration-200 active:scale-95`}
+              style={{
+                background:
+                  'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+              }}
+            >
+              {/* Book icon centered and emphasized */}
+              <IconWithFallback
+                icon="calendar_today"
+                emoji="📅"
+                className="text-white"
+              />
+            </div>
+            {counts.upcomingAppointments > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-lg">
+                {counts.upcomingAppointments}
+              </span>
+            )}
           </div>
           <div className="mt-1 text-center text-[10px] font-semibold text-blue-700">
             Book

@@ -101,12 +101,31 @@ export default function RegisterPage() {
     if (!formData.email) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
 
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 6)
-      newErrors.password = 'Password must be at least 6 characters';
+    // Enhanced password validation to match backend requirements
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else {
+      const passwordErrors = [];
+      if (formData.password.length < 8) passwordErrors.push('at least 8 characters');
+      if (!/[A-Z]/.test(formData.password)) passwordErrors.push('an uppercase letter');
+      if (!/\d/.test(formData.password)) passwordErrors.push('a number');
+      if (!/[!@#$%^&*()_\-+=\[{\]}\\|;:'",.<>/?`~]/.test(formData.password)) passwordErrors.push('a special character');
+      
+      if (passwordErrors.length > 0) {
+        newErrors.password = `Password must contain ${passwordErrors.join(', ')}`;
+      }
+    }
 
     if (formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = 'Passwords do not match';
+
+    // Enhanced phone validation to match backend requirements
+    if (formData.phone && formData.phone.trim()) {
+      const phoneRegex = /^\+60\d{8,10}$/;
+      if (!phoneRegex.test(formData.phone.trim())) {
+        newErrors.phone = 'Phone must be in Malaysian format (+60123456789) or leave empty';
+      }
+    }
 
     // Validate medical registration number for doctors
     if (formData.userType === 'doctor' && !formData.licenseNumber) {
@@ -147,7 +166,19 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'An error occurred during registration');
+        // Handle validation errors from backend
+        if (data.errors && Array.isArray(data.errors)) {
+          const backendErrors: Record<string, string> = {};
+          data.errors.forEach((error: any) => {
+            if (error.path && error.path.length > 0) {
+              const field = error.path[0];
+              backendErrors[field] = error.message;
+            }
+          });
+          setErrors(backendErrors);
+          throw new Error('Please fix the validation errors above');
+        }
+        throw new Error(data.message || data.detail || 'An error occurred during registration');
       }
 
       // Automatically log the user in after successful registration
@@ -162,8 +193,8 @@ export default function RegisterPage() {
       }
 
       // Redirect after successful registration
-      // Doctors are routed to provider dashboard preview while awaiting admin approval
-      const dashboardPath = formData.userType === 'doctor' ? '/provider/dashboard' : '/patient/dashboard';
+      // Doctors go to pending approval page, patients go to dashboard
+      const dashboardPath = formData.userType === 'doctor' ? '/provider/pending' : '/patient/dashboard';
       router.push(dashboardPath);
     } catch (error) {
       setServerError(error instanceof Error ? error.message : 'An error occurred during registration');
@@ -385,9 +416,13 @@ export default function RegisterPage() {
                     autoComplete="tel"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all duration-200"
-                    placeholder="+60 12 345 6789"
+                    className={`w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all duration-200 ${
+                      errors.phone ? 'border-red-300 ring-1 ring-red-300' : ''
+                    }`}
+                    placeholder="+60123456789"
                   />
+                  <p className="mt-1 text-xs text-gray-500">Malaysian format: +60123456789 or leave empty</p>
+                  {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
                 </div>
 
                 {/* Medical Registration Number Field (Only for Doctors) */}
@@ -428,6 +463,7 @@ export default function RegisterPage() {
                     }`}
                     placeholder="Create a strong password"
                   />
+                  <p className="mt-1 text-xs text-gray-500">Must contain: 8+ characters, uppercase, number, special character</p>
                   {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
                 </div>
                 

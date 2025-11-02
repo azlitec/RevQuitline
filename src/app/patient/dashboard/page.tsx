@@ -352,7 +352,14 @@ export default function PatientDashboardPage() {
                         {appointment.type === 'quitline_smoking_cessation' && (
                           <div className="flex items-center space-x-1 mt-1">
                             <span className="text-xs bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700 px-2 py-1 rounded-full font-medium">
-                              Intake Form Required
+                              🚭 Quitline Session
+                            </span>
+                          </div>
+                        )}
+                        {appointment.type === 'psychiatrist_session' && (
+                          <div className="flex items-center space-x-1 mt-1">
+                            <span className="text-xs bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 px-2 py-1 rounded-full font-medium">
+                              🧠 Psychiatrist Session
                             </span>
                           </div>
                         )}
@@ -423,33 +430,7 @@ export default function PatientDashboardPage() {
             )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="card p-4 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300">
-            <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4 md:mb-6">Quick Actions</h3>
-            <div className="space-y-3">
-              <Link
-                href="/patient/doctors"
-                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all duration-300 touch-friendly hover:scale-105 hover:shadow-medium"
-              >
-                <IconWithFallback icon="search" emoji="🔍" className="text-blue-600" />
-                <span className="font-medium text-sm">Find New Doctor</span>
-              </Link>
-              <Link
-                href="/patient/appointments"
-                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-green-50 to-green-100 text-green-700 rounded-lg hover:from-green-100 hover:to-green-200 transition-all duration-300 touch-friendly hover:scale-105 hover:shadow-medium"
-              >
-                <IconWithFallback icon="event" emoji="📅" className="text-green-600" />
-                <span className="font-medium text-sm">Schedule Appointment</span>
-              </Link>
-              <Link
-                href="/patient/prescriptions"
-                className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all duration-300 touch-friendly hover:scale-105 hover:shadow-medium"
-              >
-                <IconWithFallback icon="medication" emoji="💊" className="text-purple-600" />
-                <span className="font-medium text-sm">View Prescriptions</span>
-              </Link>
-            </div>
-          </div>
+
         </div>
       </div>
     </>

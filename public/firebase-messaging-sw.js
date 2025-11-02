@@ -20,28 +20,27 @@ importScripts('https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging-comp
 importScripts('/api/firebase/config');
 
 // Initialize Firebase in the Service Worker
+let firebaseInitialized = false;
 try {
   // self.__FIREBASE_CONFIG__ is defined by /api/firebase/config
-  if (self.__FIREBASE_CONFIG__) {
+  if (self.__FIREBASE_CONFIG__ && self.__FIREBASE_CONFIG__.apiKey) {
     firebase.initializeApp(self.__FIREBASE_CONFIG__);
+    firebaseInitialized = true;
   } else {
-    // Fallback: attempt minimal init using Messaging Sender ID if present on global
-    if (self.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID) {
-      firebase.initializeApp({ messagingSenderId: self.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID });
-    } else {
-      // Without config, background messaging can't work
-      console.warn('[FCM SW] Missing Firebase config; background messages disabled.');
-    }
+    // Without proper config, background messaging can't work
+    console.warn('[FCM SW] Missing Firebase config; background messages disabled.');
   }
 } catch (err) {
   console.error('[FCM SW] Firebase initialization error:', err);
 }
 
 let messaging = null;
-try {
-  messaging = firebase.messaging();
-} catch (err) {
-  console.error('[FCM SW] Messaging init failed:', err);
+if (firebaseInitialized) {
+  try {
+    messaging = firebase.messaging();
+  } catch (err) {
+    console.error('[FCM SW] Messaging init failed:', err);
+  }
 }
 
 /**

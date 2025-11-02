@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
+import Link from 'next/link';
 import NotificationBell from '@/components/ui/NotificationBell';
 
 interface HeaderProps {
@@ -250,9 +251,13 @@ export default function Header({
                   <p className="text-xs text-gray-500">{session?.user?.email}</p>
                 </div>
                 <div className="p-2">
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
+                  <Link 
+                    href="/provider/profile"
+                    className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+                    onClick={() => setShowProfileMenu(false)}
+                  >
                     Profile Settings
-                  </button>
+                  </Link>
                   <button 
                     onClick={handleSignOut}
                     className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
@@ -339,14 +344,22 @@ export default function Header({
               </div>
               
               <div className="p-2">
-                <button className="w-full text-left px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-md transition-colors flex items-center space-x-3">
+                <Link 
+                  href="/provider/profile"
+                  className="block w-full text-left px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-md transition-colors flex items-center space-x-3"
+                  onClick={() => setShowProfileMenu(false)}
+                >
                   <IconWithFallback icon="person" emoji="👤" className="text-gray-500" />
                   <span>Profile Settings</span>
-                </button>
-                <button className="w-full text-left px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-md transition-colors flex items-center space-x-3">
+                </Link>
+                <Link 
+                  href="/provider/profile"
+                  className="block w-full text-left px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-md transition-colors flex items-center space-x-3"
+                  onClick={() => setShowProfileMenu(false)}
+                >
                   <IconWithFallback icon="settings" emoji="⚙️" className="text-gray-500" />
                   <span>Account Settings</span>
-                </button>
+                </Link>
                 <button className="w-full text-left px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-md transition-colors flex items-center space-x-3">
                   <IconWithFallback icon="help" emoji="❓" className="text-gray-500" />
                   <span>Help & Support</span>

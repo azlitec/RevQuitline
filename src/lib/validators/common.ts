@@ -13,11 +13,14 @@ export const EmailSchema = z.string().email();
 /**
  * Malaysian phone: must start with +60 and contain 8–10 digits after country code.
  * Example: +60123456789
+ * Allow empty string for optional fields
  */
 const MY_PHONE_REGEX = /^\+60\d{8,10}$/;
 export const PhoneSchema = z
   .string()
-  .regex(MY_PHONE_REGEX, 'Phone must be in Malaysian format, e.g. +60123456789');
+  .refine((val) => val === '' || MY_PHONE_REGEX.test(val), {
+    message: 'Phone must be in Malaysian format (+60123456789) or leave empty'
+  });
 
 /**
  * Password policy:

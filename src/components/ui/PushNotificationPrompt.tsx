@@ -10,14 +10,14 @@ type Props = {
 };
 
 const LS_OPT_KEY = 'ql-push-opt'; // 'enabled' | 'denied'
-const SS_DISMISS_KEY = 'ql-push-prompt-dismissed'; // '1' for this session
+const LS_DEVICE_ASKED_KEY = 'ql-push-device-asked'; // '1' if asked on this device
 
 /**
- * Friendly modal asking user to enable push notifications:
+ * Friendly modal asking user about push notifications:
  * - Explains benefits (appointment reminders, urgent messages)
- * - "Enable" and "Maybe Later" buttons
- * - Remembers user choice (localStorage)
- * - Shows only once per session if dismissed (sessionStorage)
+ * - "Maybe Later" button only
+ * - Remembers if asked on this device (localStorage)
+ * - Shows only once per device on first login session
  */
 export default function PushNotificationPrompt({ className, role }: Props) {
   const {
@@ -33,45 +33,30 @@ export default function PushNotificationPrompt({ className, role }: Props) {
 
   const title = useMemo(() => {
     return role === 'provider'
-      ? 'Enable push notifications for urgent patient updates'
-      : 'Enable push notifications for appointment reminders and messages';
+      ? 'Stay updated with patient notifications'
+      : 'Stay updated with appointment and health notifications';
   }, [role]);
 
   const description = useMemo(() => {
     return role === 'provider'
-      ? 'Receive instant updates when patients send messages or results are available. You can manage your preferences anytime.'
-      : 'Get timely appointment reminders and notifications when your provider sends messages or prescriptions. You can manage your preferences anytime.';
+      ? 'You can enable push notifications later to receive instant updates when patients send messages or results are available.'
+      : 'You can enable push notifications later to get timely appointment reminders and notifications when your provider sends messages or prescriptions.';
   }, [role]);
 
   const shouldShow = useCallback((): boolean => {
-    if (!isSupported) return false;
+    // Don't show if already asked on this device
+    try {
+      const deviceAsked = localStorage.getItem(LS_DEVICE_ASKED_KEY);
+      if (deviceAsked === '1') return false;
+    } catch {
+      // ignore storage errors
+    }
 
-    // Already granted -> no need to show
+    // Don't show if already granted
     if (isGranted) return false;
 
-    // If browser permission already denied, don't keep prompting
-    if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-      return false;
-    }
-
-    // If user already opted in or denied previously, don't show
-    try {
-      const opt = localStorage.getItem(LS_OPT_KEY);
-      if (opt === 'enabled' || opt === 'denied') return false;
-    } catch {
-      // ignore storage errors
-    }
-
-    // If dismissed in this session, don't show again
-    try {
-      const dismissed = sessionStorage.getItem(SS_DISMISS_KEY);
-      if (dismissed === '1') return false;
-    } catch {
-      // ignore storage errors
-    }
-
     return true;
-  }, [isSupported, isGranted]);
+  }, [isGranted]);
 
   useEffect(() => {
     if (shouldShow()) {
@@ -81,34 +66,10 @@ export default function PushNotificationPrompt({ className, role }: Props) {
     }
   }, [shouldShow]);
 
-  const onEnable = useCallback(async () => {
-    setInternalError(null);
-    const ok = await requestPermission();
-    // reflect latest state
-    const perm = typeof Notification !== 'undefined' ? Notification.permission : 'default';
-
-    if (ok && perm === 'granted') {
-      try {
-        localStorage.setItem(LS_OPT_KEY, 'enabled');
-      } catch {}
-      setOpen(false);
-    } else {
-      // If user denied, remember permanently to avoid nagging
-      if (perm === 'denied') {
-        try {
-          localStorage.setItem(LS_OPT_KEY, 'denied');
-        } catch {}
-        setOpen(false);
-      } else {
-        // Permission not granted, show error
-        setInternalError('Unable to enable notifications. You can try again later from Settings.');
-      }
-    }
-  }, [requestPermission]);
-
   const onLater = useCallback(() => {
     try {
-      sessionStorage.setItem(SS_DISMISS_KEY, '1');
+      // Mark that we've asked on this device
+      localStorage.setItem(LS_DEVICE_ASKED_KEY, '1');
     } catch {}
     setOpen(false);
   }, []);
@@ -145,17 +106,9 @@ export default function PushNotificationPrompt({ className, role }: Props) {
           <button
             type="button"
             onClick={onLater}
-            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             Maybe Later
-          </button>
-          <button
-            type="button"
-            onClick={onEnable}
-            disabled={loading}
-            className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? 'Enabling…' : 'Enable'}
           </button>
         </div>
       </div>

@@ -89,8 +89,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user || !session.user.isProvider) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    
+    if (!session.user.isProvider) {
+      return NextResponse.json({ error: 'Provider access required' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -104,8 +108,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize service type to Prisma enum ServiceType (consultation, follow_up, emergency, quitline_smoking_cessation)
-    const allowedTypes = ['consultation','follow_up','emergency','quitline_smoking_cessation'] as const;
+    // Normalize service type to Prisma enum ServiceType (consultation, follow_up, emergency, quitline_smoking_cessation, psychiatrist_session)
+    const allowedTypes = ['consultation','follow_up','emergency','quitline_smoking_cessation','psychiatrist_session'] as const;
     const rawType = (type ?? 'consultation');
     let normalizedType = typeof rawType === 'string'
       ? rawType.trim().toLowerCase().replace(/-/g, '_')
@@ -138,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     // Add optional fields if provided
     if (reason) {
-      appointmentData.reason = reason;
+      appointmentData.description = reason;
     }
     
     if (notes) {
@@ -190,8 +194,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ appointment }, { status: 201 });
   } catch (error) {
     console.error('Error creating appointment:', error);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Unknown argument')) {
+        return NextResponse.json(
+          { error: 'Invalid appointment data provided' },
+          { status: 400 }
+        );
+      }
+      if (error.message.includes('Foreign key constraint')) {
+        return NextResponse.json(
+          { error: 'Invalid patient or provider ID' },
+          { status: 400 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create appointment' },
       { status: 500 }
     );
   }

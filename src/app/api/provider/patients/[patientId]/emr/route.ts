@@ -1,95 +1,167 @@
-import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
-import { requirePermission, ensureProviderPatientLink } from '@/lib/api/guard';
-import { EmrSummaryQuerySchema } from '@/lib/validators/emr';
-import { EmrController } from '@/lib/controllers/emr.controller';
-import { jsonEntity, jsonError } from '@/lib/api/response';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+import { prisma } from '@/lib/db';
 
 /**
- * Provider EMR Summary Route
- * GET /api/provider/patients/{patientId}/emr
- *
- * Provides a lightweight EMR summary for a provider↔patient context:
- * - Counters: draft notes, abnormal results, unsent correspondence, upcoming appts, last visit, total visits
- * - Links: consultations, notes, prescriptions subresources
- * - Optional expansions: include=consultations,notes,prescriptions (small previews)
- *
- * Guards:
- * - Session with provider role
- * - Permission: encounter.read
- * - Approved provider↔patient link required
- *
- * Errors:
- * - RFC7807 Problem+JSON via toProblemJson()
+ * Simplified Provider EMR Summary API
+ * - GET: Get EMR summary for a specific patient
  */
-
-// Parse query params for EMR summary (currently only include CSV)
-function parseQuery(req: NextRequest): { include?: string } {
-  const sp = new URL(req.url).searchParams;
-  const obj = {
-    include: sp.get('include') ?? undefined,
-  };
-  const parsed = EmrSummaryQuerySchema.safeParse(obj);
-  if (!parsed.success) {
-    throw Object.assign(new Error('Validation failed'), {
-      status: 400,
-      issues: parsed.error.flatten(),
-    });
-  }
-  return parsed.data;
-}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { patientId: string } }
 ) {
-  let session: any | null = null;
   try {
-    session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
-    }
-
-    // RBAC: encounter.read required
-    try {
-      requirePermission(session, 'encounter.read');
-    } catch (err: any) {
-      return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const patientId = params.patientId;
     if (!patientId) {
-      return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
+      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
 
-    // Ensure approved provider↔patient link
-    try {
-      await ensureProviderPatientLink(session, patientId);
-    } catch (err: any) {
-      return jsonError(request, err, { title: 'Access denied', status: err?.status ?? 403 });
+    // Get patient basic info
+    const patient = await prisma.user.findUnique({
+      where: { id: patientId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        dateOfBirth: true,
+        gender: true,
+        medicalHistory: true,
+        currentMedications: true,
+        allergies: true,
+        smokingStatus: true
+      }
+    });
+
+    if (!patient) {
+      return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
 
-    const { include } = parseQuery(request);
+    // Get recent encounters
+    const encounters = await prisma.encounter.findMany({
+      where: {
+        patientId: patientId,
+        providerId: session.user.id
+      },
+      include: {
+        progressNotes: {
+          select: {
+            id: true,
+            status: true,
+            summary: true,
+            createdAt: true
+          }
+        }
+      },
+      orderBy: {
+        startTime: 'desc'
+      },
+      take: 5
+    });
 
-    // Build EMR summary via controller (handles audit)
-    const providerId = session.user.id;
-    const summary = await EmrController.getSummary(
-      request,
-      session,
-      providerId,
-      patientId,
-      include || undefined
+    // Get recent progress notes
+    const progressNotes = await prisma.progressNote.findMany({
+      where: {
+        patientId: patientId,
+        authorId: session.user.id
+      },
+      select: {
+        id: true,
+        status: true,
+        summary: true,
+        subjective: true,
+        objective: true,
+        assessment: true,
+        plan: true,
+        createdAt: true,
+        encounter: {
+          select: {
+            id: true,
+            type: true,
+            startTime: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 10
+    });
+
+    // Get recent prescriptions
+    const prescriptions = await prisma.prescription.findMany({
+      where: {
+        patientId: patientId,
+        providerId: session.user.id
+      },
+      select: {
+        id: true,
+        medicationName: true,
+        dosage: true,
+        frequency: true,
+        status: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 10
+    });
+
+    // Get upcoming appointments
+    const upcomingAppointments = await prisma.appointment.findMany({
+      where: {
+        patientId: patientId,
+        providerId: session.user.id,
+        date: {
+          gte: new Date()
+        },
+        status: 'scheduled'
+      },
+      select: {
+        id: true,
+        title: true,
+        date: true,
+        duration: true,
+        type: true,
+        status: true
+      },
+      orderBy: {
+        date: 'asc'
+      },
+      take: 5
+    });
+
+    const summary = {
+      patient,
+      encounters,
+      progressNotes,
+      prescriptions,
+      upcomingAppointments,
+      counters: {
+        totalEncounters: encounters.length,
+        draftNotes: progressNotes.filter(note => note.status === 'draft').length,
+        finalizedNotes: progressNotes.filter(note => note.status === 'finalized').length,
+        activePrescriptions: prescriptions.filter(rx => rx.status === 'active').length,
+        upcomingAppointments: upcomingAppointments.length
+      }
+    };
+
+    return NextResponse.json({ summary });
+  } catch (error) {
+    console.error('Error fetching EMR summary:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch EMR summary' },
+      { status: 500 }
     );
-
-    return jsonEntity(request, summary, 200);
-  } catch (err: any) {
-    console.error('[EMR Summary GET] Error', err);
-    const status = err?.status && Number.isInteger(err.status) ? err.status : 500;
-    const issues = err?.issues;
-    return jsonError(request, err, { title: 'Failed to get EMR summary', status });
   }
 }

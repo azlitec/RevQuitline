@@ -12,6 +12,8 @@ declare module "next-auth" {
       role?: string;
       isAdmin?: boolean;
       isProvider?: boolean;
+      firstName?: string;
+      lastName?: string;
     } & DefaultSession["user"];
   }
 
@@ -21,6 +23,8 @@ declare module "next-auth" {
     role?: string;
     isAdmin: boolean;
     isProvider: boolean;
+    firstName?: string;
+    lastName?: string;
   }
 }
 
@@ -63,6 +67,8 @@ export const authOptions: NextAuthOptions = {
           role: (user as any).role || 'USER',
           isAdmin: user.isAdmin,
           isProvider: user.isProvider || false,
+          firstName: user.firstName,
+          lastName: user.lastName,
         };
       }
     })
@@ -78,6 +84,8 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.isAdmin = user.isAdmin;
         token.isProvider = user.isProvider;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
       }
       return token;
     },
@@ -87,6 +95,8 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
         session.user.isAdmin = token.isAdmin as boolean;
         session.user.isProvider = token.isProvider as boolean;
+        session.user.firstName = token.firstName as string;
+        session.user.lastName = token.lastName as string;
       }
       return session;
     },

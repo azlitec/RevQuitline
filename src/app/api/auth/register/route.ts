@@ -32,15 +32,15 @@ export async function POST(request: NextRequest) {
 
     // SECURITY: rate limiting per IP+email to prevent abuse (Part 4)
     const normalizedEmail = String(raw?.email ?? '').toLowerCase().trim();
-    const limit = rateLimitConsume(request, [normalizedEmail], {
-      windowMs: 15 * 60_000, // 15 minutes window
-      max: 10,               // allow up to 10 attempts per window
-      keyPrefix: 'register',
-    });
-    if (!limit.allowed) {
+    try {
+      await rateLimitConsume(`register:${normalizedEmail}`, {
+        maxRequests: 10,
+        windowMs: 15 * 60_000, // 15 minutes window
+      });
+    } catch (rateLimitError: any) {
       // Standardized 429 error without leaking sensitive context
       return errorResponse('Too many registration attempts. Please try again later.', 429, {
-        retryAfterMs: limit.resetMs,
+        retryAfter: rateLimitError.retryAfter,
       });
     }
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       password: raw?.password,
       name: fullName,
       role,
-      phone: raw?.phone,
+      phone: raw?.phone && raw.phone.trim() ? raw.phone.trim() : undefined, // Only include if not empty
       licenseNumber: raw?.licenseNumber,
     };
 

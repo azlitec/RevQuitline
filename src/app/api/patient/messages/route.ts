@@ -48,33 +48,43 @@ export async function GET(request: NextRequest) {
     });
 
     // Format the response to match the frontend expectations
-    const formattedConversations = conversations.map((conversation: any) => {
-      const lastMessage = conversation.messages[0];
-      const unreadCount = conversation.messages.filter((msg: any) => !msg.read && msg.senderId !== patientId).length;
+    const formattedConversations = await Promise.all(
+      conversations.map(async (conversation: any) => {
+        const lastMessage = conversation.messages[0];
+        // Get unread count by counting all unread messages from provider in this conversation
+        const unreadMessages = await prisma.message.count({
+          where: {
+            conversationId: conversation.id,
+            senderId: { not: patientId },
+            read: false,
+          },
+        });
+        const unreadCount = unreadMessages;
 
-      return {
-        id: conversation.id,
-        doctor: {
-          id: conversation.provider.id,
-          firstName: conversation.provider.firstName,
-          lastName: conversation.provider.lastName,
-          specialty: conversation.provider.specialty,
-          isOnline: false, // Default to offline since field is not available
-          lastSeen: null,
-        },
-        lastMessage: lastMessage ? {
-          id: lastMessage.id,
-          content: lastMessage.content,
-          senderId: lastMessage.senderId,
-          senderName: lastMessage.sender.firstName + ' ' + lastMessage.sender.lastName,
-          senderType: lastMessage.senderId === patientId ? 'patient' : 'doctor',
-          timestamp: lastMessage.createdAt.toISOString(),
-          read: lastMessage.read,
-        } : undefined,
-        unreadCount,
-        messages: [], // Will be loaded separately when conversation is selected
-      };
-    });
+        return {
+          id: conversation.id,
+          doctor: {
+            id: conversation.provider.id,
+            firstName: conversation.provider.firstName,
+            lastName: conversation.provider.lastName,
+            specialty: conversation.provider.specialty,
+            isOnline: false, // Default to offline since field is not available
+            lastSeen: null,
+          },
+          lastMessage: lastMessage ? {
+            id: lastMessage.id,
+            content: lastMessage.content,
+            senderId: lastMessage.senderId,
+            senderName: lastMessage.sender.firstName + ' ' + lastMessage.sender.lastName,
+            senderType: lastMessage.senderId === patientId ? 'patient' : 'doctor',
+            timestamp: lastMessage.createdAt.toISOString(),
+            read: lastMessage.read,
+          } : undefined,
+          unreadCount,
+          messages: [], // Will be loaded separately when conversation is selected
+        };
+      })
+    );
 
     return NextResponse.json({ conversations: formattedConversations });
   } catch (error) {

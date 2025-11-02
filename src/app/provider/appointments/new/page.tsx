@@ -176,6 +176,7 @@ export default function NewAppointmentPage() {
                 <option value="follow_up">Follow-up</option>
                 <option value="emergency">Emergency</option>
                 <option value="quitline_smoking_cessation">Quitline Smoking Cessation</option>
+                <option value="psychiatrist_session">Psychiatrist Session</option>
               </select>
             </div>
 

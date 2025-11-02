@@ -79,6 +79,8 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'desc' },
       take: 5
     });
+    
+
 
     // Format data
     const formattedDoctors = connectedDoctors.map(doctor => ({

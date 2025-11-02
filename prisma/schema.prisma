@@ -10,12 +10,12 @@ datasource db {
 model Report {
   id          String   @id @default(cuid())
   title       String
-  type        String // 'appointments' | 'users' | 'revenue' | 'engagement'
-  period      String // 'daily' | 'weekly' | 'monthly' | 'yearly'
+  type        String
+  period      String
   generatedAt DateTime @default(now())
   fileUrl     String?
-  status      String   @default("generating") // 'generating' | 'completed' | 'failed'
-  data        Json? // Store report data as JSON
+  status      String   @default("generating")
+  data        Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -26,154 +26,127 @@ model Report {
 }
 
 model User {
-  id                     String                  @id @default(cuid())
-  firstName              String?
-  lastName               String?
-  email                  String                  @unique
-  password               String
-  image                  String?
-  bio                    String?
-  dateOfBirth            DateTime?
-  gender                 String?
-  phone                  String?
-  address                String?
-  emergencyContact       String?
-  emergencyPhone         String?
-  medicalHistory         String?                 @db.Text
-  currentMedications     String?                 @db.Text
-  allergies              String?                 @db.Text
-  smokingStatus          String?                 @default("unknown")
-  smokingHistory         String?                 @db.Text
-  quitAttempts           Int?                    @default(0)
-  quitDate               DateTime?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  role                   String                  @default("USER")
-  isAdmin                Boolean                 @default(false)
-  isProvider             Boolean                 @default(false)
-  isClerk                Boolean                 @default(false)
-  licenseNumber          String?
-  specialty              String?
-  yearsOfExperience      Int?
-  availability           Json?
-  isOnline               Boolean                 @default(false)
-  lastSeen               DateTime?
-  providerApprovalStatus ProviderApprovalStatus?
-
-  // Google account linkage for Meet/Calendar
-  googleEmail               String?
-  googleOAuthAccessToken    String?
-  googleOAuthRefreshToken   String?
-  googleOAuthExpiry         DateTime?
-
-  // Relations
-  appointmentsAsProvider  Appointment[]             @relation("ProviderAppointments")
-  appointmentsAsPatient   Appointment[]             @relation("PatientAppointments")
-  healthRecordsAsProvider HealthRecord[]            @relation("HealthRecordProvider")
-  healthRecordsAsPatient  HealthRecord[]            @relation("HealthRecordPatient")
-  vitalSigns              VitalSign[]               @relation("VitalSignPatient")
-  smokingMetrics          SmokingMetric[]           @relation("SmokingMetricPatient")
-  medicationsPrescribed   Medication[]              @relation("MedicationPrescribedBy")
-  medicationsAsPatient    Medication[]              @relation("MedicationPatient")
-  notifications           Notification[]            @relation("NotificationUser")
-  doctorConnections       DoctorPatientConnection[] @relation("DoctorConnections")
-  patientConnections      DoctorPatientConnection[] @relation("PatientConnections")
-  patientInvoices         Invoice[]                 @relation("PatientInvoices")
-  providerInvoices        Invoice[]                 @relation("ProviderInvoices")
-  intakeForms             IntakeForm[]              @relation("IntakeFormPatient")
-  conversationsAsProvider Conversation[]            @relation("ConversationProvider")
-  conversationsAsPatient  Conversation[]            @relation("ConversationPatient")
-  sentMessages            Message[]                 @relation("SentMessages")
-
-  // New EMR relations
-  encountersAsPatient           Encounter[]           @relation("EncounterPatient")
-  encountersAsProvider          Encounter[]           @relation("EncounterProvider")
-  renderingEncounters           Encounter[]           @relation("RenderingProvider")
-  progressNotesAsPatient        ProgressNote[]        @relation("ProgressNotePatient")
-  progressNotesAuthored         ProgressNote[]        @relation("ProgressNoteAuthor")
-  investigationOrdersForPatient InvestigationOrder[]  @relation("InvestigationOrderPatient")
-  investigationOrdersByProvider InvestigationOrder[]  @relation("InvestigationOrderProvider")
-  investigationResultsReviewed  InvestigationResult[] @relation("InvestigationResultReviewer")
-  correspondencesAsPatient      Correspondence[]      @relation("CorrespondencePatient")
-  correspondencesSent           Correspondence[]      @relation("CorrespondenceSender")
-  correspondencesDispatched     Correspondence[]      @relation("CorrespondenceSentBy")
-  auditLogs                     AuditLog[]            @relation("AuditLogUser")
-  integrationErrorsForPatient   IntegrationError[]    @relation("IntegrationErrorPatient")
-  prescriptionsAsPatient        Prescription[]        @relation("PrescriptionPatient")
-  prescriptionsAsProvider       Prescription[]        @relation("PrescriptionProvider")
-
-  // Push notifications & preferences
-  pushSubscriptions             PushSubscription[]
+  id                            String                    @id @default(cuid())
+  firstName                     String?
+  lastName                      String?
+  email                         String                    @unique
+  password                      String
+  image                         String?
+  bio                           String?
+  dateOfBirth                   DateTime?
+  gender                        String?
+  phone                         String?
+  address                       String?
+  emergencyContact              String?
+  emergencyPhone                String?
+  medicalHistory                String?
+  currentMedications            String?
+  allergies                     String?
+  smokingStatus                 String?                   @default("unknown")
+  smokingHistory                String?
+  quitAttempts                  Int?                      @default(0)
+  quitDate                      DateTime?
+  createdAt                     DateTime                  @default(now())
+  updatedAt                     DateTime                  @updatedAt
+  role                          String                    @default("USER")
+  isAdmin                       Boolean                   @default(false)
+  isProvider                    Boolean                   @default(false)
+  isClerk                       Boolean                   @default(false)
+  licenseNumber                 String?
+  specialty                     String?
+  yearsOfExperience             Int?
+  availability                  Json?
+  isOnline                      Boolean                   @default(false)
+  lastSeen                      DateTime?
+  providerApprovalStatus        ProviderApprovalStatus?
+  googleEmail                   String?
+  googleOAuthAccessToken        String?
+  googleOAuthExpiry             DateTime?
+  googleOAuthRefreshToken       String?
+  appointmentsAsPatient         Appointment[]             @relation("PatientAppointments")
+  appointmentsAsProvider        Appointment[]             @relation("ProviderAppointments")
+  auditLogs                     AuditLog[]                @relation("AuditLogUser")
+  conversationsAsPatient        Conversation[]            @relation("ConversationPatient")
+  conversationsAsProvider       Conversation[]            @relation("ConversationProvider")
+  correspondencesAsPatient      Correspondence[]          @relation("CorrespondencePatient")
+  correspondencesSent           Correspondence[]          @relation("CorrespondenceSender")
+  correspondencesDispatched     Correspondence[]          @relation("CorrespondenceSentBy")
+  patientConnections            DoctorPatientConnection[] @relation("PatientConnections")
+  doctorConnections             DoctorPatientConnection[] @relation("DoctorConnections")
+  encountersAsPatient           Encounter[]               @relation("EncounterPatient")
+  encountersAsProvider          Encounter[]               @relation("EncounterProvider")
+  renderingEncounters           Encounter[]               @relation("RenderingProvider")
+  healthRecordsAsPatient        HealthRecord[]            @relation("HealthRecordPatient")
+  healthRecordsAsProvider       HealthRecord[]            @relation("HealthRecordProvider")
+  intakeForms                   IntakeForm[]              @relation("IntakeFormPatient")
+  integrationErrorsForPatient   IntegrationError[]        @relation("IntegrationErrorPatient")
+  investigationOrdersForPatient InvestigationOrder[]      @relation("InvestigationOrderPatient")
+  investigationOrdersByProvider InvestigationOrder[]      @relation("InvestigationOrderProvider")
+  investigationResultsReviewed  InvestigationResult[]     @relation("InvestigationResultReviewer")
+  patientInvoices               Invoice[]                 @relation("PatientInvoices")
+  providerInvoices              Invoice[]                 @relation("ProviderInvoices")
+  medicationsAsPatient          Medication[]              @relation("MedicationPatient")
+  medicationsPrescribed         Medication[]              @relation("MedicationPrescribedBy")
+  sentMessages                  Message[]                 @relation("SentMessages")
+  notifications                 Notification[]            @relation("NotificationUser")
   notificationPreference        NotificationPreference?
+  prescriptionsAsPatient        Prescription[]            @relation("PrescriptionPatient")
+  prescriptionsAsProvider       Prescription[]            @relation("PrescriptionProvider")
+  progressNotesAuthored         ProgressNote[]            @relation("ProgressNoteAuthor")
+  progressNotesAsPatient        ProgressNote[]            @relation("ProgressNotePatient")
+  pushSubscriptions             PushSubscription[]
+  smokingMetrics                SmokingMetric[]           @relation("SmokingMetricPatient")
+  vitalSigns                    VitalSign[]               @relation("VitalSignPatient")
 }
 
-// Service types enum
-enum ServiceType {
-  consultation
-  follow_up
-  emergency
-  quitline_smoking_cessation
-}
-
-enum ProviderApprovalStatus {
-  pending
-  approved
-  rejected
-}
-
-// Simple appointment model for now - we'll add more complex relations later
 model Appointment {
-  id          String      @id @default(cuid())
-  title       String
-  description String?     @db.Text
-  date        DateTime
-  duration    Int         @default(30) // minutes
-  status      String      @default("scheduled") // scheduled, completed, cancelled, no-show
-  type        ServiceType @default(consultation)
-  serviceName String? // Human readable service name
-  price       Float? // Service price in RM
-  meetingLink String?
-  // Meeting/telehealth metadata
-  meetingProvider         String?   // 'google_meet' or others
-  calendarEventId         String?   // Google Calendar event id
-  meetingId               String?   // Google Meet conferenceId
-  meetingStartAt          DateTime?
-  meetingEndAt            DateTime?
-  meetingDurationSeconds  Int?
-  meetingMeta             Json?
-  notes       String?     @db.Text
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Simple relations for now
-  providerId String
-  provider   User        @relation("ProviderAppointments", fields: [providerId], references: [id], onDelete: Cascade, map: "Appointment_providerId_fkey")
-  patientId  String
-  patient    User        @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade, map: "Appointment_patientId_fkey")
-  invoice    Invoice?    @relation("AppointmentInvoice")
-  encounters Encounter[] @relation("AppointmentEncounters")
-  prescriptions Prescription[] @relation("AppointmentPrescriptions")
+  id                     String         @id @default(cuid())
+  title                  String
+  description            String?
+  date                   DateTime
+  duration               Int            @default(30)
+  status                 String         @default("scheduled")
+  meetingLink            String?
+  notes                  String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  providerId             String
+  patientId              String
+  price                  Float?
+  serviceName            String?
+  type                   ServiceType    @default(consultation)
+  calendarEventId        String?
+  meetingDurationSeconds Int?
+  meetingEndAt           DateTime?
+  meetingId              String?
+  meetingMeta            Json?
+  meetingProvider        String?
+  meetingStartAt         DateTime?
+  patient                User           @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade, map: "Appointment_patientId_fkey")
+  provider               User           @relation("ProviderAppointments", fields: [providerId], references: [id], onDelete: Cascade, map: "Appointment_providerId_fkey")
+  encounters             Encounter[]    @relation("AppointmentEncounters")
+  invoice                Invoice?       @relation("AppointmentInvoice")
+  prescriptions          Prescription[] @relation("AppointmentPrescriptions")
 }
 
-// EHR Models for comprehensive patient data management
 model HealthRecord {
   id          String   @id @default(cuid())
   title       String
-  description String?  @db.Text
-  type        String // progress_note, assessment, prescription, lab_result, therapy_note
+  description String?
+  type        String
   date        DateTime
   providerId  String
-  provider    User     @relation("HealthRecordProvider", fields: [providerId], references: [id], onDelete: Cascade)
   patientId   String
-  patient     User     @relation("HealthRecordPatient", fields: [patientId], references: [id], onDelete: Cascade)
-  vitalSigns  Json? // Store vital signs as JSON
-  medications String?  @db.Text
-  diagnosis   String?  @db.Text
-  treatment   String?  @db.Text
-  notes       String?  @db.Text
-  attachments String[] // URLs to attached files
+  vitalSigns  Json?
+  medications String?
+  diagnosis   String?
+  treatment   String?
+  notes       String?
+  attachments String[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  patient     User     @relation("HealthRecordPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  provider    User     @relation("HealthRecordProvider", fields: [providerId], references: [id], onDelete: Cascade)
 
   @@index([patientId])
   @@index([providerId])
@@ -183,17 +156,17 @@ model HealthRecord {
 model VitalSign {
   id               String   @id @default(cuid())
   patientId        String
-  patient          User     @relation("VitalSignPatient", fields: [patientId], references: [id], onDelete: Cascade)
   recordedAt       DateTime
-  bloodPressure    String? // "120/80"
+  bloodPressure    String?
   heartRate        Int?
-  oxygenSaturation Int? // percentage
+  oxygenSaturation Int?
   respiratoryRate  Int?
-  temperature      Float? // in Fahrenheit
-  weight           Float? // in kg
-  height           Float? // in cm
+  temperature      Float?
+  weight           Float?
+  height           Float?
   bmi              Float?
   createdAt        DateTime @default(now())
+  patient          User     @relation("VitalSignPatient", fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([patientId])
   @@index([recordedAt])
@@ -202,15 +175,15 @@ model VitalSign {
 model SmokingMetric {
   id                  String    @id @default(cuid())
   patientId           String
-  patient             User      @relation("SmokingMetricPatient", fields: [patientId], references: [id], onDelete: Cascade)
   recordedAt          DateTime
   cigarettesPerDay    Int?
-  carbonMonoxideLevel Int? // ppm
-  peakFlow            Int? // L/min
-  cravingsIntensity   Int? // 1-10 scale
+  carbonMonoxideLevel Int?
+  peakFlow            Int?
+  cravingsIntensity   Int?
   quitDate            DateTime?
   quitDurationDays    Int?
   createdAt           DateTime  @default(now())
+  patient             User      @relation("SmokingMetricPatient", fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([patientId])
   @@index([recordedAt])
@@ -224,55 +197,44 @@ model Medication {
   startDate      DateTime
   endDate        DateTime?
   prescribedById String
-  prescribedBy   User      @relation("MedicationPrescribedBy", fields: [prescribedById], references: [id], onDelete: Cascade)
   patientId      String
-  patient        User      @relation("MedicationPatient", fields: [patientId], references: [id], onDelete: Cascade)
-  instructions   String?   @db.Text
-  sideEffects    String?   @db.Text
-  status         String    @default("active") // active, completed, discontinued
+  instructions   String?
+  sideEffects    String?
+  status         String    @default("active")
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  patient        User      @relation("MedicationPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  prescribedBy   User      @relation("MedicationPrescribedBy", fields: [prescribedById], references: [id], onDelete: Cascade)
 
   @@index([patientId])
   @@index([prescribedById])
   @@index([status])
 }
-// ===== Prescriptions (Smoking Cessation) =====
-
-enum PrescriptionStatus {
-  DRAFT
-  ACTIVE
-  COMPLETED
-  CANCELLED
-  EXPIRED
-}
 
 model Prescription {
   id             String             @id @default(cuid())
   patientId      String
-  patient        User               @relation("PrescriptionPatient", fields: [patientId], references: [id], onDelete: Cascade)
   providerId     String
-  provider       User               @relation("PrescriptionProvider", fields: [providerId], references: [id], onDelete: Cascade)
   appointmentId  String?
-  appointment    Appointment?       @relation("AppointmentPrescriptions", fields: [appointmentId], references: [id])
-
   medicationName String
   dosage         String
   frequency      String
   duration       String
   quantity       Int
   refills        Int                @default(0)
-  instructions   String             @db.Text
+  instructions   String
   status         PrescriptionStatus @default(DRAFT)
   prescribedDate DateTime           @default(now())
   startDate      DateTime
   endDate        DateTime?
   pharmacy       String?
   pharmacyPhone  String?
-  notes          String?            @db.Text
-
+  notes          String?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
+  appointment    Appointment?       @relation("AppointmentPrescriptions", fields: [appointmentId], references: [id])
+  patient        User               @relation("PrescriptionPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  provider       User               @relation("PrescriptionProvider", fields: [providerId], references: [id], onDelete: Cascade)
 
   @@index([patientId])
   @@index([providerId])
@@ -283,15 +245,15 @@ model Prescription {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
-  type      String // alert, warning, info, success
+  type      String
   title     String
   message   String
-  priority  String // high, medium, low
+  priority  String
   read      Boolean  @default(false)
   actionUrl String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([read])
@@ -301,12 +263,10 @@ model Notification {
 model DoctorPatientConnection {
   id                 String    @id @default(cuid())
   providerId         String
-  provider           User      @relation("DoctorConnections", fields: [providerId], references: [id], onDelete: Cascade)
   patientId          String
-  patient            User      @relation("PatientConnections", fields: [patientId], references: [id], onDelete: Cascade)
   treatmentType      String
-  status             String    @default("pending") // pending, approved, rejected, disconnected
-  requestMessage     String?   @db.Text
+  status             String    @default("pending")
+  requestMessage     String?
   approvedAt         DateTime?
   disconnectedAt     DateTime?
   disconnectReason   String?
@@ -314,6 +274,8 @@ model DoctorPatientConnection {
   canDisconnect      Boolean   @default(true)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  patient            User      @relation("PatientConnections", fields: [patientId], references: [id], onDelete: Cascade)
+  provider           User      @relation("DoctorConnections", fields: [providerId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, patientId, treatmentType])
   @@index([providerId])
@@ -325,19 +287,22 @@ model Invoice {
   id            String       @id @default(cuid())
   invoiceNumber String       @unique
   patientId     String
-  patient       User         @relation("PatientInvoices", fields: [patientId], references: [id], onDelete: Cascade)
   providerId    String?
-  provider      User?        @relation("ProviderInvoices", fields: [providerId], references: [id])
   appointmentId String?      @unique
-  appointment   Appointment? @relation("AppointmentInvoice", fields: [appointmentId], references: [id])
   description   String
   amount        Float
-  status        String       @default("pending") // pending, paid, overdue, cancelled
-  dueDate       DateTime
+  status        String       @default("pending")
+  dueDate       DateTime?
   paidAt        DateTime?
   paymentMethod String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  currency      String       @default("MYR")
+  paymentUrl    String?
+  transactionId String?
+  appointment   Appointment? @relation("AppointmentInvoice", fields: [appointmentId], references: [id])
+  patient       User         @relation("PatientInvoices", fields: [patientId], references: [id], onDelete: Cascade)
+  provider      User?        @relation("ProviderInvoices", fields: [providerId], references: [id])
 
   @@index([patientId])
   @@index([providerId])
@@ -349,13 +314,13 @@ model IntakeForm {
   id            String    @id @default(cuid())
   appointmentId String    @unique
   patientId     String
-  patient       User      @relation("IntakeFormPatient", fields: [patientId], references: [id], onDelete: Cascade)
-  formData      Json // Store the complete form data as JSON
+  formData      Json
   currentStep   Int       @default(1)
   completed     Boolean   @default(false)
   completedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  patient       User      @relation("IntakeFormPatient", fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([appointmentId])
   @@index([patientId])
@@ -363,15 +328,14 @@ model IntakeForm {
 }
 
 model Conversation {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   providerId String
-  provider   User     @relation("ConversationProvider", fields: [providerId], references: [id], onDelete: Cascade)
   patientId  String
-  patient    User     @relation("ConversationPatient", fields: [patientId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  messages Message[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  patient    User      @relation("ConversationPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  provider   User      @relation("ConversationProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  messages   Message[]
 
   @@unique([providerId, patientId])
   @@index([providerId])
@@ -382,13 +346,13 @@ model Conversation {
 model Message {
   id             String       @id @default(cuid())
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId       String
-  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  content        String       @db.Text
+  content        String
   read           Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([senderId])
@@ -396,7 +360,256 @@ model Message {
   @@index([read])
 }
 
-// EMR Enums and Models
+model Encounter {
+  id                  String               @id @default(cuid())
+  patientId           String
+  providerId          String
+  appointmentId       String?
+  type                String
+  mode                EncounterMode        @default(in_person)
+  startTime           DateTime
+  endTime             DateTime?
+  location            String?
+  renderingProviderId String?
+  status              EncounterStatus      @default(scheduled)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  correspondences     Correspondence[]
+  appointment         Appointment?         @relation("AppointmentEncounters", fields: [appointmentId], references: [id])
+  patient             User                 @relation("EncounterPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  provider            User                 @relation("EncounterProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  renderingProvider   User?                @relation("RenderingProvider", fields: [renderingProviderId], references: [id])
+  investigationOrders InvestigationOrder[]
+  progressNotes       ProgressNote[]
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([appointmentId])
+  @@index([startTime])
+  @@index([status])
+}
+
+model ProgressNote {
+  id            String             @id @default(cuid())
+  encounterId   String
+  patientId     String
+  authorId      String
+  cosignerIds   String[]           @default([])
+  status        ProgressNoteStatus @default(draft)
+  subjective    String?
+  objective     String?
+  assessment    String?
+  plan          String?
+  summary       String?
+  autosavedAt   DateTime?
+  finalizedAt   DateTime?
+  signatureHash String?
+  amendedFromId String?
+  attachments   Json?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  amendedFrom   ProgressNote?      @relation("ProgressNoteAmendment", fields: [amendedFromId], references: [id])
+  amendments    ProgressNote[]     @relation("ProgressNoteAmendment")
+  author        User               @relation("ProgressNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  encounter     Encounter          @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  patient       User               @relation("ProgressNotePatient", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([encounterId])
+  @@index([patientId])
+  @@index([authorId])
+  @@index([status])
+  @@index([finalizedAt])
+}
+
+model InvestigationOrder {
+  id                String                   @id @default(cuid())
+  encounterId       String?
+  patientId         String
+  providerId        String
+  code              String?
+  name              String
+  status            InvestigationOrderStatus @default(ordered)
+  orderedAt         DateTime                 @default(now())
+  notes             String?
+  attachments       Json?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  integrationErrors IntegrationError[]       @relation("IntegrationErrorOrder")
+  encounter         Encounter?               @relation(fields: [encounterId], references: [id])
+  patient           User                     @relation("InvestigationOrderPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  provider          User                     @relation("InvestigationOrderProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  results           InvestigationResult[]
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([encounterId])
+  @@index([status])
+  @@index([orderedAt])
+}
+
+model InvestigationResult {
+  id                 String                     @id @default(cuid())
+  orderId            String
+  code               String?
+  name               String?
+  value              String?
+  units              String?
+  referenceRangeLow  Float?
+  referenceRangeHigh Float?
+  referenceRangeText String?
+  interpretation     ObservationInterpretation?
+  performer          String?
+  observedAt         DateTime?
+  fhirObservation    Json?
+  reviewed           Boolean                    @default(false)
+  reviewerId         String?
+  reviewedAt         DateTime?
+  attachments        Json?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  order              InvestigationOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reviewer           User?                      @relation("InvestigationResultReviewer", fields: [reviewerId], references: [id])
+
+  @@index([orderId])
+  @@index([observedAt])
+  @@index([interpretation])
+  @@index([reviewed])
+}
+
+model Correspondence {
+  id                  String                  @id @default(cuid())
+  encounterId         String?
+  patientId           String
+  senderId            String?
+  recipients          Json
+  subject             String
+  body                String
+  mergeFields         Json?
+  attachments         Json?
+  direction           CorrespondenceDirection
+  category            CorrespondenceCategory
+  transmissionChannel TransmissionChannel?
+  sentById            String?
+  sentAt              DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  encounter           Encounter?              @relation(fields: [encounterId], references: [id])
+  patient             User                    @relation("CorrespondencePatient", fields: [patientId], references: [id], onDelete: Cascade)
+  sender              User?                   @relation("CorrespondenceSender", fields: [senderId], references: [id])
+  sentBy              User?                   @relation("CorrespondenceSentBy", fields: [sentById], references: [id])
+
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([direction])
+  @@index([category])
+  @@index([sentAt])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  entityType EntityType
+  entityId   String
+  ip         String?
+  source     AuditSource @default(api)
+  timestamp  DateTime    @default(now())
+  metadata   Json?
+  user       User?       @relation("AuditLogUser", fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([timestamp])
+}
+
+model Template {
+  id          String                  @id @default(cuid())
+  name        String                  @unique
+  subject     String?
+  category    CorrespondenceCategory?
+  htmlContent String
+  fields      Json?
+  active      Boolean                 @default(true)
+  isDefault   Boolean                 @default(false)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+}
+
+model IntegrationError {
+  id           String              @id @default(cuid())
+  patientId    String
+  orderId      String?
+  entityType   String
+  source       String?
+  payload      Json
+  errorMessage String
+  retryCount   Int                 @default(0)
+  nextRetryAt  DateTime?
+  lastTriedAt  DateTime?
+  status       IngestionStatus     @default(pending)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  order        InvestigationOrder? @relation("IntegrationErrorOrder", fields: [orderId], references: [id])
+  patient      User                @relation("IntegrationErrorPatient", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([orderId])
+  @@index([status])
+  @@index([nextRetryAt])
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  deviceType String
+  deviceName String?
+  browser    String?
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model NotificationPreference {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  appointments   Boolean  @default(true)
+  messages       Boolean  @default(true)
+  prescriptions  Boolean  @default(true)
+  investigations Boolean  @default(true)
+  marketing      Boolean  @default(false)
+  emailEnabled   Boolean  @default(true)
+  pushEnabled    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ServiceType {
+  consultation
+  follow_up
+  emergency
+  quitline_smoking_cessation
+  psychiatrist_session
+}
+
+enum ProviderApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+enum PrescriptionStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
 
 enum EncounterMode {
   in_person
@@ -412,81 +625,10 @@ enum EncounterStatus {
   cancelled
 }
 
-model Encounter {
-  id                  String          @id @default(cuid())
-  patientId           String
-  patient             User            @relation("EncounterPatient", fields: [patientId], references: [id], onDelete: Cascade)
-  providerId          String
-  provider            User            @relation("EncounterProvider", fields: [providerId], references: [id], onDelete: Cascade)
-  appointmentId       String?
-  appointment         Appointment?    @relation("AppointmentEncounters", fields: [appointmentId], references: [id])
-  type                String // encounter type (e.g., consultation, follow_up, emergency)
-  mode                EncounterMode   @default(in_person)
-  startTime           DateTime
-  endTime             DateTime?
-  location            String?
-  renderingProviderId String?
-  renderingProvider   User?           @relation("RenderingProvider", fields: [renderingProviderId], references: [id])
-  status              EncounterStatus @default(scheduled)
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-
-  // Relations
-  progressNotes       ProgressNote[]
-  investigationOrders InvestigationOrder[]
-  correspondences     Correspondence[]
-
-  @@index([patientId])
-  @@index([providerId])
-  @@index([appointmentId])
-  @@index([startTime])
-  @@index([status])
-}
-
 enum ProgressNoteStatus {
   draft
   finalized
   amended
-}
-
-model ProgressNote {
-  id          String             @id @default(cuid())
-  encounterId String
-  encounter   Encounter          @relation(fields: [encounterId], references: [id], onDelete: Cascade)
-  patientId   String
-  patient     User               @relation("ProgressNotePatient", fields: [patientId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User               @relation("ProgressNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  cosignerIds String[]           @default([])
-  status      ProgressNoteStatus @default(draft)
-
-  // SOAP sections
-  subjective String? @db.Text
-  objective  String? @db.Text
-  assessment String? @db.Text
-  plan       String? @db.Text
-
-  summary       String?   @db.Text // short summary/excerpt for timeline
-  autosavedAt   DateTime?
-  finalizedAt   DateTime?
-  signatureHash String?
-
-  // Amendment chain
-  amendedFromId String?
-  amendedFrom   ProgressNote?  @relation("ProgressNoteAmendment", fields: [amendedFromId], references: [id])
-  amendments    ProgressNote[] @relation("ProgressNoteAmendment")
-
-  // Attachments metadata list stored as JSON array [{url, filename, mimeType, size, checksum, source}]
-  attachments Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([encounterId])
-  @@index([patientId])
-  @@index([authorId])
-  @@index([status])
-  @@index([finalizedAt])
 }
 
 enum InvestigationOrderStatus {
@@ -495,79 +637,10 @@ enum InvestigationOrderStatus {
   completed
 }
 
-model InvestigationOrder {
-  id          String     @id @default(cuid())
-  encounterId String?
-  encounter   Encounter? @relation(fields: [encounterId], references: [id])
-  patientId   String
-  patient     User       @relation("InvestigationOrderPatient", fields: [patientId], references: [id], onDelete: Cascade)
-  providerId  String
-  provider    User       @relation("InvestigationOrderProvider", fields: [providerId], references: [id], onDelete: Cascade)
-
-  code      String? // e.g., LOINC or local code
-  name      String
-  status    InvestigationOrderStatus @default(ordered)
-  orderedAt DateTime                 @default(now())
-  notes     String?                  @db.Text
-
-  results InvestigationResult[]
-  integrationErrors IntegrationError[] @relation("IntegrationErrorOrder")
-
-  // Attachments metadata list (e.g., order requisitions) JSON array
-  attachments Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([patientId])
-  @@index([providerId])
-  @@index([encounterId])
-  @@index([status])
-  @@index([orderedAt])
-}
-
 enum ObservationInterpretation {
   normal
   abnormal
   critical
-}
-
-model InvestigationResult {
-  id      String             @id @default(cuid())
-  orderId String
-  order   InvestigationOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  // Core result fields
-  code               String?
-  name               String?
-  value              String? // string to allow textual values; structured in fhirObservation
-  units              String?
-  referenceRangeLow  Float?
-  referenceRangeHigh Float?
-  referenceRangeText String?
-  interpretation     ObservationInterpretation?
-  performer          String? // performing lab/organization
-  observedAt         DateTime?
-
-  // FHIR Observation payload for structured results (status, category, component, method, device, specimen, etc.)
-  fhirObservation Json?
-
-  // Review workflow
-  reviewed   Boolean   @default(false)
-  reviewerId String?
-  reviewer   User?     @relation("InvestigationResultReviewer", fields: [reviewerId], references: [id])
-  reviewedAt DateTime?
-
-  // Attachments metadata list (e.g., PDFs/images) JSON array
-  attachments Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([orderId])
-  @@index([observedAt])
-  @@index([interpretation])
-  @@index([reviewed])
 }
 
 enum CorrespondenceDirection {
@@ -588,40 +661,6 @@ enum TransmissionChannel {
   portal
   print
   other
-}
-
-model Correspondence {
-  id          String     @id @default(cuid())
-  encounterId String?
-  encounter   Encounter? @relation(fields: [encounterId], references: [id])
-  patientId   String
-  patient     User       @relation("CorrespondencePatient", fields: [patientId], references: [id], onDelete: Cascade)
-  senderId    String?
-  sender      User?      @relation("CorrespondenceSender", fields: [senderId], references: [id])
-
-  recipients  Json // structured recipient list (organizations/providers/contact details)
-  subject     String
-  body        String @db.Text // rich text (serialized HTML)
-  mergeFields Json?
-
-  attachments Json? // metadata list for attachments
-
-  direction CorrespondenceDirection
-  category  CorrespondenceCategory
-
-  transmissionChannel TransmissionChannel?
-  sentById            String?
-  sentBy              User?                @relation("CorrespondenceSentBy", fields: [sentById], references: [id])
-  sentAt              DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([patientId])
-  @@index([encounterId])
-  @@index([direction])
-  @@index([category])
-  @@index([sentAt])
 }
 
 enum AuditAction {
@@ -653,103 +692,9 @@ enum EntityType {
   appointment
 }
 
-model AuditLog {
-  id         String      @id @default(cuid())
-  userId     String?
-  user       User?       @relation("AuditLogUser", fields: [userId], references: [id])
-  action     AuditAction
-  entityType EntityType
-  entityId   String
-  ip         String?
-  source     AuditSource @default(api)
-  timestamp  DateTime    @default(now())
-  metadata   Json?
-
-  @@index([entityType, entityId])
-  @@index([action])
-  @@index([timestamp])
-}
-
-model Template {
-  id          String                  @id @default(cuid())
-  name        String                  @unique
-  subject     String?
-  category    CorrespondenceCategory?
-  htmlContent String                  @db.Text
-  fields      Json? // merge field definitions for editor
-  active      Boolean                 @default(true)
-  isDefault   Boolean                 @default(false)
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-}
-
-// ===== Integration Error Queue (patient-scoped) =====
-
 enum IngestionStatus {
   pending
   retrying
   failed
   resolved
-}
-
-model IntegrationError {
-  id           String             @id @default(cuid())
-  patientId    String
-  patient      User               @relation("IntegrationErrorPatient", fields: [patientId], references: [id], onDelete: Cascade)
-  orderId      String?
-  order        InvestigationOrder? @relation("IntegrationErrorOrder", fields: [orderId], references: [id])
-  entityType   String            // e.g., 'investigation_result'
-  source       String?           // e.g., 'lab', 'hl7', 'fhir'
-  payload      Json              // raw inbound payload (FHIR/HL7) for retry/reconciliation
-  errorMessage String            @db.Text
-  retryCount   Int               @default(0)
-  nextRetryAt  DateTime?
-  lastTriedAt  DateTime?
-  status       IngestionStatus   @default(pending)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  @@index([patientId])
-  @@index([orderId])
-  @@index([status])
-  @@index([nextRetryAt])
-}
-
-// ===== Push Notifications & Preferences =====
-
-model PushSubscription {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  token       String   @unique // FCM device token
-  deviceType  String   // web, ios, android
-  deviceName  String?  // user-friendly name
-  browser     String?  // for web push
-
-  enabled     Boolean  @default(true)
-
-  createdAt   DateTime @default(now())
-  lastUsedAt  DateTime @default(now())
-
-  @@index([userId])
-  @@index([token])
-}
-
-model NotificationPreference {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  appointments   Boolean  @default(true)
-  messages       Boolean  @default(true)
-  prescriptions  Boolean  @default(true)
-  investigations Boolean  @default(true)
-  marketing      Boolean  @default(false)
-
-  emailEnabled   Boolean  @default(true)
-  pushEnabled    Boolean  @default(true)
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
 }
