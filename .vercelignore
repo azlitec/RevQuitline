@@ -1,5 +1,47 @@
+# Build cache
 .next/cache
+.next/trace
 
+# Dependencies
 node_modules
 
+# Testing
+coverage
+.nyc_output
+*.log
+playwright-report
+test-results
+
+# Development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
 *.zip
+*.tar.gz
+uploads/
+.git
+.github
+docker-compose.yml
+Dockerfile
+
+# Documentation
+*.md
+!README.md
+
+# Scripts
+scripts/send-reminders.ts
+scripts/send-refill-reminders.ts

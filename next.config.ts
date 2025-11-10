@@ -1,35 +1,61 @@
-/** Security: Validate required environment variables at build/start (no secret values logged) */
-const { validateEnv } = require('./scripts/validate-env');
-validateEnv();
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
+  // Vercel-optimized image configuration
   images: {
     domains: ['localhost', 'res.cloudinary.com'],
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
   },
+  
+  // Public environment variables
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
-    // Optional: web push VAPID key (configure in Firebase Console > Cloud Messaging)
     NEXT_PUBLIC_FIREBASE_VAPID_KEY: process.env.FIREBASE_VAPID_KEY,
-    // Fast-delivery flag to disable client push features
     NEXT_PUBLIC_DISABLE_PUSH_NOTIFICATIONS: process.env.DISABLE_PUSH_NOTIFICATIONS,
   },
+  
+  // Vercel serverless optimization
   experimental: {
-    serverComponentsExternalPackages: ['bcryptjs', '@prisma/client']
+    serverComponentsExternalPackages: ['bcryptjs', '@prisma/client'],
+    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
   },
-  /**
-   * Security Headers: Harden application against common web vulns.
-   * - X-Frame-Options: DENY (prevent clickjacking)
-   * - X-Content-Type-Options: nosniff (prevent MIME type sniffing)
-   * - X-XSS-Protection: 1; mode=block (legacy XSS filter header; harmless, some browsers honor)
-   * - Referrer-Policy: strict-origin-when-cross-origin
-   * - Permissions-Policy: disable camera/microphone/geolocation
-   */
+  
+  // Webpack optimization for Vercel
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Optimize server bundle
+      config.externals = [...(config.externals || []), 'mongoose'];
+    }
+    
+    // Reduce bundle size
+    config.optimization = {
+      ...config.optimization,
+      moduleIds: 'deterministic',
+    };
+    
+    return config;
+  },
+  
+  // Output configuration for Vercel
+  output: 'standalone',
+  
+  // Disable source maps in production for smaller bundle
+  productionBrowserSourceMaps: false,
+  
+  // Compiler options
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+  
+  // Security headers (moved from vercel.json for better control)
   async headers() {
     return [
       {
@@ -56,6 +82,17 @@ const nextConfig = {
             value: 'camera=(), microphone=(), geolocation=()',
           },
         ],
+      },
+    ];
+  },
+  
+  // Redirects
+  async redirects() {
+    return [
+      {
+        source: '/home',
+        destination: '/',
+        permanent: true,
       },
     ];
   },

@@ -19,8 +19,8 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-// Graceful shutdown
-if (typeof window === 'undefined') {
+// Graceful shutdown (only in production to avoid memory leak warnings in dev)
+if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
   process.on('beforeExit', async () => {
     await prisma.$disconnect();
   });

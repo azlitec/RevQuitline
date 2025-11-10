@@ -67,6 +67,10 @@ export default function PatientDashboardPage() {
     if (session?.user && !session.user.isProvider) {
       fetchDashboardData();
       fetchActiveRxCount();
+    } else if (session === null) {
+      // Session is null, user not logged in
+      setLoading(false);
+      setError('Please log in to view your dashboard');
     }
   }, [session]);
 
@@ -75,16 +79,33 @@ export default function PatientDashboardPage() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/patient/dashboard');
+      // Add timeout to prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch('/api/patient/dashboard', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch dashboard data');
       }
       
       const data = await response.json();
       setDashboardData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          setError('Request timeout. Please check your connection and try again.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('An error occurred');
+      }
       console.error('Error fetching dashboard data:', err);
     } finally {
       setLoading(false);

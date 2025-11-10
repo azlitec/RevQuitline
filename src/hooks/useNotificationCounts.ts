@@ -21,6 +21,9 @@ export function useNotificationCounts() {
       // Refresh counts every 30 seconds
       const interval = setInterval(fetchNotificationCounts, 30000);
       return () => clearInterval(interval);
+    } else if (session === null) {
+      // User not logged in, stop loading
+      setLoading(false);
     }
   }, [session]);
 
@@ -28,19 +31,29 @@ export function useNotificationCounts() {
     try {
       setLoading(true);
       
+      // Add timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
       // Fetch unread messages count
-      const messagesResponse = await fetch('/api/patient/messages');
+      const messagesResponse = await fetch('/api/patient/messages', {
+        signal: controller.signal
+      }).catch(() => null);
+      
       let unreadMessages = 0;
-      if (messagesResponse.ok) {
-        const messagesData = await messagesResponse.json();
+      if (messagesResponse?.ok) {
+        const messagesData = await messagesResponse.json().catch(() => ({}));
         unreadMessages = messagesData.conversations?.reduce((sum: number, conv: any) => sum + (conv.unreadCount || 0), 0) || 0;
       }
 
       // Fetch upcoming appointments count
-      const appointmentsResponse = await fetch('/api/appointments?page=0&limit=50');
+      const appointmentsResponse = await fetch('/api/appointments?page=0&limit=50', {
+        signal: controller.signal
+      }).catch(() => null);
+      
       let upcomingAppointments = 0;
-      if (appointmentsResponse.ok) {
-        const appointmentsData = await appointmentsResponse.json();
+      if (appointmentsResponse?.ok) {
+        const appointmentsData = await appointmentsResponse.json().catch(() => ({}));
         const appointments = appointmentsData.data?.items || [];
         const now = new Date();
         upcomingAppointments = appointments.filter((apt: any) => {
@@ -48,6 +61,8 @@ export function useNotificationCounts() {
           return appointmentDate >= now && !['cancelled', 'completed', 'no-show'].includes(apt.status?.toLowerCase());
         }).length;
       }
+
+      clearTimeout(timeoutId);
 
       setCounts({
         unreadMessages,
