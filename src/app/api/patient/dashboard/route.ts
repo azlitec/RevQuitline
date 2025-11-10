@@ -45,6 +45,27 @@ export async function GET(request: NextRequest) {
       .filter(a => a.status === 'completed')
       .reduce((sum, a) => sum + a._count.id, 0);
 
+    // Get active connections count
+    const activeConnections = await prisma.doctorPatientConnection.count({
+      where: {
+        patientId,
+        status: 'approved'
+      }
+    });
+
+    // Get outstanding balance
+    const outstandingInvoices = await prisma.invoice.aggregate({
+      where: {
+        patientId,
+        status: { in: ['pending', 'overdue'] }
+      },
+      _sum: {
+        amount: true
+      }
+    });
+
+    const outstandingBalance = outstandingInvoices._sum.amount || 0;
+
     // Get connected doctors
     const connectedDoctors = await prisma.user.findMany({
       where: {
@@ -79,8 +100,6 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'desc' },
       take: 5
     });
-    
-
 
     // Format data
     const formattedDoctors = connectedDoctors.map(doctor => ({
@@ -100,8 +119,10 @@ export async function GET(request: NextRequest) {
 
     const dashboardData = {
       totalDoctors: connectedDoctors.length,
+      activeConnections,
       upcomingAppointments,
       completedAppointments,
+      outstandingBalance,
       recentAppointments: formattedAppointments,
       connectedDoctors: formattedDoctors,
       patient: {
