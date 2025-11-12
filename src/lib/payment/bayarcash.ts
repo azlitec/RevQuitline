@@ -134,16 +134,11 @@ export class BayarCashService {
     try {
       this.log('debug', 'Testing BayarCash API connectivity');
       
-      const testPayload = {
-        test: 'connection',
-        timestamp: Math.floor(Date.now() / 1000),
-      };
-
+      // ✅ Only PAT in Authorization header
       const response = await fetch(`${this.config.apiUrl}/test`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.config.pat}`,
-          'X-Portal-Key': this.config.portalKey,
           'User-Agent': 'Healthcare-Platform/1.0',
         },
         signal: AbortSignal.timeout(this.config.timeout!),
@@ -191,6 +186,7 @@ export class BayarCashService {
       this.validatePaymentRequest(request);
 
       const payload = {
+        portal_key: this.config.portalKey, // ✅ Portal key in request body
         order_id: request.orderId,
         amount: request.amount,
         currency: request.currency,
@@ -306,11 +302,11 @@ export class BayarCashService {
   private async makeApiRequest(endpoint: string, options: RequestInit): Promise<Response> {
     const url = `${this.config.apiUrl}${endpoint}`;
     
+    // ✅ Only PAT in Authorization header, NO X-Portal-Key header
     const defaultHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'Authorization': `Bearer ${this.config.pat}`,
-      'X-Portal-Key': this.config.portalKey,
       'User-Agent': 'Healthcare-Platform/1.0',
     };
 
@@ -437,6 +433,7 @@ export class BayarCashService {
       }
 
       const payload = {
+        portal_key: this.config.portalKey, // ✅ Portal key in request body
         transaction_id: transactionId,
         timestamp: Math.floor(Date.now() / 1000),
       };
