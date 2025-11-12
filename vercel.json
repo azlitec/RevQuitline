@@ -9,14 +9,7 @@
       "memory": 512
     }
   },
-  "env": {
-    "DATABASE_URL": "@database-url",
-    "NEXTAUTH_SECRET": "@nextauth-secret",
-    "NEXTAUTH_URL": "@nextauth-url",
-    "BAYARCASH_PAT": "@bayarcash-pat",
-    "BAYARCASH_API_SECRET": "@bayarcash-api-secret",
-    "BAYARCASH_PORTAL_KEY": "@bayarcash-portal-key"
-  },
+
   "build": {
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1",
