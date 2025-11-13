@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // DELETE - Remove a user by ID (admin only)
@@ -19,7 +19,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!id) {
       return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
     }

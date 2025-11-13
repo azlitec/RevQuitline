@@ -13,7 +13,7 @@ import { recordAttendanceAndMaybeStart, isMeetingActive } from '@/lib/google/cal
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -21,7 +21,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const appointmentId = params.id;
+    const { id: appointmentId } = await params;
     if (!appointmentId) {
       return NextResponse.json({ error: 'Appointment ID is required' }, { status: 400 });
     }

@@ -10,7 +10,7 @@ import { prisma } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { patientId: string } }
+  { params }: { params: Promise<{ patientId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,7 +19,7 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const patientId = params.patientId;
+    const { patientId: patientId } = await params;
     if (!patientId) {
       return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }

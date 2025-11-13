@@ -23,14 +23,14 @@ function canView(session: any, p: any): boolean {
  * Streams a printable HTML "PDF" (HTML content to print/save as PDF) for a prescription.
  * Authorization: provider owner OR patient owner (admin/clerk allowed).
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   let session: any | null = null;
   try {
     session = await getServerSession(authOptions);
     if (!session?.user) {
       return jsonError(request, new Error('Unauthorized'), { title: 'Unauthorized', status: 401 });
     }
-    const id = params.id;
+    const { id: id } = await params;
     if (!id) {
       return jsonError(request, new Error('Prescription id is required'), { title: 'Validation error', status: 400 });
     }

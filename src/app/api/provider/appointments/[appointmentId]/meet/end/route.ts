@@ -14,7 +14,7 @@ import { endMeetingAndComplete } from '@/lib/google/calendar';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { appointmentId: string } }
+  { params }: { params: Promise<{ appointmentId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -22,7 +22,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const appointmentId = params.appointmentId;
+    const { appointmentId: appointmentId } = await params;
     if (!appointmentId) {
       return NextResponse.json({ error: 'Appointment ID is required' }, { status: 400 });
     }

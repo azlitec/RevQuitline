@@ -4,13 +4,13 @@ import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // PATCH - Approve or reject provider application
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const session = await getServerSession(authOptions);
 

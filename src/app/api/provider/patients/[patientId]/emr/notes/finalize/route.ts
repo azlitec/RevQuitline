@@ -33,7 +33,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { patientId: string } }
+  { params }: { params: Promise<{ patientId: string }> }
 ) {
   let session: any | null = null;
   try {
@@ -49,7 +49,7 @@ export async function POST(
       return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
     }
 
-    const patientId = params.patientId;
+    const { patientId: patientId } = await params;
     if (!patientId) {
       return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
     }

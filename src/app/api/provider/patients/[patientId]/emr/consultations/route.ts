@@ -53,7 +53,7 @@ function parseListQuery(req: NextRequest) {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { patientId: string } }
+  { params }: { params: Promise<{ patientId: string }> }
 ) {
   let session: any | null = null;
   try {
@@ -69,7 +69,7 @@ export async function GET(
       return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
     }
 
-    const patientId = params.patientId;
+    const { patientId: patientId } = await params;
     if (!patientId) {
       return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
     }
@@ -107,7 +107,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { patientId: string } }
+  { params }: { params: Promise<{ patientId: string }> }
 ) {
   let session: any | null = null;
   try {
@@ -123,7 +123,7 @@ export async function POST(
       return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
     }
 
-    const patientId = params.patientId;
+    const { patientId: patientId } = await params;
     if (!patientId) {
       return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
     }
@@ -161,7 +161,7 @@ export async function POST(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { patientId: string } }
+  { params }: { params: Promise<{ patientId: string }> }
 ) {
   let session: any | null = null;
   try {
@@ -177,7 +177,7 @@ export async function PUT(
       return jsonError(request, err, { title: 'Permission error', status: err?.status ?? 403 });
     }
 
-    const patientId = params.patientId;
+    const { patientId: patientId } = await params;
     if (!patientId) {
       return jsonError(request, new Error('Patient ID is required'), { title: 'Validation error', status: 400 });
     }

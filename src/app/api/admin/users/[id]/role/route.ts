@@ -8,15 +8,15 @@ import { errorResponse, jsonEntity } from '@/lib/api/response';
 import { auditUpdate } from '@/lib/audit/audit';
 
 interface Params {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // PATCH - Update user role
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     // Check user authentication and admin permissions
     const session = await getServerSession(authOptions);
