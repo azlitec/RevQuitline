@@ -145,22 +145,55 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60 // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
+  // Enable debug only in development
   debug: process.env.NODE_ENV === 'development',
+  // Custom logger to handle NextAuth warnings and errors
   logger: {
     error(code, metadata) {
-      console.error('[NextAuth Error]', code, metadata);
+      // Log all errors with full context
+      console.error('[NextAuth Error]', {
+        code,
+        metadata,
+        timestamp: new Date().toISOString(),
+      });
     },
     warn(code) {
-      // Suppress INVALID_REQUEST_METHOD warnings for unsupported methods
-      if (code === 'INVALID_REQUEST_METHOD') {
-        return;
+      // Suppress known non-critical warnings
+      const suppressedWarnings = [
+        'INVALID_REQUEST_METHOD', // 405 errors from unsupported HTTP methods
+        'SIGNIN_EMAIL_ERROR',     // Email provider errors (not used)
+        'CALLBACK_CREDENTIALS_HANDLER_ERROR', // Handled by our error handling
+      ];
+      
+      if (suppressedWarnings.includes(code)) {
+        return; // Silently ignore
       }
-      console.warn('[NextAuth Warning]', code);
+      
+      console.warn('[NextAuth Warning]', {
+        code,
+        timestamp: new Date().toISOString(),
+      });
     },
     debug(code, metadata) {
+      // Only log debug info in development
       if (process.env.NODE_ENV === 'development') {
         console.log('[NextAuth Debug]', code, metadata);
       }
     }
-  }
+  },
+  // Use cookies for better compatibility with Vercel
+  useSecureCookies: process.env.NODE_ENV === 'production',
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production' 
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
 };
