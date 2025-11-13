@@ -144,5 +144,23 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60 // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
+  logger: {
+    error(code, metadata) {
+      console.error('[NextAuth Error]', code, metadata);
+    },
+    warn(code) {
+      // Suppress INVALID_REQUEST_METHOD warnings for unsupported methods
+      if (code === 'INVALID_REQUEST_METHOD') {
+        return;
+      }
+      console.warn('[NextAuth Warning]', code);
+    },
+    debug(code, metadata) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[NextAuth Debug]', code, metadata);
+      }
+    }
+  }
 };
