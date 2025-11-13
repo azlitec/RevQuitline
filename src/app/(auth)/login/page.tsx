@@ -55,8 +55,10 @@ function LoginForm() {
         return;
       }
 
-      // Success - redirect to login page where middleware will handle role-based redirection
-      router.push('/login');
+      // Success - redirect to root, middleware will handle role-based redirection
+      // This prevents redirect loops and allows middleware to route based on user role
+      router.push('/');
+      router.refresh();
       
     } catch (error) {
       setErrorMessage('An error occurred during login. Please try again.');

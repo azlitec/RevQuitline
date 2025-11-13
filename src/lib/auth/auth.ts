@@ -37,39 +37,78 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        const timestamp = new Date().toISOString();
+        
         if (!credentials?.email || !credentials?.password) {
+          console.error('[Auth] Missing credentials:', {
+            timestamp,
+            hasEmail: !!credentials?.email,
+            hasPassword: !!credentials?.password,
+          });
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
+        try {
+          // Attempt to find user
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email
+            }
+          });
+
+          if (!user) {
+            console.error('[Auth] User not found:', {
+              timestamp,
+              email: credentials.email,
+            });
+            throw new Error("Invalid email or password");
           }
-        });
 
-        if (!user) {
-          throw new Error("Invalid email or password");
+          // Verify password
+          const isPasswordValid = await compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isPasswordValid) {
+            console.error('[Auth] Invalid password:', {
+              timestamp,
+              email: credentials.email,
+              userId: user.id,
+            });
+            throw new Error("Invalid email or password");
+          }
+
+          // Successful authentication
+          console.log('[Auth] Authentication successful:', {
+            timestamp,
+            userId: user.id,
+            email: user.email,
+            role: (user as any).role || 'USER',
+            isAdmin: user.isAdmin,
+            isProvider: user.isProvider || false,
+          });
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email,
+            role: (user as any).role || 'USER',
+            isAdmin: user.isAdmin,
+            isProvider: user.isProvider || false,
+            firstName: user.firstName,
+            lastName: user.lastName,
+          };
+        } catch (error: any) {
+          // Log database or other errors
+          console.error('[Auth] Authorization error:', {
+            timestamp,
+            error: error.message,
+            code: error.code,
+            email: credentials.email,
+          });
+          throw error;
         }
-
-        const isPasswordValid = await compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          throw new Error("Invalid email or password");
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email,
-          role: (user as any).role || 'USER',
-          isAdmin: user.isAdmin,
-          isProvider: user.isProvider || false,
-          firstName: user.firstName,
-          lastName: user.lastName,
-        };
       }
     })
   ],
