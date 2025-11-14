@@ -181,19 +181,71 @@ export const authOptions: NextAuthOptions = {
       }
     }
   },
-  // Use cookies for better compatibility with Vercel
-  useSecureCookies: process.env.NODE_ENV === 'production',
+  // Critical: Proper cookie configuration for Vercel deployment
+  // This fixes login/logout issues on Vercel by ensuring cookies work correctly
+  useSecureCookies: process.env.NEXTAUTH_URL?.startsWith('https://'),
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
+      name: process.env.NEXTAUTH_URL?.startsWith('https://')
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NEXTAUTH_URL?.startsWith('https://'),
+        domain: process.env.NEXTAUTH_URL 
+          ? new URL(process.env.NEXTAUTH_URL).hostname.replace('www.', '')
+          : undefined,
       },
+    },
+    callbackUrl: {
+      name: process.env.NEXTAUTH_URL?.startsWith('https://')
+        ? '__Secure-next-auth.callback-url'
+        : 'next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NEXTAUTH_URL?.startsWith('https://'),
+        domain: process.env.NEXTAUTH_URL 
+          ? new URL(process.env.NEXTAUTH_URL).hostname.replace('www.', '')
+          : undefined,
+      },
+    },
+    csrfToken: {
+      name: process.env.NEXTAUTH_URL?.startsWith('https://')
+        ? '__Host-next-auth.csrf-token'
+        : 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NEXTAUTH_URL?.startsWith('https://'),
+      },
+    },
+  },
+  // Add events for debugging login/logout on Vercel
+  events: {
+    async signIn({ user, account, profile }) {
+      console.log('[Auth Event] Sign in successful:', {
+        userId: user.id,
+        email: user.email,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    async signOut({ token, session }) {
+      console.log('[Auth Event] Sign out:', {
+        userId: token?.id || session?.user?.id,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    async session({ session, token }) {
+      console.log('[Auth Event] Session checked:', {
+        userId: session?.user?.id,
+        hasToken: !!token,
+        timestamp: new Date().toISOString(),
+      });
     },
   },
 };

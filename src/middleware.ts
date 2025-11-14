@@ -45,9 +45,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // Get token for protected routes
+  // Critical: Use proper cookie name based on environment
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
+    secureCookie: process.env.NEXTAUTH_URL?.startsWith('https://'),
+    cookieName: process.env.NEXTAUTH_URL?.startsWith('https://')
+      ? '__Secure-next-auth.session-token'
+      : 'next-auth.session-token',
   });
 
   // Public paths - redirect if already logged in

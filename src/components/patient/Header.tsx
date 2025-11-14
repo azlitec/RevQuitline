@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signOut, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
+import { logout } from '@/lib/auth/logout';
 import Link from 'next/link';
 import NotificationBell from '@/components/ui/NotificationBell';
 
@@ -79,7 +80,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   }, [session]);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/login' });
+    await logout({ callbackUrl: '/login', redirect: true });
   };
 
   const getInitials = (name: string) => {
