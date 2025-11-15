@@ -1,12 +1,14 @@
 {
   "framework": "nextjs",
   "regions": ["sin1"],
+  "buildCommand": "npm run build",
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 10,
       "memory": 1024
     }
   },
+  "crons": [],
   "env": {
     "NODE_ENV": "production"
   }

@@ -22,15 +22,22 @@ const nextConfig = {
   
   // Vercel serverless optimization
   experimental: {
-    serverComponentsExternalPackages: ['bcryptjs', '@prisma/client'],
+    serverComponentsExternalPackages: ['bcryptjs', '@prisma/client', 'bcrypt'],
     optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
   },
   
   // Webpack optimization for Vercel
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Optimize server bundle
-      config.externals = [...(config.externals || []), 'mongoose'];
+      // Optimize server bundle - externalize heavy packages
+      config.externals = [
+        ...(config.externals || []), 
+        'mongoose',
+        'firebase-admin',
+        'googleapis',
+        'ioredis',
+        'redis',
+      ];
     }
     
     // Reduce bundle size

@@ -1,7 +1,7 @@
-# Dependencies
+# Dependencies (Vercel installs these)
 node_modules
 
-# Testing
+# Testing files (not needed in production)
 __tests__
 *.test.ts
 *.test.tsx
@@ -9,28 +9,50 @@ __tests__
 *.spec.tsx
 coverage
 .jest
+jest.config.js
+playwright.config.ts
+e2e
 
-# Development
+# Development files
 .env.local
 .env.development
 .env.test
+.env.example
 
 # Documentation
 README.md
 CHANGELOG.md
 docs
+*.md
+VERCEL_DEPLOYMENT_GUIDE.md
 
-# IDE
+# IDE and editor files
 .vscode
 .idea
+.kiro
 *.swp
 *.swo
+.editorconfig
 
 # Logs
 *.log
 logs
 
-# Misc
-.DS_Store
+# Build artifacts (will be rebuilt)
+.next
+out
+dist
+build
+
+# Git
 .git
 .gitignore
+.gitattributes
+
+# Misc
+.DS_Store
+*.local
+.cache
+
+# Specs and planning
+.kiro/specs
