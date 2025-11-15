@@ -3,10 +3,31 @@ import { DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from 'bcryptjs';
 import { prisma } from "@/lib/db";
-import { validateEnv } from "@/lib/config/env";
 
-// Validate environment variables on module load
-validateEnv();
+// Helper function to get clean NEXTAUTH_URL (remove trailing slash)
+function getNextAuthUrl(): string {
+  const url = process.env.NEXTAUTH_URL || process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : 'http://localhost:3000';
+  
+  // Remove trailing slash if present
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
+// Helper function to get NEXTAUTH_SECRET
+function getNextAuthSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('NEXTAUTH_SECRET must be set in production');
+    }
+    // Development fallback
+    return 'development-secret-change-in-production';
+  }
+  
+  return secret;
+}
 
 // Extend Session type
 declare module "next-auth" {
@@ -177,5 +198,9 @@ export const authOptions: NextAuthOptions = {
     maxAge: 7 * 24 * 60 * 60, // 7 days (optimized for serverless)
     updateAge: 24 * 60 * 60, // Update session every 24 hours
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: getNextAuthSecret(),
+  // Use clean URL without trailing slash
+  ...(process.env.NEXTAUTH_URL && { 
+    url: getNextAuthUrl() 
+  }),
 };

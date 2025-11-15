@@ -84,11 +84,10 @@ export function validateEnv(): EnvValidationResult {
   if (process.env.NEXTAUTH_URL) {
     const authUrl = process.env.NEXTAUTH_URL;
     
-    // Check for trailing slash
+    // Check for trailing slash (auto-fixed in auth.ts, so just info)
     if (authUrl.endsWith('/')) {
-      warnings.push(
-        '[NEXTAUTH_URL] Should not include trailing slash'
-      );
+      // Don't warn - we auto-fix this in auth.ts
+      console.log('[Config] ℹ️  NEXTAUTH_URL trailing slash will be automatically removed');
     }
 
     // Check if it's a valid URL
@@ -103,9 +102,13 @@ export function validateEnv(): EnvValidationResult {
     // Warn if using localhost in production
     if (process.env.NODE_ENV === 'production' && authUrl.includes('localhost')) {
       warnings.push(
-        '[NEXTAUTH_URL] Using localhost in production environment. This should be your Vercel deployment URL.'
+        '[NEXTAUTH_URL] Using localhost in production. Will fallback to VERCEL_URL if available.'
       );
     }
+  } else if (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL) {
+    warnings.push(
+      '[NEXTAUTH_URL] Not set in production and VERCEL_URL not available. Authentication may not work correctly.'
+    );
   }
 
   // Log results (only on server)
