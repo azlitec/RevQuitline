@@ -9,6 +9,12 @@ const nextConfig = {
   },
   // Enable standalone output for Docker
   output: 'standalone',
+  // Ensure CSS is properly optimized
+  experimental: {
+    optimizeCss: true,
+  },
+  // Ensure static files are properly served
+  compress: true,
 }
 
 module.exports = nextConfig
