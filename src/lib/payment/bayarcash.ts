@@ -88,13 +88,26 @@ export class BayarCashService {
   }
 
   private validateConfig(): void {
+    // Skip validation during build time or if running in non-production without config
+    if (process.env.NODE_ENV !== 'production' && !this.config.pat) {
+      console.warn('[BayarCash Warning] Running in development mode with incomplete config - validation skipped');
+      return;
+    }
+
     const required = ['pat', 'apiSecret', 'portalKey', 'apiUrl'];
     const missing = required.filter(key => !this.config[key as keyof BayarCashConfig]);
     
     if (missing.length > 0) {
       const error = `Missing BayarCash configuration: ${missing.join(', ')}. Please check your environment variables.`;
       this.log('error', 'Configuration validation failed', { missing });
-      throw new Error(error);
+      
+      // Only throw in production, warn in development
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(error);
+      } else {
+        console.warn('[BayarCash Warning]', error);
+        return;
+      }
     }
 
     // Validate URL formats
@@ -105,23 +118,48 @@ export class BayarCashService {
     } catch (urlError) {
       const error = 'Invalid URL format in BayarCash configuration';
       this.log('error', error, { urlError });
-      throw new Error(error);
+      
+      // Only throw in production, warn in development
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(error);
+      } else {
+        console.warn('[BayarCash Warning]', error);
+        return;
+      }
     }
 
     // Validate credential formats
     if (!this.config.pat.startsWith('eyJ') && !this.config.pat.startsWith('pat_')) {
       this.log('error', 'Invalid PAT format - should be JWT or start with pat_');
-      throw new Error('Invalid Personal Access Token format');
+      
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Invalid Personal Access Token format');
+      } else {
+        console.warn('[BayarCash Warning] Invalid PAT format');
+        return;
+      }
     }
 
     if (this.config.apiSecret.length < 20) {
       this.log('error', 'API Secret appears to be too short');
-      throw new Error('Invalid API Secret - appears to be too short');
+      
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Invalid API Secret - appears to be too short');
+      } else {
+        console.warn('[BayarCash Warning] API Secret too short');
+        return;
+      }
     }
 
     if (this.config.portalKey.length < 20) {
       this.log('error', 'Portal Key appears to be too short');
-      throw new Error('Invalid Portal Key - appears to be too short');
+      
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Invalid Portal Key - appears to be too short');
+      } else {
+        console.warn('[BayarCash Warning] Portal Key too short');
+        return;
+      }
     }
 
     this.log('info', 'BayarCash configuration validated successfully');
@@ -182,6 +220,17 @@ export class BayarCashService {
     });
 
     try {
+      // Runtime validation - ensure config is valid when actually called
+      if (!this.config.pat || !this.config.apiSecret || !this.config.portalKey) {
+        const error: PaymentError = {
+          code: 'CONFIG_ERROR',
+          message: 'BayarCash is not properly configured. Please check environment variables.',
+          retryable: false,
+        };
+        this.log('error', 'Payment creation failed - missing configuration', { requestId });
+        return { success: false, error };
+      }
+
       // Validate request data
       this.validatePaymentRequest(request);
 
@@ -428,6 +477,16 @@ export class BayarCashService {
     });
 
     try {
+      // Runtime validation
+      if (!this.config.pat || !this.config.apiSecret || !this.config.portalKey) {
+        const error: PaymentError = {
+          code: 'CONFIG_ERROR',
+          message: 'BayarCash is not properly configured',
+          retryable: false,
+        };
+        return { status: 'error', error };
+      }
+
       if (!transactionId || transactionId.trim().length === 0) {
         throw new Error('Transaction ID is required');
       }
@@ -501,13 +560,14 @@ export class BayarCashService {
 }
 
 // Initialize BayarCash service with enhanced configuration
+// Use safe fallbacks for build time when env vars might not be available
 export const bayarCashService = new BayarCashService({
   pat: process.env.BAYARCASH_PAT || '',
   apiSecret: process.env.BAYARCASH_API_SECRET || '',
   portalKey: process.env.BAYARCASH_PORTAL_KEY || '',
   apiUrl: process.env.BAYARCASH_API_URL || 'https://console.bayarcash-sandbox.com/api/v2',
-  returnUrl: process.env.BAYARCASH_RETURN_URL || `${process.env.NEXTAUTH_URL}/patient/payment/return`,
-  callbackUrl: process.env.BAYARCASH_CALLBACK_URL || `${process.env.NEXTAUTH_URL}/api/payment/callback`,
+  returnUrl: process.env.BAYARCASH_RETURN_URL || (process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/patient/payment/return` : 'http://localhost:3000/patient/payment/return'),
+  callbackUrl: process.env.BAYARCASH_CALLBACK_URL || (process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/api/payment/callback` : 'http://localhost:3000/api/payment/callback'),
   debug: process.env.BAYARCASH_DEBUG === 'true' || process.env.NODE_ENV === 'development',
   timeout: parseInt(process.env.BAYARCASH_TIMEOUT || '30000'),
   retryAttempts: parseInt(process.env.BAYARCASH_RETRY_ATTEMPTS || '3'),
