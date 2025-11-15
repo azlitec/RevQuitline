@@ -121,7 +121,8 @@ export async function GET(
         'General Consultation',
         'Smoking Cessation',
         'Chronic Disease Management',
-        'Preventive Care'
+        'Preventive Care',
+        'Psychiatrist Session'
       ], // Could be stored in doctor profile
       qualifications: doctor.licenseNumber ? [`License: ${doctor.licenseNumber}`] : ['MBBS', 'MRCP'],
       profileImage: doctor.image,
