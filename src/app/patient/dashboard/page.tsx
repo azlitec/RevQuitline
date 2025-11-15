@@ -5,46 +5,30 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import PushNotificationPrompt from '@/components/ui/PushNotificationPrompt';
 import HealthTipsCarousel from '@/components/HealthTipsCarousel';
-
-// Enhanced Icon component with fallbacks
-const IconWithFallback = ({ icon, emoji, className = '' }: {
-  icon: string;
-  emoji: string;
-  className?: string;
-}) => {
-  return (
-    <span className={`icon-container ${className}`}>
-      <span
-        className="material-icons"
-        style={{
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
-      <span
-        className="emoji-fallback"
-        style={{
-          fontSize: '20px',
-          display: 'none'
-        }}
-      >
-        {emoji}
-      </span>
-    </span>
-  );
-};
+import {
+  Users,
+  Calendar,
+  CheckCircle,
+  DollarSign,
+  Pill,
+  Search,
+  X,
+  ChevronDown,
+  AlertCircle,
+  Loader2,
+  Clock,
+  MapPin,
+  Video,
+  Phone,
+  MessageSquare,
+  FileText,
+  Activity,
+  Heart,
+  Droplet,
+  Cigarette,
+  ArrowRight,
+  CalendarDays
+} from 'lucide-react';
 
 interface PatientDashboardData {
   totalDoctors: number;
@@ -135,9 +119,7 @@ export default function PatientDashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
-          <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
-          </div>
+          <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
           <span className="text-gray-600 font-medium">Loading dashboard...</span>
         </div>
       </div>
@@ -148,7 +130,7 @@ export default function PatientDashboardPage() {
     return (
       <div className="p-6 md:p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
         <div className="flex items-center space-x-3 mb-4">
-          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <AlertCircle className="w-6 h-6 text-red-600" />
           <h2 className="text-xl font-bold">Error Loading Dashboard</h2>
         </div>
         <p className="mb-4">{error}</p>
@@ -171,11 +153,7 @@ export default function PatientDashboardPage() {
           <h1 className="text-2xl md:text-3xl font-bold gradient-text">Patient Dashboard</h1>
           <p className="text-sm md:text-base text-gray-500 flex items-center">
             Manage your healthcare connections and appointments
-            <IconWithFallback
-              icon="expand_more"
-              emoji="🔽"
-              className="ml-1 text-sm text-gray-400 hover:text-blue-500 cursor-pointer"
-            />
+            <ChevronDown className="ml-1 w-4 h-4 text-gray-400 hover:text-blue-500 cursor-pointer" />
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -183,7 +161,7 @@ export default function PatientDashboardPage() {
             href="/patient/doctors"
             className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 active:from-blue-800 active:to-blue-900 transition-all duration-300 shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly hover:scale-105"
           >
-            <IconWithFallback icon="search" emoji="🔍" className="text-white" />
+            <Search className="w-5 h-5" />
             <span>Find Doctors</span>
           </Link>
         </div>
@@ -205,7 +183,7 @@ export default function PatientDashboardPage() {
               className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
               aria-label="Dismiss banner"
             >
-              <IconWithFallback icon="close" emoji="✕" className="text-lg" />
+              <X className="w-5 h-5" />
             </button>
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
@@ -240,7 +218,7 @@ export default function PatientDashboardPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex justify-between items-start">
             <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="people" emoji="👥" className="text-blue-600 text-sm md:text-base" />
+              <Users className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
             </div>
             <div className="bg-blue-100 text-blue-600 text-xs font-bold px-3 py-1 rounded-full">
               +{(() => {
@@ -257,7 +235,7 @@ export default function PatientDashboardPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex justify-between items-start">
             <div className="bg-gradient-to-r from-green-100 to-green-200 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="event" emoji="📅" className="text-green-600 text-sm md:text-base" />
+              <Calendar className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
             </div>
             <div className="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-full">
               +{(() => {
@@ -274,7 +252,7 @@ export default function PatientDashboardPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex justify-between items-start">
             <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="task_alt" emoji="✅" className="text-purple-600 text-sm md:text-base" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
             </div>
             <div className="bg-purple-100 text-purple-600 text-xs font-bold px-3 py-1 rounded-full">
               +{(() => {
@@ -291,7 +269,7 @@ export default function PatientDashboardPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex justify-between items-start">
             <div className="bg-gradient-to-r from-orange-100 to-orange-200 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="payment" emoji="💰" className="text-orange-600 text-sm md:text-base" />
+              <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
             </div>
             <div className={`text-xs font-bold px-3 py-1 rounded-full ${
               (dashboardData?.outstandingBalance || 0) > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
@@ -308,7 +286,7 @@ export default function PatientDashboardPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex justify-between items-start">
             <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="medication" emoji="💊" className="text-purple-600 text-sm md:text-base" />
+              <Pill className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
             </div>
             <Link
               href="/patient/prescriptions"
@@ -340,7 +318,7 @@ export default function PatientDashboardPage() {
                 className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 w-fit hover:scale-105 transition-all duration-300"
               >
                 <span>View All</span>
-                <IconWithFallback icon="arrow_forward" emoji="→" className="text-xs" />
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
             
@@ -350,7 +328,7 @@ export default function PatientDashboardPage() {
                   <div key={appointment.id} className="flex items-center justify-between p-3 md:p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:shadow-medium hover:scale-102">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-green-100 to-green-200 rounded-full flex items-center justify-center shadow-sm">
-                        <IconWithFallback icon="event" emoji="📅" className="text-green-600 text-sm md:text-base" />
+                        <Calendar className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-800 text-sm md:text-base">{appointment.doctorName}</h4>
@@ -386,7 +364,7 @@ export default function PatientDashboardPage() {
             ) : (
               <div className="text-center py-8 md:py-12">
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                  <IconWithFallback icon="event" emoji="📅" className="text-gray-400 text-lg md:text-2xl" />
+                  <Calendar className="w-8 h-8 md:w-10 md:h-10 text-gray-400" />
                 </div>
                 <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">No upcoming appointments</h3>
                 <p className="text-sm md:text-base text-gray-500 mb-4">Schedule your first appointment to get started</p>
@@ -412,7 +390,7 @@ export default function PatientDashboardPage() {
                 {dashboardData.recentAppointments.slice(0, 3).map((appointment: any) => (
                   <div key={appointment.id} className="flex items-center space-x-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg hover:from-blue-50 hover:to-purple-50 transition-all duration-300 hover:shadow-medium">
                     <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-blue-200 rounded-full flex items-center justify-center shadow-sm">
-                      <IconWithFallback icon="event" emoji="📅" className="text-blue-600 text-sm" />
+                      <Calendar className="w-4 h-4 text-blue-600" />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-800 text-sm">{appointment.doctorName}</h4>
@@ -430,7 +408,7 @@ export default function PatientDashboardPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <IconWithFallback icon="event_note" emoji="📅" className="text-gray-400 text-2xl mb-2" />
+                <CalendarDays className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-500">No recent appointments</p>
               </div>
             )}
