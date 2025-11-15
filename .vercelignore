@@ -1,47 +1,36 @@
-# Build cache
-.next/cache
-.next/trace
-
 # Dependencies
 node_modules
 
 # Testing
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
 coverage
-.nyc_output
-*.log
-playwright-report
-test-results
+.jest
 
 # Development
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.development
+.env.test
+
+# Documentation
+README.md
+CHANGELOG.md
+docs
 
 # IDE
 .vscode
 .idea
 *.swp
 *.swo
-*~
 
-# OS
-.DS_Store
-Thumbs.db
+# Logs
+*.log
+logs
 
 # Misc
-*.zip
-*.tar.gz
-uploads/
+.DS_Store
 .git
-.github
-docker-compose.yml
-Dockerfile
-
-# Documentation
-*.md
-!README.md
-
-# Scripts
-scripts/send-reminders.ts
-scripts/send-refill-reminders.ts
+.gitignore

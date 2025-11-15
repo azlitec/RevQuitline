@@ -3,6 +3,10 @@ import { DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from 'bcryptjs';
 import { prisma } from "@/lib/db";
+import { validateEnv } from "@/lib/config/env";
+
+// Validate environment variables on module load
+validateEnv();
 
 // Extend Session type
 declare module "next-auth" {
@@ -48,65 +52,93 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        try {
-          // Attempt to find user
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email
+        // Timeout promise for Vercel serverless (8 seconds, buffer for 10s limit)
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Authentication timeout')), 8000)
+        );
+
+        // Authentication logic
+        const authPromise = async () => {
+          try {
+            // Attempt to find user
+            const user = await prisma.user.findUnique({
+              where: {
+                email: credentials.email
+              }
+            });
+
+            if (!user) {
+              console.error('[Auth] User not found:', {
+                timestamp,
+                email: credentials.email,
+              });
+              throw new Error("Invalid email or password");
             }
-          });
 
-          if (!user) {
-            console.error('[Auth] User not found:', {
+            // Verify password
+            const isPasswordValid = await compare(
+              credentials.password,
+              user.password
+            );
+
+            if (!isPasswordValid) {
+              console.error('[Auth] Invalid password:', {
+                timestamp,
+                email: credentials.email,
+                userId: user.id,
+              });
+              throw new Error("Invalid email or password");
+            }
+
+            // Successful authentication
+            console.log('[Auth] Authentication successful:', {
               timestamp,
-              email: credentials.email,
-            });
-            throw new Error("Invalid email or password");
-          }
-
-          // Verify password
-          const isPasswordValid = await compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isPasswordValid) {
-            console.error('[Auth] Invalid password:', {
-              timestamp,
-              email: credentials.email,
               userId: user.id,
+              email: user.email,
+              role: (user as any).role || 'USER',
+              isAdmin: user.isAdmin,
+              isProvider: user.isProvider || false,
             });
-            throw new Error("Invalid email or password");
+
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email,
+              role: (user as any).role || 'USER',
+              isAdmin: user.isAdmin,
+              isProvider: user.isProvider || false,
+              firstName: user.firstName,
+              lastName: user.lastName,
+            };
+          } catch (error: any) {
+            // Handle specific error types
+            if (error.message === 'Authentication timeout') {
+              throw error;
+            }
+            
+            // Log database or other errors
+            console.error('[Auth] Authorization error:', {
+              timestamp,
+              error: error.message,
+              code: error.code,
+              email: credentials.email,
+            });
+            throw error;
           }
+        };
 
-          // Successful authentication
-          console.log('[Auth] Authentication successful:', {
-            timestamp,
-            userId: user.id,
-            email: user.email,
-            role: (user as any).role || 'USER',
-            isAdmin: user.isAdmin,
-            isProvider: user.isProvider || false,
-          });
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email,
-            role: (user as any).role || 'USER',
-            isAdmin: user.isAdmin,
-            isProvider: user.isProvider || false,
-            firstName: user.firstName,
-            lastName: user.lastName,
-          };
+        // Race between auth and timeout
+        try {
+          return await Promise.race([authPromise(), timeoutPromise]);
         } catch (error: any) {
-          // Log database or other errors
-          console.error('[Auth] Authorization error:', {
-            timestamp,
-            error: error.message,
-            code: error.code,
-            email: credentials.email,
-          });
+          if (error.message === 'Authentication timeout') {
+            console.error('[Auth] Authentication timeout:', {
+              timestamp,
+              email: credentials.email,
+              duration: '8000ms',
+            });
+            throw new Error('Authentication service is temporarily unavailable. Please try again.');
+          }
           throw error;
         }
       }
@@ -142,7 +174,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60 // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days (optimized for serverless)
+    updateAge: 24 * 60 * 60, // Update session every 24 hours
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

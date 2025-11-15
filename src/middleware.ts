@@ -2,36 +2,24 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-// Simple public paths
-const publicPaths = [
-  '/',
-  '/login',
-  '/register',
-  '/about',
-  '/contact'
-];
+// Public paths that don't require authentication
+const publicPaths = ['/', '/login', '/register', '/about', '/contact'];
 
-// Admin auth paths (separate from regular auth)
-const adminAuthPaths = [
-  '/admin-auth/login',
-  '/admin-auth/register'
-];
+// Admin auth paths
+const adminAuthPaths = ['/admin-auth/login', '/admin-auth/register'];
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Allow NextAuth API routes
-  if (path.startsWith('/api/auth/')) {
-    return NextResponse.next();
-  }
-
-  // Allow static files
-  if (path.includes('_next') || path.includes('/static/') || path.includes('favicon')) {
-    return NextResponse.next();
-  }
-
-  // Allow API routes (they handle their own auth)
-  if (path.startsWith('/api/')) {
+  // Fast path checks (no async operations)
+  // Allow NextAuth API routes, static files, and API routes
+  if (
+    path.startsWith('/api/auth/') ||
+    path.includes('_next') ||
+    path.includes('/static/') ||
+    path.includes('favicon') ||
+    path.startsWith('/api/')
+  ) {
     return NextResponse.next();
   }
 
@@ -44,7 +32,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get token for protected routes
+  // Get token (only async operation in middleware)
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
@@ -53,16 +41,16 @@ export async function middleware(request: NextRequest) {
   // Public paths - redirect if already logged in
   if (isPublicPath) {
     if (token && (path === '/login' || path === '/register')) {
-      // Simple redirect based on role
-      if (token.isAdmin) {
-        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-      } else if (token.role === 'PROVIDER_PENDING') {
-        return NextResponse.redirect(new URL('/provider/pending', request.url));
-      } else if (token.isProvider) {
-        return NextResponse.redirect(new URL('/provider/dashboard', request.url));
-      } else {
-        return NextResponse.redirect(new URL('/patient/dashboard', request.url));
-      }
+      // Determine dashboard based on role
+      const dashboardPath = token.isAdmin 
+        ? '/admin/dashboard'
+        : token.role === 'PROVIDER_PENDING'
+        ? '/provider/pending'
+        : token.isProvider
+        ? '/provider/dashboard'
+        : '/patient/dashboard';
+      
+      return NextResponse.redirect(new URL(dashboardPath, request.url));
     }
     return NextResponse.next();
   }
@@ -74,21 +62,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Simple role-based protection
+  // Role-based protection
   if (path.startsWith('/admin') && !token.isAdmin) {
     return NextResponse.redirect(new URL('/patient/dashboard', request.url));
   }
 
   // Provider routes handling
   if (path.startsWith('/provider')) {
-    // Allow pending providers to access /provider/pending only
-    if (token.role === 'PROVIDER_PENDING') {
-      if (path !== '/provider/pending') {
-        return NextResponse.redirect(new URL('/provider/pending', request.url));
-      }
+    if (token.role === 'PROVIDER_PENDING' && path !== '/provider/pending') {
+      return NextResponse.redirect(new URL('/provider/pending', request.url));
     }
-    // Allow approved providers and admins to access all provider routes
-    else if (!token.isProvider && !token.isAdmin) {
+    if (!token.isProvider && !token.isAdmin) {
       return NextResponse.redirect(new URL('/patient/dashboard', request.url));
     }
   }
@@ -100,4 +84,5 @@ export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
+  runtime: 'experimental-edge', // Use experimental-edge runtime for optimal performance
 };

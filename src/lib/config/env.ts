@@ -1,26 +1,155 @@
 /**
- * Basic environment configuration - Simple and minimal
+ * Environment Variable Validation for Vercel Deployment
+ * 
+ * This module validates critical environment variables at application startup
+ * to catch configuration issues early, especially for Vercel Hobby plan deployments.
  */
 
-// Basic environment variables
-export const env = {
-  DATABASE_URL: process.env.DATABASE_URL || '',
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || '',
-  NODE_ENV: process.env.NODE_ENV || 'development',
-};
-
-// Simple validation
-if (!env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL is required');
-  process.exit(1);
+export interface EnvValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
 }
 
-if (!env.NEXTAUTH_SECRET) {
-  console.error('❌ NEXTAUTH_SECRET is required');
-  process.exit(1);
+/**
+ * Validates all required environment variables
+ * Throws an error if critical variables are missing or invalid
+ */
+export function validateEnv(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check required variables
+  const required = [
+    'DATABASE_URL',
+    'NEXTAUTH_URL',
+    'NEXTAUTH_SECRET',
+  ];
+
+  const missing = required.filter(key => !process.env[key]);
+
+  if (missing.length > 0) {
+    errors.push(
+      `Missing required environment variables: ${missing.join(', ')}\n` +
+      'Please check your .env file or Vercel environment variables.'
+    );
+  }
+
+  // Validate DATABASE_URL format
+  if (process.env.DATABASE_URL) {
+    const dbUrl = process.env.DATABASE_URL;
+    
+    if (!dbUrl.includes('pgbouncer=true')) {
+      warnings.push(
+        '[DATABASE_URL] Should include pgbouncer=true for optimal Vercel serverless performance'
+      );
+    }
+    
+    if (!dbUrl.includes(':6543')) {
+      warnings.push(
+        '[DATABASE_URL] Should use port 6543 for Supabase connection pooling (not 5432)'
+      );
+    }
+    
+    if (!dbUrl.includes('connection_limit=')) {
+      warnings.push(
+        '[DATABASE_URL] Should include connection_limit parameter to prevent connection exhaustion'
+      );
+    }
+
+    // Check if it's a valid PostgreSQL URL
+    if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
+      errors.push(
+        '[DATABASE_URL] Must be a valid PostgreSQL connection string starting with postgresql:// or postgres://'
+      );
+    }
+  }
+
+  // Validate NEXTAUTH_SECRET length
+  if (process.env.NEXTAUTH_SECRET) {
+    if (process.env.NEXTAUTH_SECRET.length < 32) {
+      errors.push(
+        '[NEXTAUTH_SECRET] Must be at least 32 characters long for security.\n' +
+        'Generate a new secret with: openssl rand -base64 32'
+      );
+    }
+  }
+
+  // Validate NEXTAUTH_URL format
+  if (process.env.NEXTAUTH_URL) {
+    const authUrl = process.env.NEXTAUTH_URL;
+    
+    // Check for trailing slash
+    if (authUrl.endsWith('/')) {
+      warnings.push(
+        '[NEXTAUTH_URL] Should not include trailing slash'
+      );
+    }
+
+    // Check if it's a valid URL
+    try {
+      new URL(authUrl);
+    } catch {
+      errors.push(
+        '[NEXTAUTH_URL] Must be a valid URL (e.g., http://localhost:3000 or https://your-app.vercel.app)'
+      );
+    }
+
+    // Warn if using localhost in production
+    if (process.env.NODE_ENV === 'production' && authUrl.includes('localhost')) {
+      warnings.push(
+        '[NEXTAUTH_URL] Using localhost in production environment. This should be your Vercel deployment URL.'
+      );
+    }
+  }
+
+  // Log results
+  if (errors.length > 0) {
+    console.error('[Config] Environment validation failed:');
+    errors.forEach(error => console.error(`  ❌ ${error}`));
+  }
+
+  if (warnings.length > 0) {
+    console.warn('[Config] Environment validation warnings:');
+    warnings.forEach(warning => console.warn(`  ⚠️  ${warning}`));
+  }
+
+  if (errors.length === 0 && warnings.length === 0) {
+    console.log('[Config] ✅ Environment validation passed');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
 }
 
-// Helper functions
-export const isDevelopment = env.NODE_ENV === 'development';
-export const isProduction = env.NODE_ENV === 'production';
+/**
+ * Validates environment and throws if invalid
+ * Use this at application startup
+ */
+export function validateEnvOrThrow(): void {
+  const result = validateEnv();
+  
+  if (!result.valid) {
+    throw new Error(
+      'Environment validation failed:\n' + 
+      result.errors.join('\n')
+    );
+  }
+}
+
+/**
+ * Get validated environment variables with type safety
+ */
+export function getEnv() {
+  validateEnvOrThrow();
+  
+  return {
+    DATABASE_URL: process.env.DATABASE_URL!,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL!,
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
+    NODE_ENV: process.env.NODE_ENV || 'development',
+  };
+}
