@@ -3,6 +3,10 @@ import { DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from 'bcryptjs';
 import { prisma } from "@/lib/db";
+import { validateEnv } from "@/lib/config/env";
+
+// Validate environment variables on module load
+validateEnv();
 
 // Extend Session type
 declare module "next-auth" {
@@ -37,24 +41,57 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        const timestamp = new Date().toISOString();
+        
         if (!credentials?.email || !credentials?.password) {
+          console.error('[Auth] Missing credentials:', {
+            timestamp,
+            hasEmail: !!credentials?.email,
+            hasPassword: !!credentials?.password,
+          });
           return null;
         }
 
         try {
+          // Attempt to find user
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email }
+            where: {
+              email: credentials.email
+            }
           });
 
           if (!user) {
-            return null;
+            console.error('[Auth] User not found:', {
+              timestamp,
+              email: credentials.email,
+            });
+            throw new Error("Invalid email or password");
           }
 
-          const isPasswordValid = await compare(credentials.password, user.password);
+          // Verify password
+          const isPasswordValid = await compare(
+            credentials.password,
+            user.password
+          );
 
           if (!isPasswordValid) {
-            return null;
+            console.error('[Auth] Invalid password:', {
+              timestamp,
+              email: credentials.email,
+              userId: user.id,
+            });
+            throw new Error("Invalid email or password");
           }
+
+          // Successful authentication
+          console.log('[Auth] Authentication successful:', {
+            timestamp,
+            userId: user.id,
+            email: user.email,
+            role: (user as any).role || 'USER',
+            isAdmin: user.isAdmin,
+            isProvider: user.isProvider || false,
+          });
 
           return {
             id: user.id,
@@ -66,9 +103,15 @@ export const authOptions: NextAuthOptions = {
             firstName: user.firstName,
             lastName: user.lastName,
           };
-        } catch (error) {
-          console.error('Auth error:', error);
-          return null;
+        } catch (error: any) {
+          // Log database or other errors
+          console.error('[Auth] Authorization error:', {
+            timestamp,
+            error: error.message,
+            code: error.code,
+            email: credentials.email,
+          });
+          throw error;
         }
       }
     })
@@ -103,7 +146,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days (optimized for serverless)
+    updateAge: 24 * 60 * 60, // Update session every 24 hours
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

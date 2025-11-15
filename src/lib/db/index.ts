@@ -5,9 +5,7 @@ const globalForPrisma = global as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Simple Prisma setup for demo
-
-// Enhanced Prisma configuration for Vercel serverless
+// Prisma configuration for Vercel serverless
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   datasources: {
