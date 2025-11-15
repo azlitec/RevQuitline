@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import PushNotificationPrompt from '@/components/ui/PushNotificationPrompt';
+import HealthTipsCarousel from '@/components/HealthTipsCarousel';
 
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: {
@@ -322,25 +323,9 @@ export default function PatientDashboardPage() {
         </div>
       </div>
 
-      {/* Wellness Tips */}
+      {/* Wellness Tips Carousel */}
       <div className="mb-6 md:mb-8">
-        <div className="card p-4 md:p-6 shadow-soft">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Today's Health Tip</h3>
-            <button className="text-blue-600 font-semibold text-sm hover:underline">More Tips</button>
-          </div>
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-            <div className="flex items-start space-x-3">
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <IconWithFallback icon="lightbulb" emoji="💡" className="text-blue-600" />
-              </div>
-              <div>
-                <p className="text-gray-800 font-medium">Stay Hydrated</p>
-                <p className="text-gray-600 text-sm mt-1">Drinking enough water is crucial for your health. Aim for 8 glasses a day to maintain optimal body function.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HealthTipsCarousel />
       </div>
 
       {/* Main Content Grid */}
