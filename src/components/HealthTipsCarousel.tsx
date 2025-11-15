@@ -1,7 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import IconWithFallback from './IconWithFallback';
+
+// Icon component with fallbacks
+const IconWithFallback = ({ icon, emoji, className = '' }: {
+  icon: string;
+  emoji: string;
+  className?: string;
+}) => {
+  return (
+    <span className={`icon-container ${className}`}>
+      <span className="material-icons">{icon}</span>
+      <span className="icon-fallback" style={{ display: 'none' }}>{emoji}</span>
+    </span>
+  );
+};
 
 interface HealthTip {
   id: number;
