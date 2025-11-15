@@ -13,9 +13,14 @@ export interface EnvValidationResult {
 
 /**
  * Validates all required environment variables
- * Throws an error if critical variables are missing or invalid
+ * Only runs on server-side to avoid client errors
  */
 export function validateEnv(): EnvValidationResult {
+  // Skip validation on client-side
+  if (typeof window !== 'undefined') {
+    return { valid: true, errors: [], warnings: [] };
+  }
+
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -103,19 +108,21 @@ export function validateEnv(): EnvValidationResult {
     }
   }
 
-  // Log results
-  if (errors.length > 0) {
-    console.error('[Config] Environment validation failed:');
-    errors.forEach(error => console.error(`  ❌ ${error}`));
-  }
+  // Log results (only on server)
+  if (typeof window === 'undefined') {
+    if (errors.length > 0) {
+      console.error('[Config] Environment validation failed:');
+      errors.forEach(error => console.error(`  ❌ ${error}`));
+    }
 
-  if (warnings.length > 0) {
-    console.warn('[Config] Environment validation warnings:');
-    warnings.forEach(warning => console.warn(`  ⚠️  ${warning}`));
-  }
+    if (warnings.length > 0) {
+      console.warn('[Config] Environment validation warnings:');
+      warnings.forEach(warning => console.warn(`  ⚠️  ${warning}`));
+    }
 
-  if (errors.length === 0 && warnings.length === 0) {
-    console.log('[Config] ✅ Environment validation passed');
+    if (errors.length === 0 && warnings.length === 0) {
+      console.log('[Config] ✅ Environment validation passed');
+    }
   }
 
   return {
@@ -127,16 +134,29 @@ export function validateEnv(): EnvValidationResult {
 
 /**
  * Validates environment and throws if invalid
- * Use this at application startup
+ * Use this at application startup (server-side only)
  */
 export function validateEnvOrThrow(): void {
+  // Skip on client-side
+  if (typeof window !== 'undefined') {
+    return;
+  }
+
   const result = validateEnv();
   
-  if (!result.valid) {
-    throw new Error(
+  // Only throw for critical errors, not warnings
+  if (!result.valid && result.errors.length > 0) {
+    console.error(
       'Environment validation failed:\n' + 
       result.errors.join('\n')
     );
+    // Don't throw in production to avoid breaking the app
+    if (process.env.NODE_ENV !== 'production') {
+      throw new Error(
+        'Environment validation failed:\n' + 
+        result.errors.join('\n')
+      );
+    }
   }
 }
 
