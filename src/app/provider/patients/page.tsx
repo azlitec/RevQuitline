@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+import { RefreshCw, HelpCircle, Clock, Star, Search, Eye, X } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -12,25 +14,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -193,7 +177,7 @@ export default function ProviderPatientsPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading patients...</span>
         </div>
@@ -205,7 +189,7 @@ export default function ProviderPatientsPage() {
     return (
       <div className="p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
         <div className="flex items-center space-x-3 mb-4">
-          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <HelpCircle className="text-red-600" />
           <h2 className="text-xl font-bold">Error Loading Patients</h2>
         </div>
         <p className="mb-4">{error}</p>
@@ -231,7 +215,7 @@ export default function ProviderPatientsPage() {
           onClick={() => setShowNewPatientModal(true)}
           className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
         >
-          <IconWithFallback icon="person_add" emoji="👤➕" className="text-white" />
+          <HelpCircle className="text-white" />
           <span className="hidden sm:inline">Add Patient</span>
           <span className="sm:hidden">Add</span>
         </button>
@@ -242,7 +226,7 @@ export default function ProviderPatientsPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-blue-100 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="people" emoji="👥" className="text-blue-600 text-sm md:text-base" />
+              <HelpCircle className="text-blue-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500">Total Patients</p>
@@ -253,7 +237,7 @@ export default function ProviderPatientsPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-green-100 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="trending_up" emoji="📈" className="text-green-600 text-sm md:text-base" />
+              <HelpCircle className="text-green-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500">New This Month</p>
@@ -264,7 +248,7 @@ export default function ProviderPatientsPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-yellow-100 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="schedule" emoji="⏰" className="text-yellow-600 text-sm md:text-base" />
+              <Clock className="text-yellow-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500">Active Today</p>
@@ -275,7 +259,7 @@ export default function ProviderPatientsPage() {
         <div className="card p-3 md:p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-purple-100 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="star" emoji="⭐" className="text-purple-600 text-sm md:text-base" />
+              <Star className="text-purple-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500">VIP Patients</p>
@@ -294,14 +278,14 @@ export default function ProviderPatientsPage() {
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
             >
-              <IconWithFallback icon="filter_list" emoji="🔽" className="text-sm" />
+              <HelpCircle className="text-sm" />
               <span>{showAdvancedFilters ? 'Hide' : 'Show'} Filters</span>
             </button>
           </div>
           <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <IconWithFallback icon="search" emoji="🔍" className="text-gray-400 text-sm" />
+                <Search className="text-gray-400 text-sm" />
               </div>
               <input
                 type="text"
@@ -474,12 +458,12 @@ export default function ProviderPatientsPage() {
                     className="flex-1 bg-blue-600 text-white py-2 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center space-x-1 touch-friendly"
                     aria-label="Open patient EMR"
                   >
-                    <IconWithFallback icon="visibility" emoji="👁️" className="text-white text-sm" />
+                    <Eye className="text-white text-sm" />
                     <span className="hidden sm:inline">Open EMR</span>
                     <span className="sm:hidden">EMR</span>
                   </Link>
                   <button className="px-2 md:px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-friendly">
-                    <IconWithFallback icon="more_vert" emoji="⋮" className="text-gray-600" />
+                    <HelpCircle className="text-gray-600" />
                   </button>
                 </div>
               </div>
@@ -487,7 +471,7 @@ export default function ProviderPatientsPage() {
           ) : (
             <div className="col-span-full text-center py-8 md:py-12">
               <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <IconWithFallback icon="search_off" emoji="🔍❌" className="text-gray-400 text-lg md:text-2xl" />
+                <HelpCircle className="text-gray-400 text-lg md:text-2xl" />
               </div>
               <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">No patients found</h3>
               <p className="text-sm md:text-base text-gray-500">
@@ -520,7 +504,7 @@ export default function ProviderPatientsPage() {
                   onClick={() => setShowNewPatientModal(false)}
                   className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-friendly"
                 >
-                  <IconWithFallback icon="close" emoji="❌" />
+                  <X />
                 </button>
               </div>
             </div>

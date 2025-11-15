@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 
+import { RefreshCw, HelpCircle } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: {
   icon: string;
@@ -12,25 +14,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span
-        className="material-icons"
-        style={{
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span
         className="emoji-fallback"
         style={{
@@ -228,7 +212,7 @@ export default function MedicalNotesPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading medical notes...</span>
         </div>
@@ -468,7 +452,7 @@ export default function MedicalNotesPage() {
           {!intakeForm.formData && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <IconWithFallback icon="assignment" emoji="📝" className="text-gray-400 text-2xl" />
+                <HelpCircle className="text-gray-400 text-2xl" />
               </div>
               <h3 className="text-lg font-medium text-gray-600 mb-2">No Intake Form Data</h3>
               <p className="text-gray-500">Patient has not completed the intake form yet.</p>

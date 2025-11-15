@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 
+import { RefreshCw, HelpCircle, ArrowLeft, Cross, MapPin, Mail, Clock } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({
   icon,
@@ -17,25 +19,7 @@ const IconWithFallback = ({
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span
-        className="material-icons"
-        style={{
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span
         className="emoji-fallback"
         style={{
@@ -172,7 +156,7 @@ export default function DoctorProfilePage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading doctor profile...</span>
         </div>
@@ -184,7 +168,7 @@ export default function DoctorProfilePage() {
     return (
       <div className="p-6 md:p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
         <div className="flex items-center space-x-3 mb-4">
-          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <HelpCircle className="text-red-600" />
           <h2 className="text-xl font-bold">Error Loading Profile</h2>
         </div>
         <p className="mb-4">{error}</p>
@@ -230,7 +214,7 @@ export default function DoctorProfilePage() {
           href="/patient/doctors"
           className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition-colors"
         >
-          <IconWithFallback icon="arrow_back" emoji="⬅️" />
+          <ArrowLeft />
           <span>Back to Doctors</span>
         </Link>
         <div className="text-sm text-gray-500">
@@ -334,7 +318,7 @@ export default function DoctorProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {doctor.treatmentTypes.map((treatment, index) => (
                 <div key={index} className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                  <IconWithFallback icon="local_hospital" emoji="🏥" className="text-blue-600" />
+                  <Cross className="text-blue-600" />
                   <span className="text-gray-700 font-medium">{treatment}</span>
                 </div>
               ))}
@@ -347,7 +331,7 @@ export default function DoctorProfilePage() {
             <div className="space-y-3">
               {doctor.qualifications.map((qualification, index) => (
                 <div key={index} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                  <IconWithFallback icon="school" emoji="🎓" className="text-green-600" />
+                  <HelpCircle className="text-green-600" />
                   <span className="text-gray-700 font-medium">{qualification}</span>
                 </div>
               ))}
@@ -362,17 +346,17 @@ export default function DoctorProfilePage() {
             <h3 className="text-xl font-bold text-gray-800 mb-4">Contact Information</h3>
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
-                <IconWithFallback icon="location_on" emoji="📍" className="text-gray-500" />
+                <MapPin className="text-gray-500" />
                 <span className="text-gray-700">{doctor.location}</span>
               </div>
               {doctor.phone && (
                 <div className="flex items-center space-x-3">
-                  <IconWithFallback icon="phone" emoji="📞" className="text-gray-500" />
+                  <HelpCircle className="text-gray-500" />
                   <span className="text-gray-700">{doctor.phone}</span>
                 </div>
               )}
               <div className="flex items-center space-x-3">
-                <IconWithFallback icon="email" emoji="✉️" className="text-gray-500" />
+                <Mail className="text-gray-500" />
                 <span className="text-gray-700">{doctor.email}</span>
               </div>
             </div>
@@ -399,7 +383,7 @@ export default function DoctorProfilePage() {
             <div className="space-y-2">
               {doctor.availability.map((day, index) => (
                 <div key={index} className="flex items-center space-x-3">
-                  <IconWithFallback icon="schedule" emoji="🕐" className="text-green-600" />
+                  <Clock className="text-green-600" />
                   <span className="text-gray-700">{day}</span>
                 </div>
               ))}

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Droplet, Moon, PersonStanding, Salad, Brain, Sun, CigaretteOff, Heart } from 'lucide-react';
 
+import { ChevronLeft, ChevronRight, Hand } from 'lucide-react';
+
 interface HealthTip {
   id: number;
   icon: React.ComponentType<{ className?: string }>;
@@ -211,11 +213,7 @@ export default function HealthTipsCarousel() {
             className="p-2 rounded-full bg-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 touch-friendly"
             aria-label="Previous tip"
           >
-            <IconWithFallback 
-              icon="chevron_left" 
-              emoji="←" 
-              className="text-gray-600 text-xl" 
-            />
+            <ChevronLeft className="text-gray-600 text-xl" />
           </button>
 
           {/* Dots Indicator */}
@@ -240,11 +238,7 @@ export default function HealthTipsCarousel() {
             className="p-2 rounded-full bg-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 touch-friendly"
             aria-label="Next tip"
           >
-            <IconWithFallback 
-              icon="chevron_right" 
-              emoji="→" 
-              className="text-gray-600 text-xl" 
-            />
+            <ChevronRight className="text-gray-600 text-xl" />
           </button>
         </div>
       </div>
@@ -252,7 +246,7 @@ export default function HealthTipsCarousel() {
       {/* Swipe Hint for Mobile */}
       <div className="mt-3 text-center md:hidden">
         <p className="text-xs text-gray-400 flex items-center justify-center space-x-1">
-          <IconWithFallback icon="swipe" emoji="👆" className="text-sm" />
+          <Hand className="text-sm" />
           <span>Swipe left or right for more tips</span>
         </p>
       </div>

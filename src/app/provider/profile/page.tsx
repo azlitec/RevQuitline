@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
+import { Save, CheckCircle, Trash2, Plus, HelpCircle } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -11,25 +13,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -244,7 +228,7 @@ export default function ProviderProfilePage() {
             disabled={loading}
             className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly disabled:opacity-50"
           >
-            <IconWithFallback icon="save" emoji="💾" className="text-white" />
+            <Save className="text-white" />
             <span>{loading ? 'Saving...' : 'Save Profile'}</span>
           </button>
         </div>
@@ -253,7 +237,7 @@ export default function ProviderProfilePage() {
       {/* Success Message */}
       {savedMessage && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 flex items-center space-x-2">
-          <IconWithFallback icon="check_circle" emoji="✅" className="text-green-600" />
+          <CheckCircle className="text-green-600" />
           <span>{savedMessage}</span>
         </div>
       )}
@@ -525,7 +509,7 @@ export default function ProviderProfilePage() {
                       onClick={() => removeFromArray('languagesSpoken', index)}
                       className="text-red-600 hover:text-red-800 p-2"
                     >
-                      <IconWithFallback icon="delete" emoji="🗑️" />
+                      <Trash2 />
                     </button>
                   </div>
                 ))}
@@ -549,7 +533,7 @@ export default function ProviderProfilePage() {
                     }}
                     className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
                   >
-                    <IconWithFallback icon="add" emoji="➕" />
+                    <Plus />
                   </button>
                 </div>
               </div>

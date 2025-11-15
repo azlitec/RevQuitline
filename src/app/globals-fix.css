@@ -70,10 +70,7 @@ body {
   }
 }
 
-/* Remove Material Icons if not needed */
-.material-icons {
-  display: none !important;
-}
+/* Material Icons removed - using Lucide React icons */
 
 /* Ensure Lucide icons display properly */
 .lucide {

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
+import { Save, HelpCircle } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -11,25 +13,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -196,7 +180,7 @@ export default function PatientProfilePage() {
               disabled={loading}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg flex items-center space-x-2 disabled:opacity-50"
             >
-              <IconWithFallback icon="save" emoji="💾" />
+              <Save />
               <span>{loading ? 'Saving...' : 'Save Profile'}</span>
             </button>
           </div>

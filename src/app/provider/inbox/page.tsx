@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
+import { RefreshCw, MessageCircle, Search, HelpCircle, ArrowLeft, Paperclip, Info } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -11,25 +13,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -153,7 +137,7 @@ export default function ProviderInboxPage() {
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-white">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading messages...</span>
         </div>
@@ -168,7 +152,7 @@ export default function ProviderInboxPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base md:text-lg font-bold text-gray-800 flex items-center space-x-2">
-              <IconWithFallback icon="chat" emoji="💬" className="text-blue-600" />
+              <MessageCircle className="text-blue-600" />
               <span>Patient Messages</span>
             </h2>
             <p className="text-xs text-gray-500 ml-8">
@@ -195,11 +179,7 @@ export default function ProviderInboxPage() {
                 placeholder="Search patients..."
                 className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <IconWithFallback 
-                icon="search" 
-                emoji="🔍" 
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" 
-              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
           </div>
           
@@ -276,7 +256,7 @@ export default function ProviderInboxPage() {
               <div className="flex items-center justify-center h-full p-6">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <IconWithFallback icon="chat_bubble_outline" emoji="💭" className="text-gray-400" />
+                    <HelpCircle className="text-gray-400" />
                   </div>
                   <h3 className="text-sm font-medium text-gray-600 mb-1">No messages yet</h3>
                   <p className="text-xs text-gray-500 max-w-xs">
@@ -302,7 +282,7 @@ export default function ProviderInboxPage() {
                     onClick={() => setSelectedConversation(null)}
                     className="md:hidden p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <IconWithFallback icon="arrow_back" emoji="←" className="text-gray-600" />
+                    <ArrowLeft className="text-gray-600" />
                   </button>
                   <div className="relative flex-shrink-0">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
@@ -363,7 +343,7 @@ export default function ProviderInboxPage() {
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center text-gray-400">
-                      <IconWithFallback icon="chat_bubble_outline" emoji="💭" className="text-3xl mb-2" />
+                      <HelpCircle className="text-3xl mb-2" />
                       <p className="text-sm">Start the conversation</p>
                     </div>
                   </div>
@@ -378,7 +358,7 @@ export default function ProviderInboxPage() {
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                     title="Attach file"
                   >
-                    <IconWithFallback icon="attach_file" emoji="📎" className="text-gray-600" />
+                    <Paperclip className="text-gray-600" />
                   </button>
                   <input
                     type="text"
@@ -399,7 +379,7 @@ export default function ProviderInboxPage() {
                     className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-sm hover:shadow-md"
                     title="Send message"
                   >
-                    <IconWithFallback icon="send" emoji="➤" className="text-white" />
+                    <HelpCircle className="text-white" />
                   </button>
                 </div>
               </div>
@@ -408,7 +388,7 @@ export default function ProviderInboxPage() {
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
               <div className="text-center max-w-md px-6">
                 <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                  <IconWithFallback icon="chat" emoji="💬" className="text-blue-600 text-3xl" />
+                  <MessageCircle className="text-blue-600 text-3xl" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">
                   Select a conversation
@@ -418,7 +398,7 @@ export default function ProviderInboxPage() {
                 </p>
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                   <p className="text-xs text-blue-800 flex items-start space-x-2">
-                    <IconWithFallback icon="info" emoji="ℹ️" className="text-blue-600 flex-shrink-0 text-sm" />
+                    <Info className="text-blue-600 flex-shrink-0 text-sm" />
                     <span>
                       Patients initiate conversations. Reply here to provide care support.
                     </span>

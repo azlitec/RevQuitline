@@ -1,7 +1,6 @@
 /* Navigation Fixes - Clean & Modern Sidebar */
 
-/* Ensure Material Icons load properly */
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+/* Material Icons removed - now using Lucide React icons */
 
 /* Fix sidebar positioning and spacing */
 .sidebar-fixed {
@@ -41,22 +40,7 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* Material Icons styling */
-.material-icons {
-  font-family: 'Material Icons';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 1.25rem;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
-}
+/* Material Icons removed - using Lucide React icons instead */
 
 /* Tooltip styling */
 .nav-tooltip {

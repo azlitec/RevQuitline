@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import PrescriptionForm from '@/components/provider/PrescriptionForm';
 
+import { RefreshCw, Plus, Pill, HelpCircle, CheckCircle, Edit, X } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -11,25 +13,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -137,7 +121,7 @@ export default function ProviderPrescriptionsPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading prescriptions...</span>
         </div>
@@ -157,7 +141,7 @@ export default function ProviderPrescriptionsPage() {
           onClick={() => { setSelectedDraft(null); setShowNewPrescriptionModal(true); }}
           className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-medium hover:shadow-strong flex items-center space-x-2"
         >
-          <IconWithFallback icon="add" emoji="➕" className="text-white" />
+          <Plus className="text-white" />
           <span>New Prescription</span>
         </button>
       </div>
@@ -230,7 +214,7 @@ export default function ProviderPrescriptionsPage() {
         <div className="card p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-4">
             <div className="bg-purple-100 p-4 rounded-xl">
-              <IconWithFallback icon="medication" emoji="💊" className="text-purple-600 text-2xl" />
+              <Pill className="text-purple-600 text-2xl" />
             </div>
             <div>
               <p className="text-sm text-gray-500">This Week</p>
@@ -242,7 +226,7 @@ export default function ProviderPrescriptionsPage() {
         <div className="card p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-4">
             <div className="bg-yellow-100 p-4 rounded-xl">
-              <IconWithFallback icon="pending" emoji="⏳" className="text-yellow-600 text-2xl" />
+              <HelpCircle className="text-yellow-600 text-2xl" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Pending</p>
@@ -254,7 +238,7 @@ export default function ProviderPrescriptionsPage() {
         <div className="card p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-4">
             <div className="bg-green-100 p-4 rounded-xl">
-              <IconWithFallback icon="check_circle" emoji="✅" className="text-green-600 text-2xl" />
+              <CheckCircle className="text-green-600 text-2xl" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Active</p>
@@ -320,7 +304,7 @@ export default function ProviderPrescriptionsPage() {
                         title="Print"
                         onClick={() => window.open(`/api/prescriptions/${encodeURIComponent(prescription.id)}/print`, '_blank')}
                       >
-                        <IconWithFallback icon="print" emoji="🖨️" className="text-sm" />
+                        <HelpCircle className="text-sm" />
                       </button>
                       {prescription.status === 'DRAFT' && (
                         <button
@@ -351,7 +335,7 @@ export default function ProviderPrescriptionsPage() {
                             setShowNewPrescriptionModal(true);
                           }}
                         >
-                          <IconWithFallback icon="edit" emoji="✏️" className="text-sm" />
+                          <Edit className="text-sm" />
                         </button>
                       )}
                       {prescription.status === 'ACTIVE' && (
@@ -378,7 +362,7 @@ export default function ProviderPrescriptionsPage() {
                             }
                           }}
                         >
-                          <IconWithFallback icon="cancel" emoji="❌" className="text-sm" />
+                          <X className="text-sm" />
                         </button>
                       )}
                     </div>
@@ -401,7 +385,7 @@ export default function ProviderPrescriptionsPage() {
                   onClick={() => setShowNewPrescriptionModal(false)}
                   className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <IconWithFallback icon="close" emoji="❌" />
+                  <X />
                 </button>
               </div>
             </div>

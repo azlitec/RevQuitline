@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ProviderSidebar from '@/components/provider/Sidebar';
 import ProviderHeader from '@/components/provider/Header';
+import { Menu } from 'lucide-react';
 
 export default function ProviderLayout({
   children,
@@ -70,7 +71,7 @@ export default function ProviderLayout({
               onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-lg bg-blue-600 text-white"
             >
-              <span className="material-icons">menu</span>
+              <Menu className="w-6 h-6" />
             </button>
             <div className="text-blue-500 font-bold text-xl">L</div>
             <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">

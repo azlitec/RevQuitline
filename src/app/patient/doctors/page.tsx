@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+import { RefreshCw, HelpCircle, Search, MapPin } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -13,25 +15,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -277,7 +261,7 @@ export default function FindDoctorsPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Finding doctors...</span>
         </div>
@@ -289,7 +273,7 @@ export default function FindDoctorsPage() {
     return (
       <div className="p-6 md:p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
         <div className="flex items-center space-x-3 mb-4">
-          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <HelpCircle className="text-red-600" />
           <h2 className="text-xl font-bold">Error Loading Doctors</h2>
         </div>
         <p className="mb-4">{error}</p>
@@ -334,11 +318,7 @@ export default function FindDoctorsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm md:text-base bg-gray-50 hover:bg-white touch-friendly"
             />
-            <IconWithFallback
-              icon="search"
-              emoji="🔍"
-              className="text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2"
-            />
+            <Search className="text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" />
           </div>
         </div>
 
@@ -431,7 +411,7 @@ export default function FindDoctorsPage() {
                 viewMode === 'grid' ? 'bg-white text-blue-600 shadow-medium' : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
-              <IconWithFallback icon="grid_view" emoji="⊞" />
+              <HelpCircle />
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -439,7 +419,7 @@ export default function FindDoctorsPage() {
                 viewMode === 'list' ? 'bg-white text-blue-600 shadow-medium' : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
-              <IconWithFallback icon="list" emoji="☰" />
+              <HelpCircle />
             </button>
           </div>
         </div>
@@ -465,7 +445,7 @@ export default function FindDoctorsPage() {
       ) : (
         <div className="text-center py-16 md:py-20">
           <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
-            <IconWithFallback icon="search_off" emoji="🔍❌" className="text-gray-400 text-3xl md:text-4xl" />
+            <HelpCircle className="text-gray-400 text-3xl md:text-4xl" />
           </div>
           <h3 className="text-xl md:text-2xl font-bold text-gray-700 mb-3">No doctors found</h3>
           <p className="text-base md:text-lg text-gray-500 mb-8">
@@ -526,7 +506,7 @@ function DoctorCard({ doctor, viewMode, onConnect, getRatingStars }: DoctorCardP
                 </span>
               </div>
               <p className="text-sm text-gray-600 mt-2 flex items-center">
-                <IconWithFallback icon="location_on" emoji="📍" className="text-gray-400 text-xs mr-2" />
+                <MapPin className="text-gray-400 text-xs mr-2" />
                 {doctor.location} • {doctor.yearsOfExperience} years experience
               </p>
             </div>

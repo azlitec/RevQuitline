@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
+import { RefreshCw, CreditCard, Wallet, AlertTriangle, Banknote, Receipt, FileText, CheckCircle, History, Edit, Trash2, X, HelpCircle } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -12,25 +14,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -190,7 +174,7 @@ export default function PatientBillingPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading billing information...</span>
         </div>
@@ -216,7 +200,7 @@ export default function PatientBillingPage() {
             onClick={() => setShowAddMethodModal(true)}
             className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-lg font-semibold shadow-medium hover:shadow-strong transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 text-sm touch-friendly"
           >
-            <IconWithFallback icon="credit_card" emoji="💳" className="text-white" />
+            <CreditCard className="text-white" />
             <span>Add Payment Method</span>
           </button>
         </div>
@@ -227,7 +211,7 @@ export default function PatientBillingPage() {
         <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-gradient-to-r from-red-100 to-red-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
-              <IconWithFallback icon="account_balance_wallet" emoji="💰" className="text-red-600 text-sm md:text-base" />
+              <Wallet className="text-red-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500 font-medium">Outstanding</p>
@@ -239,7 +223,7 @@ export default function PatientBillingPage() {
         <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
-              <IconWithFallback icon="warning" emoji="⚠️" className="text-yellow-600 text-sm md:text-base" />
+              <AlertTriangle className="text-yellow-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500 font-medium">Overdue</p>
@@ -251,7 +235,7 @@ export default function PatientBillingPage() {
         <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-gradient-to-r from-green-100 to-green-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
-              <IconWithFallback icon="payments" emoji="💸" className="text-green-600 text-sm md:text-base" />
+              <Banknote className="text-green-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500 font-medium">Paid This Month</p>
@@ -263,7 +247,7 @@ export default function PatientBillingPage() {
         <div className="card p-3 md:p-6 shadow-soft hover:shadow-strong transition-all duration-300 hover:scale-105">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm">
-              <IconWithFallback icon="receipt" emoji="🧾" className="text-blue-600 text-sm md:text-base" />
+              <Receipt className="text-blue-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500 font-medium">Total Paid</p>
@@ -365,7 +349,7 @@ export default function PatientBillingPage() {
             ) : (
               <div className="text-center py-16">
                 <div className="w-20 h-20 bg-gradient-to-r from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
-                  <IconWithFallback icon="receipt_long" emoji="📋" className="text-green-600 text-3xl" />
+                  <FileText className="text-green-600 text-3xl" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-700 mb-3">No outstanding bills</h3>
                 <p className="text-gray-500 text-lg">You're all caught up with your payments!</p>
@@ -386,7 +370,7 @@ export default function PatientBillingPage() {
                         <div className="flex items-center space-x-3 mb-2">
                           <h4 className="font-semibold text-gray-800">Invoice #{bill.invoiceNumber}</h4>
                           <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                            <IconWithFallback icon="check_circle" emoji="✅" className="text-xs" />
+                            <CheckCircle className="text-xs" />
                             <span>Paid</span>
                           </span>
                         </div>
@@ -424,7 +408,7 @@ export default function PatientBillingPage() {
             ) : (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <IconWithFallback icon="history" emoji="📜" className="text-gray-400 text-2xl" />
+                  <History className="text-gray-400 text-2xl" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-600 mb-2">No payment history</h3>
                 <p className="text-gray-500">Your payment history will appear here</p>
@@ -470,10 +454,10 @@ export default function PatientBillingPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <button className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <IconWithFallback icon="edit" emoji="✏️" />
+                        <Edit />
                       </button>
                       <button className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors">
-                        <IconWithFallback icon="delete" emoji="🗑️" />
+                        <Trash2 />
                       </button>
                     </div>
                   </div>
@@ -482,7 +466,7 @@ export default function PatientBillingPage() {
             ) : (
               <div className="text-center py-16">
                 <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
-                  <IconWithFallback icon="credit_card" emoji="💳" className="text-gray-400 text-3xl" />
+                  <CreditCard className="text-gray-400 text-3xl" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-700 mb-3">No payment methods</h3>
                 <p className="text-gray-500 text-lg mb-6">Add a payment method to pay your bills</p>
@@ -509,7 +493,7 @@ export default function PatientBillingPage() {
                   onClick={() => setShowPaymentModal(false)}
                   className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-friendly"
                 >
-                  <IconWithFallback icon="close" emoji="❌" />
+                  <X />
                 </button>
               </div>
             </div>
@@ -570,7 +554,7 @@ export default function PatientBillingPage() {
                   onClick={() => setShowAddMethodModal(false)}
                   className="text-gray-400 hover:text-gray-600 active:text-gray-800 p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors touch-friendly"
                 >
-                  <IconWithFallback icon="close" emoji="❌" />
+                  <X />
                 </button>
               </div>
             </div>

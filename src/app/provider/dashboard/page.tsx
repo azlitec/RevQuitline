@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import PushNotificationPrompt from '@/components/ui/PushNotificationPrompt';
 
+import { RefreshCw, HelpCircle, Info, Clock, ArrowRight } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -13,25 +15,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -200,7 +184,7 @@ export default function ProviderDashboardPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading dashboard...</span>
         </div>
@@ -212,7 +196,7 @@ export default function ProviderDashboardPage() {
     return (
       <div className="p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
         <div className="flex items-center space-x-3 mb-4">
-          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <HelpCircle className="text-red-600" />
           <h2 className="text-xl font-bold">Error Loading Dashboard</h2>
         </div>
         <p className="mb-4">{error}</p>
@@ -229,7 +213,7 @@ export default function ProviderDashboardPage() {
   if (!dashboardData) {
     return (
       <div className="text-center py-12">
-        <IconWithFallback icon="info" emoji="ℹ️" className="text-gray-400 text-2xl" />
+        <Info className="text-gray-400 text-2xl" />
         <p className="text-gray-600 mt-2">No dashboard data available</p>
       </div>
     );
@@ -245,7 +229,7 @@ export default function ProviderDashboardPage() {
       {isPending && (
         <div className="mb-6 p-4 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded-xl shadow-soft">
           <div className="flex items-center space-x-3">
-            <IconWithFallback icon="hourglass_top" emoji="⏳" className="text-yellow-600" />
+            <HelpCircle className="text-yellow-600" />
             <div>
               <h3 className="font-semibold">Provider account pending approval</h3>
               <p className="text-sm">
@@ -265,10 +249,10 @@ export default function ProviderDashboardPage() {
               onClick={fetchDashboardData}
               className="text-gray-500 hover:text-blue-500 transition-colors p-2 rounded-lg hover:bg-blue-50"
             >
-              <IconWithFallback icon="refresh" emoji="🔄" />
+              <RefreshCw />
             </button>
             <button className="text-gray-500 hover:text-blue-500 transition-colors p-2 rounded-lg hover:bg-blue-50">
-              <IconWithFallback icon="more_vert" emoji="⋮" />
+              <HelpCircle />
             </button>
           </div>
         </div>
@@ -276,7 +260,7 @@ export default function ProviderDashboardPage() {
           <div className="card p-3 sm:p-4 lg:p-6 shadow-soft hover-effect">
             <div className="flex justify-between items-start">
               <div className="bg-blue-100 p-3 rounded-xl">
-                <IconWithFallback icon="event_available" emoji="📅" className="text-blue-600" />
+                <HelpCircle className="text-blue-600" />
               </div>
               <div className="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-full">
                 {todayStats.totalAppointments > 0 ? '+' : ''}
@@ -293,7 +277,7 @@ export default function ProviderDashboardPage() {
           <div className="card p-6 shadow-soft hover-effect">
             <div className="flex justify-between items-start">
               <div className="bg-yellow-100 p-3 rounded-xl">
-                <IconWithFallback icon="schedule" emoji="⏰" className="text-yellow-600" />
+                <Clock className="text-yellow-600" />
               </div>
               {todayStats.inProgressAppointments > 0 ? (
                 <div className="bg-yellow-100 text-yellow-600 text-xs font-bold px-3 py-1 rounded-full status-badge">LIVE</div>
@@ -309,7 +293,7 @@ export default function ProviderDashboardPage() {
           <div className="card p-6 shadow-soft hover-effect">
             <div className="flex justify-between items-start">
               <div className="bg-purple-100 p-3 rounded-xl">
-                <IconWithFallback icon="people" emoji="👥" className="text-purple-600" />
+                <HelpCircle className="text-purple-600" />
               </div>
               <div className="bg-purple-100 text-purple-600 text-xs font-bold px-3 py-1 rounded-full">
                 +{monthlyStats.totalAppointments}
@@ -331,7 +315,7 @@ export default function ProviderDashboardPage() {
           <h2 className="text-xl font-semibold text-gray-800">Recent Patient Activities</h2>
           <button className="text-blue-600 font-semibold hover:underline flex items-center space-x-2">
             <span>View All</span>
-            <IconWithFallback icon="arrow_forward" emoji="→" className="text-blue-600" />
+            <ArrowRight className="text-blue-600" />
           </button>
         </div>
         <div className="card p-6 shadow-soft">
@@ -362,7 +346,7 @@ export default function ProviderDashboardPage() {
                       </div>
                       <div className="flex items-center space-x-4">
                         <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
-                          <IconWithFallback icon="schedule" emoji="⏰" className="text-gray-400 text-sm" />
+                          <Clock className="text-gray-400 text-sm" />
                           <span>{activity.duration} mins</span>
                         </span>
                         <span className="text-sm font-semibold text-gray-800">RM {fee}.00</span>
@@ -380,7 +364,7 @@ export default function ProviderDashboardPage() {
               })
             ) : (
               <div className="text-center py-8">
-                <IconWithFallback icon="event_busy" emoji="📅❌" className="text-gray-400 text-2xl" />
+                <HelpCircle className="text-gray-400 text-2xl" />
                 <p className="text-gray-600 mt-2">No recent activities</p>
                 <p className="text-gray-500 text-sm">Activities will appear here as you complete appointments</p>
               </div>

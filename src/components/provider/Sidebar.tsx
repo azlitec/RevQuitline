@@ -3,6 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { 
+  LayoutDashboard, 
+  Calendar, 
+  Users, 
+  MessageSquare, 
+  Activity, 
+  Pill,
+  FileText, 
+  CreditCard,
+  Settings, 
+  X
+} from 'lucide-react';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -13,19 +25,19 @@ interface SidebarProps {
 type NavItem = {
   name: string;
   href: string;
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
 };
 
 // Provider navigation (EMR modules removed per request)
 const navigationItems: NavItem[] = [
-  { name: 'Dashboard', href: '/provider/dashboard', icon: 'dashboard' },
-  { name: 'Appointments', href: '/provider/appointments', icon: 'calendar_today' },
-  { name: 'Patients', href: '/provider/patients', icon: 'people' },
-  { name: 'Inbox', href: '/provider/inbox', icon: 'chat' },
-  { name: 'Consultations', href: '/provider/consultations', icon: 'local_hospital' },
-  { name: 'Prescriptions', href: '/provider/prescriptions', icon: 'medication' },
-  { name: 'Reports', href: '/provider/reports', icon: 'assignment' },
-  { name: 'Billing', href: '/provider/billing', icon: 'receipt' },
+  { name: 'Dashboard', href: '/provider/dashboard', icon: LayoutDashboard },
+  { name: 'Appointments', href: '/provider/appointments', icon: Calendar },
+  { name: 'Patients', href: '/provider/patients', icon: Users },
+  { name: 'Inbox', href: '/provider/inbox', icon: MessageSquare },
+  { name: 'Consultations', href: '/provider/consultations', icon: Activity },
+  { name: 'Prescriptions', href: '/provider/prescriptions', icon: Pill },
+  { name: 'Reports', href: '/provider/reports', icon: FileText },
+  { name: 'Billing', href: '/provider/billing', icon: CreditCard },
 ];
 
 export default function Sidebar({ isOpen = true, onClose, isMobile = false }: SidebarProps) {
@@ -51,7 +63,7 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
             className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
             aria-label="Close sidebar"
           >
-            <span className="material-icons">close</span>
+            <X className="w-6 h-6" />
           </button>
         </div>
 
@@ -72,9 +84,7 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
                   }`}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  <span className={`material-icons ${isActive ? 'text-blue-500' : 'text-gray-500'}`} aria-hidden="true">
-                    {item.icon}
-                  </span>
+                  <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-500' : 'text-gray-500'}`} aria-hidden="true" />
                   <span className="font-medium">{item.name}</span>
                 </Link>
               );
@@ -88,7 +98,7 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
             className="flex items-center space-x-4 w-full p-4 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
             aria-label="Settings"
           >
-            <span className="material-icons text-gray-500">settings</span>
+            <Settings className="w-5 h-5 text-gray-500" />
             <span className="font-medium">Settings</span>
           </button>
         </div>
@@ -126,12 +136,10 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
                   title={item.name}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  <span
-                    className={`material-icons text-xl ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-600'}`}
+                  <item.icon
+                    className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-600'}`}
                     aria-hidden="true"
-                  >
-                    {item.icon}
-                  </span>
+                  />
                   
                   {/* Tooltip */}
                   <span className="absolute left-full ml-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
@@ -151,9 +159,7 @@ export default function Sidebar({ isOpen = true, onClose, isMobile = false }: Si
           title="Settings"
           aria-label="Settings"
         >
-          <span className="material-icons text-xl group-hover:text-gray-600" aria-hidden="true">
-            settings
-          </span>
+          <Settings className="w-6 h-6 group-hover:text-gray-600" aria-hidden="true" />
         </button>
       </div>
     </aside>

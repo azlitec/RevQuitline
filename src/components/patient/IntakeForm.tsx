@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 // SECURITY: sanitize all user-provided text to prevent XSS on display and persistence
 import { stripHtml } from '@/lib/security/sanitize';
 
+import { X, CheckCircle, RefreshCw, HelpCircle } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: {
   icon: string;
@@ -13,25 +15,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span
-        className="material-icons"
-        style={{
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span
         className="emoji-fallback"
         style={{
@@ -258,7 +242,7 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 p-2 hover:bg-white rounded-lg transition-all duration-300 hover:scale-110"
               >
-                <IconWithFallback icon="close" emoji="❌" />
+                <X />
               </button>
             )}
           </div>
@@ -280,7 +264,7 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
               <p className="text-sm text-gray-600">{STEPS[currentStep - 1].description}</p>
               {isCompleted && (
                 <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                  <IconWithFallback icon="check_circle" emoji="✅" className="text-green-600 mr-1" />
+                  <CheckCircle className="text-green-600 mr-1" />
                   Form Completed
                 </div>
               )}
@@ -300,7 +284,7 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
               {saving && (
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <div className="animate-spin">
-                    <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600 text-sm" />
+                    <RefreshCw className="text-blue-600 text-sm" />
                   </div>
                   <span>Saving...</span>
                 </div>
@@ -314,7 +298,7 @@ export default function IntakeForm({ appointmentId, onComplete, onClose }: Intak
                     onClick={handleRetake}
                     className="px-6 py-3 border border-orange-300 text-orange-700 rounded-lg hover:bg-orange-50 transition-all duration-300 hover:scale-105"
                   >
-                    <IconWithFallback icon="refresh" emoji="🔄" className="mr-2" />
+                    <RefreshCw className="mr-2" />
                     Re-take Form
                   </button>
                   <button

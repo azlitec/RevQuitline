@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { Download, HelpCircle, Clock, Pill, Receipt } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -10,25 +12,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -65,7 +49,7 @@ export default function ProviderReportsPage() {
             <option value="this-year">This Year</option>
           </select>
           <button className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-medium hover:shadow-strong flex items-center space-x-2">
-            <IconWithFallback icon="download" emoji="💾" className="text-white" />
+            <Download className="text-white" />
             <span>Export</span>
           </button>
         </div>
@@ -180,7 +164,7 @@ export default function ProviderReportsPage() {
           <div className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-200">
             <div className="flex items-center space-x-4 mb-4">
               <div className="bg-blue-100 p-3 rounded-xl">
-                <IconWithFallback icon="trending_up" emoji="📈" className="text-blue-600" />
+                <HelpCircle className="text-blue-600" />
               </div>
               <div>
                 <h4 className="font-semibold text-gray-800">Patient Progress</h4>
@@ -195,7 +179,7 @@ export default function ProviderReportsPage() {
           <div className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-300 hover:border-green-200">
             <div className="flex items-center space-x-4 mb-4">
               <div className="bg-green-100 p-3 rounded-xl">
-                <IconWithFallback icon="assessment" emoji="📊" className="text-green-600" />
+                <HelpCircle className="text-green-600" />
               </div>
               <div>
                 <h4 className="font-semibold text-gray-800">Monthly Summary</h4>
@@ -210,7 +194,7 @@ export default function ProviderReportsPage() {
           <div className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-300 hover:border-purple-200">
             <div className="flex items-center space-x-4 mb-4">
               <div className="bg-purple-100 p-3 rounded-xl">
-                <IconWithFallback icon="pie_chart" emoji="🥧" className="text-purple-600" />
+                <HelpCircle className="text-purple-600" />
               </div>
               <div>
                 <h4 className="font-semibold text-gray-800">Demographics</h4>
@@ -225,7 +209,7 @@ export default function ProviderReportsPage() {
           <div className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-300 hover:border-orange-200">
             <div className="flex items-center space-x-4 mb-4">
               <div className="bg-orange-100 p-3 rounded-xl">
-                <IconWithFallback icon="schedule" emoji="⏰" className="text-orange-600" />
+                <Clock className="text-orange-600" />
               </div>
               <div>
                 <h4 className="font-semibold text-gray-800">Appointment Analytics</h4>
@@ -240,7 +224,7 @@ export default function ProviderReportsPage() {
           <div className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-300 hover:border-red-200">
             <div className="flex items-center space-x-4 mb-4">
               <div className="bg-red-100 p-3 rounded-xl">
-                <IconWithFallback icon="medication" emoji="💊" className="text-red-600" />
+                <Pill className="text-red-600" />
               </div>
               <div>
                 <h4 className="font-semibold text-gray-800">Prescription Report</h4>
@@ -255,7 +239,7 @@ export default function ProviderReportsPage() {
           <div className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-300 hover:border-gray-300">
             <div className="flex items-center space-x-4 mb-4">
               <div className="bg-gray-100 p-3 rounded-xl">
-                <IconWithFallback icon="receipt" emoji="🧾" className="text-gray-600" />
+                <Receipt className="text-gray-600" />
               </div>
               <div>
                 <h4 className="font-semibold text-gray-800">Financial Report</h4>

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
+import { RefreshCw, HelpCircle, ChevronDown, Pill, History } from 'lucide-react';
+
 /**
  * Local Icon component with emoji fallback for environments without Material Icons.
  */
@@ -17,25 +19,7 @@ const IconWithFallback = ({
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span
-        className="material-icons"
-        style={{
-          fontSize: '20px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased',
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span className="emoji-fallback hidden">{emoji}</span>
     </span>
   );
@@ -179,7 +163,7 @@ export default function PatientPrescriptionsPage() {
       <div className="flex items-center justify-center min-h-80">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading prescriptions...</span>
         </div>
@@ -191,7 +175,7 @@ export default function PatientPrescriptionsPage() {
     return (
       <div className="p-6 md:p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
         <div className="flex items-center space-x-3 mb-4">
-          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <HelpCircle className="text-red-600" />
           <h2 className="text-xl font-bold">Error Loading Prescriptions</h2>
         </div>
         <p className="mb-4">{error}</p>
@@ -242,7 +226,7 @@ export default function PatientPrescriptionsPage() {
           <h1 className="text-2xl md:text-3xl font-bold gradient-text">My Prescriptions</h1>
           <p className="text-sm md:text-base text-gray-500 flex items-center">
             Review your medications and instructions
-            <IconWithFallback icon="expand_more" emoji="🔽" className="ml-1 text-sm text-gray-400" />
+            <ChevronDown className="ml-1 text-sm text-gray-400" />
           </p>
         </div>
         <div className="flex gap-3">
@@ -259,7 +243,7 @@ export default function PatientPrescriptionsPage() {
       <div>
         <div className="flex items-center justify-between mb-3 md:mb-4">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center">
-            <IconWithFallback icon="medication" emoji="💊" className="text-purple-600 mr-2" />
+            <Pill className="text-purple-600 mr-2" />
             Active Prescriptions
           </h2>
           <div className="text-xs md:text-sm px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold">
@@ -279,7 +263,7 @@ export default function PatientPrescriptionsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
                       <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                        <IconWithFallback icon="medication" emoji="💊" className="text-purple-600" />
+                        <Pill className="text-purple-600" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -383,7 +367,7 @@ export default function PatientPrescriptionsPage() {
         ) : (
           <div className="text-center py-10">
             <div className="w-12 h-12 md:w-16 md:h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <IconWithFallback icon="medication" emoji="💊" className="text-purple-600 text-lg md:text-2xl" />
+              <Pill className="text-purple-600 text-lg md:text-2xl" />
             </div>
             <h3 className="text-base md:text-lg font-medium text-gray-600 mb-2">No active prescriptions</h3>
             <p className="text-sm md:text-base text-gray-500 mb-4">
@@ -403,7 +387,7 @@ export default function PatientPrescriptionsPage() {
       <div className="mt-6 md:mt-8">
         <div className="flex items-center justify-between mb-3 md:mb-4">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center">
-            <IconWithFallback icon="history" emoji="🕘" className="text-gray-600 mr-2" />
+            <History className="text-gray-600 mr-2" />
             Past Prescriptions
           </h2>
           <button
@@ -419,7 +403,7 @@ export default function PatientPrescriptionsPage() {
             {loadingPast ? (
               <div className="flex items-center space-x-3 py-6">
                 <div className="animate-spin">
-                  <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+                  <RefreshCw className="text-blue-600" />
                 </div>
                 <span className="text-gray-600 font-medium">Loading past prescriptions...</span>
               </div>
@@ -432,7 +416,7 @@ export default function PatientPrescriptionsPage() {
                   >
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                        <IconWithFallback icon="done_all" emoji="✅" className="text-gray-600 text-sm" />
+                        <HelpCircle className="text-gray-600 text-sm" />
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-800 text-sm md:text-base">{rx.medicationName}</h4>

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { Video, PlayCircle, HelpCircle, Pill, History } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -10,25 +12,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -63,7 +47,7 @@ export default function ProviderConsultationsPage() {
           <p className="text-gray-500">Monitor ongoing and upcoming consultations</p>
         </div>
         <button className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-medium hover:shadow-strong flex items-center space-x-2">
-          <IconWithFallback icon="video_call" emoji="📹" className="text-white" />
+          <Video className="text-white" />
           <span>Start Session</span>
         </button>
       </div>
@@ -81,7 +65,7 @@ export default function ProviderConsultationsPage() {
 
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white text-2xl mb-4">
-              <IconWithFallback icon="play_circle" emoji="▶️" className="text-white" />
+              <PlayCircle className="text-white" />
             </div>
             <h4 className="text-lg font-semibold text-white mb-2">No Active Consultation</h4>
             <p className="text-blue-100 text-sm mb-6">Start a consultation from your appointments</p>
@@ -114,7 +98,7 @@ export default function ProviderConsultationsPage() {
             ) : (
               <div className="text-center py-8">
                 <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <IconWithFallback icon="event_note" emoji="📅" className="text-gray-400 text-xl" />
+                  <HelpCircle className="text-gray-400 text-xl" />
                 </div>
                 <h4 className="font-medium text-gray-600 mb-2">No upcoming appointments</h4>
                 <p className="text-sm text-gray-500">Your next appointments will appear here</p>
@@ -129,7 +113,7 @@ export default function ProviderConsultationsPage() {
         <div className="card p-6 shadow-soft hover-effect">
           <div className="flex items-center space-x-4 mb-4">
             <div className="bg-blue-100 p-3 rounded-xl">
-              <IconWithFallback icon="note_add" emoji="📝" className="text-blue-600" />
+              <HelpCircle className="text-blue-600" />
             </div>
             <div>
               <h4 className="font-semibold text-gray-800">Session Notes</h4>
@@ -144,7 +128,7 @@ export default function ProviderConsultationsPage() {
         <div className="card p-6 shadow-soft hover-effect">
           <div className="flex items-center space-x-4 mb-4">
             <div className="bg-green-100 p-3 rounded-xl">
-              <IconWithFallback icon="medication" emoji="💊" className="text-green-600" />
+              <Pill className="text-green-600" />
             </div>
             <div>
               <h4 className="font-semibold text-gray-800">Prescriptions</h4>
@@ -159,7 +143,7 @@ export default function ProviderConsultationsPage() {
         <div className="card p-6 shadow-soft hover-effect">
           <div className="flex items-center space-x-4 mb-4">
             <div className="bg-purple-100 p-3 rounded-xl">
-              <IconWithFallback icon="assessment" emoji="📊" className="text-purple-600" />
+              <HelpCircle className="text-purple-600" />
             </div>
             <div>
               <h4 className="font-semibold text-gray-800">Assessment</h4>
@@ -177,7 +161,7 @@ export default function ProviderConsultationsPage() {
         <h3 className="text-lg font-semibold text-gray-800 mb-6">Recent Sessions</h3>
         <div className="text-center py-8">
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <IconWithFallback icon="history" emoji="📜" className="text-gray-400 text-xl" />
+            <History className="text-gray-400 text-xl" />
           </div>
           <h4 className="font-medium text-gray-600 mb-2">No recent sessions</h4>
           <p className="text-sm text-gray-500">Your completed consultations will appear here</p>

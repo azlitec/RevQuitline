@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+import { RefreshCw, HelpCircle, Search, CheckCircle, Clock, Calendar, CreditCard, Cross, Stethoscope, MessageCircle, Eye, X } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -12,25 +14,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -201,7 +185,7 @@ export default function MyDoctorsPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading your doctors...</span>
         </div>
@@ -213,7 +197,7 @@ export default function MyDoctorsPage() {
     return (
       <div className="p-6 md:p-8 bg-red-50 text-red-700 rounded-xl shadow-soft max-w-3xl mx-auto">
         <div className="flex items-center space-x-3 mb-4">
-          <IconWithFallback icon="error_outline" emoji="⚠️" className="text-red-600" />
+          <HelpCircle className="text-red-600" />
           <h2 className="text-xl font-bold">Error Loading Doctors</h2>
         </div>
         <p className="mb-4">{error}</p>
@@ -241,7 +225,7 @@ export default function MyDoctorsPage() {
           href="/patient/doctors"
           className="bg-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-medium hover:shadow-strong flex items-center justify-center space-x-2 text-sm md:text-base touch-friendly"
         >
-          <IconWithFallback icon="search" emoji="🔍" className="text-white" />
+          <Search className="text-white" />
           <span>Find More Doctors</span>
         </Link>
       </div>
@@ -251,7 +235,7 @@ export default function MyDoctorsPage() {
         <div className="card p-3 md:p-6 shadow-soft">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-green-100 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="check_circle" emoji="✅" className="text-green-600 text-sm md:text-base" />
+              <CheckCircle className="text-green-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500">Connected</p>
@@ -264,7 +248,7 @@ export default function MyDoctorsPage() {
         <div className="card p-3 md:p-6 shadow-soft">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-yellow-100 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="schedule" emoji="⏰" className="text-yellow-600 text-sm md:text-base" />
+              <Clock className="text-yellow-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500">Pending</p>
@@ -277,7 +261,7 @@ export default function MyDoctorsPage() {
         <div className="card p-3 md:p-6 shadow-soft">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-blue-100 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="event" emoji="📅" className="text-blue-600 text-sm md:text-base" />
+              <Calendar className="text-blue-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500">Appointments</p>
@@ -290,7 +274,7 @@ export default function MyDoctorsPage() {
         <div className="card p-3 md:p-6 shadow-soft">
           <div className="flex items-center space-x-2 md:space-x-4">
             <div className="bg-orange-100 p-2 md:p-3 rounded-lg md:rounded-xl">
-              <IconWithFallback icon="payment" emoji="💰" className="text-orange-600 text-sm md:text-base" />
+              <CreditCard className="text-orange-600 text-sm md:text-base" />
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-500">Outstanding</p>
@@ -373,7 +357,7 @@ export default function MyDoctorsPage() {
                       {/* Professional Credentials */}
                       <div className="bg-blue-50 rounded-lg p-4 mb-4">
                         <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
-                          <IconWithFallback icon="school" emoji="🎓" className="text-blue-600 mr-2" />
+                          <HelpCircle className="text-blue-600 mr-2" />
                           Professional Credentials
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -413,7 +397,7 @@ export default function MyDoctorsPage() {
                       {/* Practice Information */}
                       <div className="bg-gray-50 rounded-lg p-4 mb-4">
                         <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
-                          <IconWithFallback icon="local_hospital" emoji="🏥" className="text-gray-600 mr-2" />
+                          <Cross className="text-gray-600 mr-2" />
                           Practice Information
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -453,7 +437,7 @@ export default function MyDoctorsPage() {
                         {doctor.languagesSpoken && doctor.languagesSpoken.length > 0 && (
                           <div>
                             <h5 className="font-medium text-gray-800 mb-2 text-sm flex items-center">
-                              <IconWithFallback icon="language" emoji="🌐" className="text-gray-600 mr-1 text-sm" />
+                              <HelpCircle className="text-gray-600 mr-1 text-sm" />
                               Languages
                             </h5>
                             <div className="flex flex-wrap gap-1">
@@ -468,7 +452,7 @@ export default function MyDoctorsPage() {
                         {doctor.servicesOffered && doctor.servicesOffered.length > 0 && (
                           <div>
                             <h5 className="font-medium text-gray-800 mb-2 text-sm flex items-center">
-                              <IconWithFallback icon="medical_services" emoji="🩺" className="text-gray-600 mr-1 text-sm" />
+                              <Stethoscope className="text-gray-600 mr-1 text-sm" />
                               Services
                             </h5>
                             <div className="flex flex-wrap gap-1">
@@ -524,18 +508,18 @@ export default function MyDoctorsPage() {
                           href={`/patient/appointments?doctor=${doctor.id}`}
                           className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium text-center touch-friendly flex items-center justify-center space-x-2"
                         >
-                          <IconWithFallback icon="calendar_today" emoji="📅" className="text-white" />
+                          <HelpCircle className="text-white" />
                           <span>Book Appointment</span>
                         </Link>
                         <Link
                           href="/patient/messages"
                           className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm font-medium text-center touch-friendly flex items-center justify-center space-x-2"
                         >
-                          <IconWithFallback icon="chat" emoji="💬" className="text-white" />
+                          <MessageCircle className="text-white" />
                           <span>Message</span>
                         </Link>
                         <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 active:bg-gray-300 transition-colors text-sm font-medium touch-friendly flex items-center justify-center space-x-2">
-                          <IconWithFallback icon="visibility" emoji="👁️" className="text-gray-600" />
+                          <Eye className="text-gray-600" />
                           <span>View Profile</span>
                         </button>
                         {connection.canDisconnect && connection.outstandingBalance === 0 && (
@@ -543,14 +527,14 @@ export default function MyDoctorsPage() {
                             onClick={() => setShowDisconnectModal(connection.id)}
                             className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 active:bg-red-800 transition-colors text-sm font-medium touch-friendly flex items-center justify-center space-x-2"
                           >
-                            <IconWithFallback icon="link_off" emoji="🔗❌" className="text-white" />
+                            <HelpCircle className="text-white" />
                             <span>Disconnect</span>
                           </button>
                         )}
                         {connection.outstandingBalance > 0 && (
                           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
                             <div className="flex items-center space-x-2">
-                              <IconWithFallback icon="payment" emoji="💰" className="text-red-600" />
+                              <CreditCard className="text-red-600" />
                               <span className="font-medium">Outstanding Balance</span>
                             </div>
                             <p className="text-xs mt-1">Pay RM {connection.outstandingBalance} to disconnect</p>
@@ -560,7 +544,7 @@ export default function MyDoctorsPage() {
                     ) : connection.status === 'pending' ? (
                       <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg text-center">
                         <div className="flex items-center justify-center space-x-2 mb-1">
-                          <IconWithFallback icon="schedule" emoji="⏰" className="text-yellow-600" />
+                          <Clock className="text-yellow-600" />
                           <span className="font-medium">Waiting for Approval</span>
                         </div>
                         <p className="text-xs">You'll be notified once approved</p>
@@ -568,7 +552,7 @@ export default function MyDoctorsPage() {
                     ) : connection.status === 'rejected' ? (
                       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-center">
                         <div className="flex items-center justify-center space-x-2 mb-2">
-                          <IconWithFallback icon="cancel" emoji="❌" className="text-red-600" />
+                          <X className="text-red-600" />
                           <span className="font-medium">Request Declined</span>
                         </div>
                         <Link

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
+import { RefreshCw, Receipt, Wallet, HelpCircle, Clock, Search, Eye, Download, Mail, FileText, X } from 'lucide-react';
+
 // Enhanced Icon component with fallbacks
 const IconWithFallback = ({ icon, emoji, className = '' }: { 
   icon: string; 
@@ -10,25 +12,7 @@ const IconWithFallback = ({ icon, emoji, className = '' }: {
 }) => {
   return (
     <span className={`icon-container ${className}`}>
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
+      <HelpCircle />
       <span 
         className="emoji-fallback"
         style={{ 
@@ -144,7 +128,7 @@ export default function ProviderBillingPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-3">
           <div className="animate-spin">
-            <IconWithFallback icon="refresh" emoji="🔄" className="text-blue-600" />
+            <RefreshCw className="text-blue-600" />
           </div>
           <span className="text-gray-600 font-medium">Loading billing data...</span>
         </div>
@@ -164,7 +148,7 @@ export default function ProviderBillingPage() {
           onClick={() => setShowNewInvoiceModal(true)}
           className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-medium hover:shadow-strong flex items-center space-x-2"
         >
-          <IconWithFallback icon="receipt" emoji="🧾" className="text-white" />
+          <Receipt className="text-white" />
           <span>Create Invoice</span>
         </button>
       </div>
@@ -174,7 +158,7 @@ export default function ProviderBillingPage() {
         <div className="card p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-4">
             <div className="bg-green-100 p-3 rounded-xl">
-              <IconWithFallback icon="account_balance_wallet" emoji="💰" className="text-green-600" />
+              <Wallet className="text-green-600" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Total Revenue</p>
@@ -186,7 +170,7 @@ export default function ProviderBillingPage() {
         <div className="card p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-4">
             <div className="bg-blue-100 p-3 rounded-xl">
-              <IconWithFallback icon="pending" emoji="⏳" className="text-blue-600" />
+              <HelpCircle className="text-blue-600" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Pending</p>
@@ -198,7 +182,7 @@ export default function ProviderBillingPage() {
         <div className="card p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-4">
             <div className="bg-yellow-100 p-3 rounded-xl">
-              <IconWithFallback icon="schedule" emoji="⏰" className="text-yellow-600" />
+              <Clock className="text-yellow-600" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Overdue</p>
@@ -210,7 +194,7 @@ export default function ProviderBillingPage() {
         <div className="card p-6 hover-effect shadow-soft">
           <div className="flex items-center space-x-4">
             <div className="bg-purple-100 p-3 rounded-xl">
-              <IconWithFallback icon="trending_up" emoji="📈" className="text-purple-600" />
+              <HelpCircle className="text-purple-600" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Paid</p>
@@ -228,7 +212,7 @@ export default function ProviderBillingPage() {
           <div className="flex space-x-3">
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <IconWithFallback icon="search" emoji="🔍" className="text-gray-400" />
+                <Search className="text-gray-400" />
               </div>
               <input 
                 type="text" 
@@ -296,13 +280,13 @@ export default function ProviderBillingPage() {
                     <td className="py-4 px-4">
                       <div className="flex space-x-2">
                         <button className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors" title="View Invoice">
-                          <IconWithFallback icon="visibility" emoji="👁️" className="text-sm" />
+                          <Eye className="text-sm" />
                         </button>
                         <button className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 rounded-lg transition-colors" title="Download">
-                          <IconWithFallback icon="download" emoji="💾" className="text-sm" />
+                          <Download className="text-sm" />
                         </button>
                         <button className="text-purple-600 hover:text-purple-800 p-2 hover:bg-purple-50 rounded-lg transition-colors" title="Send Email">
-                          <IconWithFallback icon="email" emoji="📧" className="text-sm" />
+                          <Mail className="text-sm" />
                         </button>
                       </div>
                     </td>
@@ -313,7 +297,7 @@ export default function ProviderBillingPage() {
                   <td colSpan={7} className="py-12 text-center">
                     <div className="flex flex-col items-center space-y-3">
                       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                        <IconWithFallback icon="receipt_long" emoji="🧾" className="text-gray-400 text-2xl" />
+                        <FileText className="text-gray-400 text-2xl" />
                       </div>
                       <h3 className="text-lg font-medium text-gray-600">No transactions found</h3>
                       <p className="text-gray-500">Try adjusting your search or filter criteria</p>
@@ -337,7 +321,7 @@ export default function ProviderBillingPage() {
                   onClick={() => setShowNewInvoiceModal(false)}
                   className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <IconWithFallback icon="close" emoji="❌" />
+                  <X />
                 </button>
               </div>
             </div>

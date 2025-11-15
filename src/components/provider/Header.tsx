@@ -5,6 +5,17 @@ import { useSession } from 'next-auth/react';
 import { logout } from '@/lib/auth/logout';
 import Link from 'next/link';
 import NotificationBell from '@/components/ui/NotificationBell';
+import { 
+  Menu, 
+  Search, 
+  Clock, 
+  ChevronDown, 
+  User, 
+  Heart, 
+  HelpCircle, 
+  LogOut,
+  Settings 
+} from 'lucide-react';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -17,50 +28,6 @@ interface UserData {
   lastName?: string;
   email: string;
 }
-
-// Enhanced Icon component with fallbacks
-const IconWithFallback = ({ icon, emoji, className = '', onClick }: { 
-  icon: string; 
-  emoji: string; 
-  className?: string;
-  onClick?: () => void;
-}) => {
-  return (
-    <span 
-      className={`icon-container transition-all duration-300 ${className}`}
-      onClick={onClick}
-    >
-      <span 
-        className="material-icons"
-        style={{ 
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
-      <span 
-        className="emoji-fallback"
-        style={{ 
-          fontSize: '20px',
-          display: 'none'
-        }}
-      >
-        {emoji}
-      </span>
-    </span>
-  );
-};
 
 export default function Header({
   onMenuClick,
@@ -209,11 +176,7 @@ export default function Header({
         <div className="mb-4">
           <div className="relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2">
-              <IconWithFallback 
-                icon="search" 
-                emoji="🔍" 
-                className="text-gray-400"
-              />
+              <Search className="w-5 h-5 text-gray-400" />
             </div>
             <input 
               className="w-full bg-white rounded-lg py-3 pl-12 pr-4 shadow-soft border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-300" 
@@ -231,7 +194,7 @@ export default function Header({
               onClick={fetchUserData}
               className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
             >
-              <IconWithFallback icon="refresh" emoji="🔄" />
+              <Clock className="w-5 h-5" />
             </button>
           </div>
           
@@ -279,11 +242,7 @@ export default function Header({
         <h1 className="text-2xl font-bold text-gray-800 gradient-text">{displayTitle}</h1>
         <p className="text-gray-500 flex items-center">
           Your daily healthcare dashboard
-          <IconWithFallback 
-            icon="expand_more" 
-            emoji="🔽" 
-            className="ml-1 text-sm text-gray-400 hover:text-blue-500 cursor-pointer" 
-          />
+          <ChevronDown className="ml-1 w-4 h-4 text-gray-400 hover:text-blue-500 cursor-pointer" />
         </p>
       </div>
       
@@ -291,11 +250,7 @@ export default function Header({
         {/* Enhanced Search Input */}
         <div className="relative group">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
-            <IconWithFallback 
-              icon="search" 
-              emoji="🔍" 
-              className="text-gray-400 group-focus-within:text-blue-500"
-            />
+            <Search className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500" />
           </div>
           <input 
             className="bg-white rounded-lg py-3 pl-12 pr-4 focus:outline-none w-64 shadow-soft border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-300" 
@@ -311,11 +266,7 @@ export default function Header({
           onClick={fetchUserData}
           className="text-gray-600 p-3 hover:bg-gray-100 rounded-lg transition-all duration-300 hover:shadow-medium group hover:rotate-180"
         >
-          <IconWithFallback 
-            icon="refresh" 
-            emoji="🔄" 
-            className="group-hover:text-blue-500 transition-transform duration-300"
-          />
+          <Clock className="w-5 h-5 group-hover:text-blue-500 transition-transform duration-300" />
         </button>
         
         {/* Enhanced Profile Avatar */}
@@ -348,7 +299,7 @@ export default function Header({
                   className="block w-full text-left px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-md transition-colors flex items-center space-x-3"
                   onClick={() => setShowProfileMenu(false)}
                 >
-                  <IconWithFallback icon="person" emoji="👤" className="text-gray-500" />
+                  <User className="w-4 h-4 text-gray-500" />
                   <span>Profile Settings</span>
                 </Link>
                 <Link 
@@ -356,11 +307,11 @@ export default function Header({
                   className="block w-full text-left px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-md transition-colors flex items-center space-x-3"
                   onClick={() => setShowProfileMenu(false)}
                 >
-                  <IconWithFallback icon="settings" emoji="⚙️" className="text-gray-500" />
+                  <Settings className="w-4 h-4 text-gray-500" />
                   <span>Account Settings</span>
                 </Link>
                 <button className="w-full text-left px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-md transition-colors flex items-center space-x-3">
-                  <IconWithFallback icon="help" emoji="❓" className="text-gray-500" />
+                  <HelpCircle className="w-4 h-4 text-gray-500" />
                   <span>Help & Support</span>
                 </button>
               </div>
@@ -370,7 +321,7 @@ export default function Header({
                   onClick={handleSignOut}
                   className="w-full text-left px-3 py-3 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors flex items-center space-x-3"
                 >
-                  <IconWithFallback icon="logout" emoji="🚪" className="text-red-600" />
+                  <LogOut className="w-4 h-4 text-red-600" />
                   <span>Sign Out</span>
                 </button>
               </div>
