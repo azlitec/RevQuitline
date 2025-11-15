@@ -3,7 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
-    container_name: quitline
+    container_name: webkareerfit
     restart: always
     ports:
       - "80:3000"
@@ -18,12 +18,12 @@ services:
 
   mariadb:
     image: mariadb:10.6
-    container_name: quitline-mariadb
+    container_name: webkareerfit-mariadb
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: quitline_webapp
-      MYSQL_USER: quitline_webapp
+      MYSQL_DATABASE: kareerfit_webapp
+      MYSQL_USER: kareerfit_webapp
       MYSQL_PASSWORD: ZaqXsw123ZaqXsw123
     ports:
       - "3306:3306"

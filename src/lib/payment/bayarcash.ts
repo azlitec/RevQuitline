@@ -112,12 +112,34 @@ export class BayarCashService {
 
     // Validate URL formats
     try {
+      // Clean URLs - remove any environment variable names if present
+      const cleanApiUrl = this.config.apiUrl.includes('=') 
+        ? this.config.apiUrl.split('=').pop() || this.config.apiUrl 
+        : this.config.apiUrl;
+      const cleanReturnUrl = this.config.returnUrl.includes('=') 
+        ? this.config.returnUrl.split('=').pop() || this.config.returnUrl 
+        : this.config.returnUrl;
+      const cleanCallbackUrl = this.config.callbackUrl.includes('=') 
+        ? this.config.callbackUrl.split('=').pop() || this.config.callbackUrl 
+        : this.config.callbackUrl;
+
+      // Update config with cleaned URLs
+      this.config.apiUrl = cleanApiUrl.trim();
+      this.config.returnUrl = cleanReturnUrl.trim();
+      this.config.callbackUrl = cleanCallbackUrl.trim();
+
+      // Validate cleaned URLs
       new URL(this.config.apiUrl);
       new URL(this.config.returnUrl);
       new URL(this.config.callbackUrl);
     } catch (urlError) {
       const error = 'Invalid URL format in BayarCash configuration';
-      this.log('error', error, { urlError });
+      this.log('error', error, { 
+        urlError,
+        apiUrl: this.config.apiUrl,
+        returnUrl: this.config.returnUrl,
+        callbackUrl: this.config.callbackUrl
+      });
       
       // Only throw in production, warn in development
       if (process.env.NODE_ENV === 'production') {
@@ -559,15 +581,28 @@ export class BayarCashService {
   }
 }
 
+// Helper function to clean environment variables
+function cleanEnvVar(value: string | undefined): string {
+  if (!value) return '';
+  
+  // Remove any environment variable name prefix (e.g., "VAR_NAME=value" -> "value")
+  if (value.includes('=')) {
+    const parts = value.split('=');
+    return parts[parts.length - 1].trim();
+  }
+  
+  return value.trim();
+}
+
 // Initialize BayarCash service with enhanced configuration
 // Use safe fallbacks for build time when env vars might not be available
 export const bayarCashService = new BayarCashService({
-  pat: process.env.BAYARCASH_PAT || '',
-  apiSecret: process.env.BAYARCASH_API_SECRET || '',
-  portalKey: process.env.BAYARCASH_PORTAL_KEY || '',
-  apiUrl: process.env.BAYARCASH_API_URL || 'https://console.bayarcash-sandbox.com/api/v2',
-  returnUrl: process.env.BAYARCASH_RETURN_URL || (process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/patient/payment/return` : 'http://localhost:3000/patient/payment/return'),
-  callbackUrl: process.env.BAYARCASH_CALLBACK_URL || (process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/api/payment/callback` : 'http://localhost:3000/api/payment/callback'),
+  pat: cleanEnvVar(process.env.BAYARCASH_PAT) || '',
+  apiSecret: cleanEnvVar(process.env.BAYARCASH_API_SECRET) || '',
+  portalKey: cleanEnvVar(process.env.BAYARCASH_PORTAL_KEY) || '',
+  apiUrl: cleanEnvVar(process.env.BAYARCASH_API_URL) || 'https://console.bayarcash-sandbox.com/api/v2',
+  returnUrl: cleanEnvVar(process.env.BAYARCASH_RETURN_URL) || (process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/patient/payment/return` : 'http://localhost:3000/patient/payment/return'),
+  callbackUrl: cleanEnvVar(process.env.BAYARCASH_CALLBACK_URL) || (process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/api/payment/callback` : 'http://localhost:3000/api/payment/callback'),
   debug: process.env.BAYARCASH_DEBUG === 'true' || process.env.NODE_ENV === 'development',
   timeout: parseInt(process.env.BAYARCASH_TIMEOUT || '30000'),
   retryAttempts: parseInt(process.env.BAYARCASH_RETRY_ATTEMPTS || '3'),
