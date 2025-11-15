@@ -5,46 +5,7 @@ import { useSession } from 'next-auth/react';
 import { logout } from '@/lib/auth/logout';
 import Link from 'next/link';
 import NotificationBell from '@/components/ui/NotificationBell';
-
-// Enhanced Icon component with fallbacks
-const IconWithFallback = ({ icon, emoji, className = '' }: {
-  icon: string;
-  emoji: string;
-  className?: string;
-}) => {
-  return (
-    <span className={`icon-container ${className}`}>
-      <span
-        className="material-icons"
-        style={{
-          fontSize: '24px',
-          fontWeight: 'normal',
-          fontStyle: 'normal',
-          lineHeight: '1',
-          letterSpacing: 'normal',
-          textTransform: 'none',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          wordWrap: 'normal',
-          direction: 'ltr',
-          WebkitFontFeatureSettings: '"liga"',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        {icon}
-      </span>
-      <span
-        className="emoji-fallback"
-        style={{
-          fontSize: '20px',
-          display: 'none'
-        }}
-      >
-        {emoji}
-      </span>
-    </span>
-  );
-};
+import { Clock, ChevronDown, LogOut, User, Settings, Menu, Search, Heart, HelpCircle } from 'lucide-react';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -115,7 +76,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             onClick={onMenuClick}
             className="p-2 rounded-lg hover:bg-gray-100 lg:hidden transition-colors touch-friendly"
           >
-            <IconWithFallback icon="menu" emoji="☰" className="text-gray-600" />
+            <Menu className="w-6 h-6 text-gray-600" />
           </button>
           
           <div className="hidden md:block">
@@ -134,7 +95,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <div className="flex items-center space-x-3 md:space-x-4">
           {/* Current time */}
           <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-500">
-            <IconWithFallback icon="schedule" emoji="🕒" className="text-gray-400" />
+            <Clock className="w-4 h-4 text-gray-400" />
             <span suppressHydrationWarning>{formatTime(currentTime)}</span>
           </div>
 
@@ -146,17 +107,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 placeholder="Search doctors, appointments..."
                 className="w-48 lg:w-64 px-4 py-2 pl-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm"
               />
-              <IconWithFallback
-                icon="search"
-                emoji="🔍"
-                className="text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
-              />
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
           </div>
 
           {/* Mobile search button */}
           <button className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors touch-friendly">
-            <IconWithFallback icon="search" emoji="🔍" className="text-gray-600" />
+            <Search className="w-5 h-5 text-gray-600" />
           </button>
 
           {/* Notifications */}
@@ -174,7 +131,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <span className="hidden md:block text-sm font-medium text-gray-700 max-w-24 truncate">
                 {patientName.split(' ')[0]}
               </span>
-              <IconWithFallback icon="expand_more" emoji="⌄" className="text-gray-400 hidden md:block" />
+              <ChevronDown className="w-4 h-4 text-gray-400 hidden md:block" />
             </button>
 
             {showProfileMenu && (
@@ -196,7 +153,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     className="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3"
                     onClick={() => setShowProfileMenu(false)}
                   >
-                    <IconWithFallback icon="person" emoji="👤" className="text-gray-500" />
+                    <User className="w-4 h-4 text-gray-500" />
                     <span>Profile Settings</span>
                   </Link>
                   <Link 
@@ -204,11 +161,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     className="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3"
                     onClick={() => setShowProfileMenu(false)}
                   >
-                    <IconWithFallback icon="favorite" emoji="❤️" className="text-gray-500" />
+                    <Heart className="w-4 h-4 text-gray-500" />
                     <span>Health Preferences</span>
                   </Link>
                   <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3">
-                    <IconWithFallback icon="help" emoji="❓" className="text-gray-500" />
+                    <HelpCircle className="w-4 h-4 text-gray-500" />
                     <span>Help & Support</span>
                   </button>
                 </div>
@@ -217,7 +174,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     onClick={handleSignOut}
                     className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3"
                   >
-                    <IconWithFallback icon="logout" emoji="🚪" className="text-red-500" />
+                    <LogOut className="w-4 h-4 text-red-500" />
                     <span>Sign Out</span>
                   </button>
                 </div>

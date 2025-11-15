@@ -3,19 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useNotifications } from '@/contexts/NotificationContext';
-
-// Clean Icon component
-const IconWithFallback = ({ icon, emoji, className = '' }: {
-  icon: string;
-  emoji: string;
-  className?: string;
-}) => {
-  return (
-    <span className={`material-icons ${className}`} style={{ fontSize: 'inherit' }}>
-      {icon}
-    </span>
-  );
-};
+import { LayoutDashboard, Search, Calendar, MessageSquare, CreditCard, X } from 'lucide-react';
 
 interface SidebarProps {
   isMobile?: boolean;
@@ -23,11 +11,11 @@ interface SidebarProps {
 }
 
 const navigationItems = [
-  { name: 'Dashboard', href: '/patient/dashboard', icon: 'dashboard', emoji: '🏠' },
-  { name: 'Find Doctors', href: '/patient/doctors', icon: 'search', emoji: '🔍' },
-  { name: 'Appointments', href: '/patient/appointments', icon: 'event', emoji: '📅' },
-  { name: 'Messages', href: '/patient/messages', icon: 'chat', emoji: '💬' },
-  { name: 'Billing', href: '/patient/billing', icon: 'payment', emoji: '💰' },
+  { name: 'Dashboard', href: '/patient/dashboard', icon: LayoutDashboard },
+  { name: 'Find Doctors', href: '/patient/doctors', icon: Search },
+  { name: 'Appointments', href: '/patient/appointments', icon: Calendar },
+  { name: 'Messages', href: '/patient/messages', icon: MessageSquare },
+  { name: 'Billing', href: '/patient/billing', icon: CreditCard },
 ];
 
 export default function Sidebar({ isMobile = false, onClose }: SidebarProps) {
@@ -67,7 +55,7 @@ export default function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <IconWithFallback icon="close" emoji="❌" className="text-gray-600" />
+            <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>
 
@@ -88,11 +76,7 @@ export default function Sidebar({ isMobile = false, onClose }: SidebarProps) {
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <IconWithFallback
-                        icon={item.icon}
-                        emoji={item.emoji}
-                        className={isActive ? 'text-blue-600' : 'text-gray-500'}
-                      />
+                      <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
                       <span className="font-medium">{item.name}</span>
                     </div>
                     {getNotificationCount(item.name) > 0 && (
@@ -136,11 +120,7 @@ export default function Sidebar({ isMobile = false, onClose }: SidebarProps) {
                   }`}
                   title={item.name}
                 >
-                  <IconWithFallback
-                    icon={item.icon}
-                    emoji={item.emoji}
-                    className={`text-xl ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-600'}`}
-                  />
+                  <item.icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-600'}`} />
                   
                   {/* Notification Badge */}
                   {getNotificationCount(item.name) > 0 && (

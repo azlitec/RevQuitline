@@ -1,0 +1,82 @@
+/* Additional fixes for overlapping text and layout issues */
+
+/* Ensure proper z-index layering */
+.sidebar {
+  z-index: 40;
+}
+
+header {
+  z-index: 30;
+}
+
+.bottom-nav {
+  z-index: 20;
+}
+
+main {
+  z-index: 10;
+}
+
+/* Fix text overflow and wrapping */
+* {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Prevent text from overlapping in cards */
+.card {
+  position: relative;
+  overflow: visible;
+}
+
+.card * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix button text alignment */
+button {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure proper spacing in flex containers */
+.flex {
+  gap: 0.5rem;
+}
+
+/* Fix icon alignment */
+svg {
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Prevent content from going under fixed elements */
+body {
+  overflow-x: hidden;
+}
+
+/* Fix mobile spacing */
+@media (max-width: 768px) {
+  .card {
+    margin-bottom: 1rem;
+  }
+  
+  /* Ensure bottom nav doesn't overlap content */
+  main {
+    padding-bottom: 5rem !important;
+  }
+}
+
+/* Remove Material Icons if not needed */
+.material-icons {
+  display: none !important;
+}
+
+/* Ensure Lucide icons display properly */
+.lucide {
+  display: inline-block;
+  vertical-align: middle;
+}

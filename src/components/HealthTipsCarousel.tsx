@@ -1,25 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-
-// Icon component with fallbacks
-const IconWithFallback = ({ icon, emoji, className = '' }: {
-  icon: string;
-  emoji: string;
-  className?: string;
-}) => {
-  return (
-    <span className={`icon-container ${className}`}>
-      <span className="material-icons">{icon}</span>
-      <span className="icon-fallback" style={{ display: 'none' }}>{emoji}</span>
-    </span>
-  );
-};
+import { Droplet, Moon, PersonStanding, Salad, Brain, Sun, CigaretteOff, Heart } from 'lucide-react';
 
 interface HealthTip {
   id: number;
-  icon: string;
-  emoji: string;
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   color: string;
@@ -28,64 +14,56 @@ interface HealthTip {
 const healthTips: HealthTip[] = [
   {
     id: 1,
-    icon: 'local_drink',
-    emoji: '💧',
+    icon: Droplet,
     title: 'Stay Hydrated',
     description: 'Drinking enough water is crucial for your health. Aim for 8 glasses a day to maintain optimal body function.',
     color: 'blue'
   },
   {
     id: 2,
-    icon: 'bedtime',
-    emoji: '😴',
+    icon: Moon,
     title: 'Get Quality Sleep',
     description: 'Aim for 7-9 hours of sleep each night. Good sleep improves memory, mood, and overall health.',
     color: 'purple'
   },
   {
     id: 3,
-    icon: 'directions_walk',
-    emoji: '🚶',
+    icon: PersonStanding,
     title: 'Stay Active',
     description: 'Regular physical activity helps maintain a healthy weight and reduces risk of chronic diseases. Aim for 30 minutes daily.',
     color: 'green'
   },
   {
     id: 4,
-    icon: 'restaurant',
-    emoji: '🥗',
+    icon: Salad,
     title: 'Eat Balanced Meals',
     description: 'Include fruits, vegetables, whole grains, and lean proteins in your diet for optimal nutrition.',
     color: 'orange'
   },
   {
     id: 5,
-    icon: 'self_improvement',
-    emoji: '🧘',
+    icon: Brain,
     title: 'Manage Stress',
     description: 'Practice relaxation techniques like deep breathing, meditation, or yoga to reduce stress levels.',
     color: 'indigo'
   },
   {
     id: 6,
-    icon: 'wb_sunny',
-    emoji: '☀️',
+    icon: Sun,
     title: 'Get Sunlight',
     description: 'Spend 10-15 minutes in sunlight daily for vitamin D, which supports bone health and immune function.',
     color: 'yellow'
   },
   {
     id: 7,
-    icon: 'smoke_free',
-    emoji: '🚭',
+    icon: CigaretteOff,
     title: 'Avoid Smoking',
     description: 'Quitting smoking is one of the best things you can do for your health. Seek support if you need help.',
     color: 'red'
   },
   {
     id: 8,
-    icon: 'favorite',
-    emoji: '❤️',
+    icon: Heart,
     title: 'Regular Check-ups',
     description: 'Schedule regular health screenings and check-ups to catch potential issues early.',
     color: 'pink'
@@ -212,11 +190,7 @@ export default function HealthTipsCarousel() {
         <div className={`bg-gradient-to-r ${colors.bg} p-4 md:p-6 rounded-xl transition-all duration-300`}>
           <div className="flex items-start space-x-3 md:space-x-4">
             <div className={`${colors.iconBg} p-2 md:p-3 rounded-lg flex-shrink-0`}>
-              <IconWithFallback 
-                icon={currentTip.icon} 
-                emoji={currentTip.emoji} 
-                className={`${colors.iconText} text-xl md:text-2xl`} 
-              />
+              <currentTip.icon className={`${colors.iconText} w-6 h-6 md:w-8 md:h-8`} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-gray-800 font-semibold text-base md:text-lg mb-2">
